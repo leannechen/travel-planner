@@ -98,6 +98,17 @@ Only the title is required.
 - A Day's Lodging can be the start point of a Leg to the first Event of that Day.
 - If the gap between two Events is shorter than the Leg's duration, a conflict warning is shown. Nothing is moved automatically.
 
+**Leg detail**: clicking an existing Leg opens a small popover (not the full Event panel) showing:
+
+- the names of the two Events it connects (read-only);
+- the travel mode, which the user can change;
+- the estimated duration and the distance, computed from Google and read-only;
+- the current gap between the two Events, emphasized only when it is too short;
+- a link that opens the route in Google Maps;
+- a delete action.
+
+A Leg has no Description or notes. Public-transit route details (lines, transfers) are not shown in v1; the Google Maps link covers them.
+
 **Leg lifecycle**
 
 | Situation | Result |

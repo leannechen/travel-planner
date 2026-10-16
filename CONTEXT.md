@@ -5,7 +5,7 @@ A tool for planning trips, alone or with others: arrange attractions, meals, lod
 ## Language
 
 **Trip**:
-A complete travel plan: a set of Days, the two holding areas, and Todos. Calendar dates are optional.
+A complete travel plan: a set of Days, the two holding areas, Todos and Notes. Calendar dates are optional.
 _Avoid_: Itinerary, plan, project
 
 **Day**:
@@ -35,19 +35,27 @@ _Avoid_: Travel
 A plain movement between two adjacent Events, created when the user clicks the time slot between them. Its duration is computed from the two locations; the user only picks the travel mode (drive, public transit, walk). It cannot exist if either Event has no location.
 _Avoid_: Travel, route, commute
 
-**Parking Lot**:
+**Backlog**:
 A holding area outside any Day for Events the user is still considering.
-_Avoid_: Backlog, maybe list
+_Avoid_: Parking Lot, maybe list
 
-**Discard Pile**:
+**Archive**:
 A holding area outside any Day for Events the user has given up on; they can be taken back at any time.
-_Avoid_: Trash, archive
+_Avoid_: Discard Pile, trash
 
 **Map View**:
 A secondary view that shows Event locations on a map, colored by Day, and lets the user open an Event to edit it. The default and complete editing experience stays in the time-axis view of the Days.
 
+**Description**:
+The Markdown text attached to one Event, holding that Event's details (for example check-in time or booking notes).
+_Avoid_: Notes, memo
+
+**Note**:
+A standalone free-form Markdown entry in a Trip's notes list, for quick drafts. It has no link to any Event, Day or other component. Visible to the Owner and Editors only.
+_Avoid_: Memo, scratchpad
+
 **Todo**:
-A to-do item, either a Trip Todo (belongs to the whole Trip) or an Event Todo (belongs to one Event). Event Todos are deleted when their Event is put in the Discard Pile or deleted.
+A to-do item, either a Trip Todo (belongs to the whole Trip) or an Event Todo (belongs to one Event). Event Todos are deleted when their Event is put in the Archive or deleted.
 _Avoid_: Task, checklist item
 
 ## Roles and sharing
@@ -56,7 +64,7 @@ _Avoid_: Task, checklist item
 The user who owns a Trip and can edit it.
 
 **Editor**:
-A logged-in user invited by email to edit a Trip alongside the Owner. Can edit Events, Legs and Todos, and sees Todos and the Discard Pile; cannot delete the Trip, invite people or change sharing.
+A logged-in user invited by email to edit a Trip alongside the Owner. Can edit Events, Legs and Todos, and sees Todos and the Archive; cannot delete the Trip, invite people or change sharing.
 _Avoid_: Collaborator, member
 
 **Viewer**:

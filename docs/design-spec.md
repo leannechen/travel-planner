@@ -18,10 +18,11 @@ Reference material in `docs/reference/`: `excalidraw-design-draft.png` (Day layo
 
 ### 2.2 Trip workspace (desktop)
 Layout, left to right:
-- **Parking Lot** panel and **Discard Pile** panel (collapsible).
+- **Backlog** panel and **Archive** panel (collapsible).
 - **Days**: columns side by side, each with a header (Day number, optional date), a time axis, and Event blocks. Horizontal scroll when many Days.
 - **Todos** panel (Trip Todos, with Event Todos grouped under their Event).
-- A top bar: Trip title, view switch (Schedule / Map), Share, Export, collaborators.
+- A top bar: Trip title, view switch (Schedule / Map), Notes, Share, Export, language, collaborators.
+- A floating **Notes panel**, opened from anywhere with a keyboard shortcut: a field for a new Note on top (focused on open), then pinned Notes, then the rest by most recent edit. Markdown is edited in place.
 
 ### 2.3 Trip workspace (phone)
 - One Day at a time, with a Day switcher (tabs or swipe) and the date when set.
@@ -29,7 +30,7 @@ Layout, left to right:
 - Event creation: tap a time slot. Moving between a Day and a holding area, or between Days: edit the Day and start-time fields in the Event panel.
 
 ### 2.4 Map View
-- Full-width map, markers colored per Day, a Day filter, a toggle for gray Parking Lot markers.
+- Full-width map, markers colored per Day, a Day filter, a toggle for gray Backlog markers.
 - Clicking a marker opens the same Event edit panel as the schedule.
 
 ### 2.5 Share, Export and Settings dialogs
@@ -53,7 +54,7 @@ Layout, left to right:
 
 ### 3.3 Event edit panel
 - A popover on desktop, a bottom sheet on phone.
-- Fields grouped: kind and title; Day and start time; duration; location (Google place search); notes; contact; opening hours; image; Event Todos.
+- Fields grouped: kind and title; Day and start time; duration; location (Google place search); Description (Markdown); contact; opening hours; image; Event Todos.
 - Creation dialog follows the draft: kind chip, place input, confirm button.
 
 ### 3.4 Confirmation dialogs
@@ -67,23 +68,46 @@ Layout, left to right:
 
 - **Create**: click a time on a Day's axis; the new Event starts at that time (snap to a small increment, such as 15 minutes).
 - **Move and resize**: drag the block or its edges; snap; nothing else moves.
-- **Desktop drag between areas**: Events can be dragged between a Day, another Day, Parking Lot and Discard Pile, with a clear drop target highlight.
+- **Desktop drag between areas**: Events can be dragged between a Day, another Day, Backlog and Archive, with a clear drop target highlight.
 - **Phone**: within a Day, drag and resize are available; across areas, only the fields.
 - **Collaboration**: other people's changes appear without reload; show who is online and briefly highlight an Event changed by someone else.
-- **Viewer mode**: same layout without edit affordances, no Todos or Discard Pile.
+- **Viewer mode**: same layout without edit affordances, no Todos or Archive.
 
-## 5. States to design
+## 5. Keyboard and language
+
+- Shortcuts follow PRD §13. Show the shortcut in each control's tooltip and provide a cheat sheet on `?`. Single-key shortcuts must not fire while a text field is focused.
+- The Description editor is a Markdown editor with preview; the same applies to Notes.
+- Interface language switch in the top bar and in settings. Text must tolerate length differences between English and Traditional Chinese.
+
+| English | Traditional Chinese |
+|---|---|
+| Trip | 旅程 |
+| Day | 第 N 天 |
+| Event | 事件 |
+| Attraction | 景點 |
+| Meal | 餐廳 |
+| Lodging | 住宿 |
+| Transport event | 交通 |
+| Leg | 移動 |
+| Backlog | 未決區 |
+| Archive | 放棄區 |
+| Todo | 待辦 |
+| Note | 筆記 |
+| Description | 說明 |
+| Owner / Editor / Viewer | 擁有者 / 編輯者 / 檢視者 |
+
+## 6. States to design
 
 - Empty Trip, empty Day, empty holding area.
 - Loading (AI generation, Leg calculation, map).
 - Errors: place not found, calculation failed, share link off, no permission, offline (a clear message; offline reading is a next-phase feature).
 - Limits reached: AI daily limit.
 
-## 6. Export visuals
+## 7. Export visuals
 
 - **Image**: a poster-style layout with Days side by side, Event blocks in their kind colors, Leg duration and mode between them, Trip title and date range in a header. Must remain legible when exported with many Days.
 - **Document**: simple, printable, one section per Day.
 
-## 7. Open design decisions
+## 8. Open design decisions
 
 Palette, typography, density, iconography, animation, and the exact snapping increment.

@@ -15,13 +15,15 @@ People who plan trips on a desktop or phone juggle places, restaurants, lodging 
 ### 2.1 In scope for v1
 
 1. Trip planning on a Day time axis (§3)
-2. Holding areas: Parking Lot and Discard Pile (§4)
+2. Holding areas: Backlog and Archive (§4)
 3. Todos (§5)
 4. Map View (§6)
 5. AI-generated Trips (§7)
 6. Accounts, sharing and lightweight collaboration (§8)
 7. Export (§9)
 8. Desktop and phone experiences (§10)
+9. Notes (§5.1)
+10. Keyboard operation and interface language (§13, §14)
 
 ### 2.2 Next phase
 
@@ -66,7 +68,7 @@ Each non-goal is listed with its reason, so it is not reopened without new infor
 | Opening hours | Attraction, Meal | no |
 | Phone, email | Attraction, Meal, Lodging | no |
 | Start and end location | Transport event | no |
-| Notes | all | no |
+| Description (Markdown) | all | no |
 | Preview image | all | no |
 | Event Todos | all | no |
 
@@ -89,11 +91,11 @@ Each non-goal is listed with its reason, so it is not reopened without new infor
 | The two Events stop being adjacent (moved, or another Event inserted between) | Leg is removed |
 | An Event's location changes | Leg duration is recalculated |
 | An Event's location is cleared | Leg stays and shows "cannot calculate" |
-| Either Event leaves the Day (Discard Pile, Parking Lot, deleted) | Leg is removed |
+| Either Event leaves the Day (Archive, Backlog, deleted) | Leg is removed |
 
 ### 3.4 Transport events
 
-A Transport event is an Event the user creates for transport with its own character (ferry, scenic train). It has its own time, notes and booking link and may have start and end locations. Legs connect the previous Event to its start location and its end location to the next Event.
+A Transport event is an Event the user creates for transport with its own character (ferry, scenic train). It has its own time, Description and booking link and may have start and end locations. Legs connect the previous Event to its start location and its end location to the next Event.
 
 ### 3.5 Opening-hours check
 
@@ -101,26 +103,34 @@ When a Trip has dates and an Event with opening hours is placed in a Day, a warn
 
 ## 4. Holding areas
 
-- **Parking Lot**: Events still being considered. **Discard Pile**: Events given up on. Neither belongs to any Day.
+- **Backlog**: Events still being considered. **Archive**: Events given up on. Neither belongs to any Day.
 - An Event is scheduled by editing two fields: **Day** (Day 1..N, or "not scheduled") and **start time**. On desktop it can also be dragged between a holding area and a Day. On phone this is done only through the fields.
 - Moving an Event between Days uses the same fields; on desktop it can also be dragged.
 - An Event without a location can be scheduled; it simply cannot have Legs or appear on the Map View.
-- Taking an Event back from the Discard Pile does not restore its deleted Event Todos.
+- Taking an Event back from the Archive does not restore its deleted Event Todos.
 
 ## 5. Todos
 
 - A **Trip Todo** belongs to the whole Trip (for example "Request leave 3/21–3/24"). An **Event Todo** belongs to one Event (for example "Book the room" on a Lodging).
-- When an Event is put in the Discard Pile or deleted, its Event Todos are deleted.
+- When an Event is put in the Archive or deleted, its Event Todos are deleted.
   - If the Event has at least one Todo, a confirmation is shown first, stating how many Todos will be deleted, including those created by other people. The dialog offers "do not remind me again".
   - If the Event has no Todos, the action proceeds without a prompt.
-- Deleting an Event can be undone for a few seconds, restoring its Todos too. Moving an Event to the Discard Pile has no undo.
+- Deleting an Event can be undone for a few seconds, restoring its Todos too. Moving an Event to the Archive has no undo.
 - Todos have no assignee in v1.
+
+### 5.1 Notes and Descriptions
+
+- A **Note** is a standalone Markdown entry in the Trip's notes list, for quick drafts (for example "Day 1–3 Kyoto, Day 4–5 Osaka"). It never links to an Event or a Day and nothing happens automatically when it changes.
+- The notes list belongs to a Trip. The Owner and Editors can read and write it; Viewers cannot see it.
+- Notes are shown in a floating panel that can be opened from any screen with a keyboard shortcut. Opening it focuses a field for a new Note. The list is ordered by most recently edited, and a Note can be pinned. There is no search in v1.
+- An Event's **Description** is a Markdown block holding that Event's details, like the body of a Trello card.
+- Markdown checkboxes inside a Description are formatting only; they are not Todos, do not appear in the Todo list, and do not affect what happens when the Event is archived.
 
 ## 6. Map View
 
 - Shows Event locations on a Google Map, colored by Day, with the ability to show one Day or all Days.
 - Clicking a marker opens the same edit panel as the time-axis view.
-- Parking Lot Events are shown with a gray marker by default, so the user can judge which Day they fit; this can be turned off.
+- Backlog Events are shown with a gray marker by default, so the user can judge which Day they fit; this can be turned off.
 - Events without a location do not appear.
 - The default and complete editing experience stays in the time-axis view. Adding Events from the map is a next-phase feature.
 
@@ -140,12 +150,12 @@ When a Trip has dates and an Event with opening hours is placed in a Day, a warn
 
 | Action | Owner | Editor | Viewer |
 |---|---|---|---|
-| Edit Events, Todos, Legs | yes | yes | no |
-| See Todos and the Discard Pile | yes | yes | no |
+| Edit Events, Todos, Legs, Notes | yes | yes | no |
+| See Todos, Notes and the Archive | yes | yes | no |
 | Delete the Trip | yes | no | no |
 | Invite people, change sharing | yes | no | no |
 
-- **Viewer**: opens a share link, read-only, no login required. Sees Days, the Map View and the Parking Lot. Contact fields (phone, email) of Events are visible. The Owner can turn the link off at any time.
+- **Viewer**: opens a share link, read-only, no login required. Sees Days, the Map View and the Backlog. Contact fields (phone, email) of Events are visible. The Owner can turn the link off at any time.
 - **Editor**: invited by email; must log in. The Owner can see and remove Editors.
 - **Collaboration**: changes from one person appear promptly for others. Conflicts resolve per Event, with the last write winning.
 
@@ -153,8 +163,8 @@ When a Trip has dates and an Event with opening hours is placed in a Day, a warn
 
 | Format | Content | Purpose |
 |---|---|---|
-| Document (openable in Google Docs) | Each Day's schedule with Event details; no Todos, no Discard Pile | Print or send to companions |
-| Full backup (this app's format) | Everything: Todos, Parking Lot, Discard Pile; importing creates a new Trip | Clone or restore a Trip |
+| Document (openable in Google Docs) | Each Day's schedule with Event details; no Todos, no Archive | Print or send to companions |
+| Full backup (this app's format) | Everything: Todos, Notes, Backlog, Archive; importing creates a new Trip | Clone or restore a Trip |
 | Image | One image for the whole Trip, Days side by side, with Leg durations and travel-mode icons; no map | Sharing in chats |
 
 ## 10. Devices
@@ -168,6 +178,23 @@ When a Trip has dates and an Event with opening hours is placed in a Day, a warn
 - **Collaboration limits**: v1 does not provide merge of simultaneous edits to one field.
 - **Data safety**: deleting Todos along with an Event is irreversible after confirmation, so the confirmation must state the count.
 
-## 12. Open items deferred to the design spec
+## 12. Terms in the interface
+
+The product uses the terms in `CONTEXT.md`. In the Traditional Chinese interface, Backlog is shown as 未決區 and Archive as 放棄區; the design spec holds the full term mapping. The Archive wording must make clear that an archived Event's Todos are deleted.
+
+## 13. Keyboard operation
+
+- Most actions can be done from the keyboard: create an Event, select an Event, open it, move through Events, delete, cancel.
+- There is a notion of a selected Event: arrow keys move the selection, Enter opens it for editing, Delete removes it (following the confirmation rules in §5), Esc clears the selection.
+- Frequent actions use single keys, active only when no text field is focused. App-wide actions (such as opening the notes panel) use modifier combinations.
+- Pressing `?` shows a shortcut cheat sheet. Every button's tooltip also shows its shortcut.
+
+## 14. Interface language
+
+- The default interface language is English; the user can switch to Traditional Chinese.
+- The switch applies to interface text. AI generation uses the current interface language. Fixed labels in exports (such as "Day 1" and date formats) follow the interface language. Text the user typed is never translated.
+- Logged-in users keep the setting on their account; guests keep it in the browser. A Viewer sees the interface in the language of their own browser, defaulting to English.
+
+## 15. Open items deferred to the design spec
 
 Colors, spacing, typography, empty and error states, animation, and field length limits.

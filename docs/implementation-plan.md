@@ -2,7 +2,7 @@
 
 Product rules are in [`PRD.md`](./PRD.md); vocabulary in [`CONTEXT.md`](../CONTEXT.md); decisions in [`docs/adr/`](./adr/). This file orders the work and tracks status. It changes often; the PRD should not.
 
-**Current step: 0 (not started)**
+**Current step: 0 (not started). Blocked until the UI designs are delivered.** Implementation begins once screens exist for the schedule view, the edit panel and the holding areas; later steps need the remaining screens listed in the design spec before they start.
 
 ## Working agreement
 

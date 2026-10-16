@@ -21,7 +21,7 @@ Layout, left to right:
 - **Backlog** panel and **Archive** panel (collapsible).
 - **Days**: columns side by side, each with a header (drag handle for reordering, Day number, optional date, menu with move, insert and delete), a time axis, and Event blocks. Horizontal scroll when many Days.
 - **Todos** panel (Trip Todos, with Event Todos grouped under their Event).
-- A top bar: Trip title, view switch (Schedule / Map), Notes, Share, Export, language, collaborators.
+- A top bar: Trip title, view switch (Schedule / Map), Notes, Share, Export, language and theme switches (top right), collaborators.
 - A floating **Notes panel**, opened from anywhere with a keyboard shortcut: a field for a new Note on top (focused on open), then pinned Notes, then the rest by most recent edit. Markdown is edited in place.
 
 ### 2.3 Trip workspace (phone)
@@ -36,7 +36,7 @@ Layout, left to right:
 ### 2.5 Share, Export and Settings dialogs
 - Share: link on/off, copy link, invite Editors by email, list and remove Editors.
 - Export: three options (document, backup, image) with a short description each.
-- Trip settings: dates, default travel mode.
+- Trip settings: title, dates, default travel mode, delete Trip. Language is not here; it is a top-right switch.
 
 ## 3. Components
 
@@ -55,7 +55,7 @@ Layout, left to right:
 - Clicking an existing Leg opens a small popover (a bottom sheet on phone) with: the two Event names (read-only), travel mode selector, duration and distance (read-only), the current gap (emphasized only when too short), "Open in Google Maps", and delete. No Description or notes field, and no transit route details.
 
 ### 3.3 Event edit panel
-- A popover on desktop, a bottom sheet on phone.
+- A side panel on desktop (Expand turns it into a modal), a bottom sheet on phone.
 - Fields depend on the kind (PRD §3.2). Attraction and Meal share one layout; Lodging replaces start time and duration with check-in Day, nights and check-in and check-out times; Transport has departure and destination places, departure and arrival times (with "+1" when arriving on a later day), a transport label and a booking link. Design all four variants.
 - The image area has Replace and Remove. After Remove, it shows the kind's icon and, if the Event has a location, a "Use place photo" action. Common fields: kind and title; Day and time; location (Google place search); Description (Markdown); contact (phone, email, website, collapsed by default); opening hours (Attraction, Meal); image; Event Todos.
 - Switching the kind keeps hidden values and shows a short note naming what is hidden; design that transition (PRD §3.2).
@@ -112,6 +112,10 @@ Layout, left to right:
 - **Image**: a poster-style layout with Days side by side, Event blocks in their kind colors, Leg duration and mode between them, Trip title and date range in a header. Must remain legible when exported with many Days.
 - **Document**: simple, printable, one section per Day.
 
-## 8. Open design decisions
+## 8. Final design
 
-Palette, typography, density, iconography, animation, and the exact snapping increment.
+The final design is in [`docs/design/`](./design/) (`README.md` lists all 32 screens). Where it differs from this document, the design wins, except for the points listed in the PRD.
+
+- Tokens: `docs/design/source/hf.css`. Kind colors: Attraction blue, Transport green, Meal orange, Lodging purple, each with an icon. Fonts: Inter, Nunito, Noto Sans TC. 4-pt spacing. Time snapping: 15 minutes. Light and dark themes.
+- The language and theme switches sit in the top right.
+- Placeholder photos come from Unsplash; author attribution is added at the end of the project (plan step 26).

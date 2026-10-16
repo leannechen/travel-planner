@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Day menu phone</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="hf.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Nunito:wght@700;800&amp;family=Noto+Sans+TC:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.wfroot{position:relative;overflow:hidden;width:1330px;height:930px}
+button{font:inherit;color:inherit;cursor:pointer;text-align:left}
+.i{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.cap{position:absolute;top:18px;font-size:12px;font-weight:600;color:var(--text);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.phw{position:absolute;top:48px;width:390px;height:844px;background:var(--surface);border:1px solid var(--border2);border-radius:22px;overflow:hidden;display:flex;flex-direction:column}
+.top{height:52px;flex:none;display:flex;align-items:center;padding:0 4px 0 16px;border-bottom:1px solid var(--border)}
+.top b{font-size:16px;flex:1}
+.ib{width:44px;height:44px;border:0;background:transparent;display:inline-flex;align-items:center;justify-content:center;padding:0;border-radius:var(--r-lg)}
+.ib.on{background:#e8ebef}
+.seg{margin:6px 16px;display:flex;border:1px solid var(--border2);border-radius:var(--r-lg);overflow:hidden;height:40px;flex:none}
+.seg span{flex:1;display:flex;align-items:center;justify-content:center}
+.tabs{height:56px;flex:none;display:flex;gap:6px;padding:0 16px 6px}
+.tab{flex:none;width:60px;border:1px solid var(--border2);border-radius:var(--r-lg);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2}
+.tab small{font-size:11px;color:var(--muted)}
+.tab.on{background:var(--text);color:#fff;border-color:var(--text)}
+.tab.on small{color:#cbd2da}
+.drow{height:44px;flex:none;display:flex;align-items:center;gap:8px;padding:0 4px 0 16px;border-top:1px solid var(--border)}
+.drow b{font-size:15px}
+.vp{flex:1;position:relative;overflow:hidden;background-image:linear-gradient(to bottom,var(--grid) 1px,transparent 1px);background-size:100% 48px;background-position:0 0}
+.dock{height:64px;flex:none;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-around;font-weight:600}
+.dimw{position:absolute;inset:0;background:rgba(20,24,30,.45)}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:16px 16px 0 0;padding:6px 8px 12px;box-shadow:0 -6px 24px rgba(0,0,0,.25)}
+.grab{width:40px;height:4px;border-radius:2px;background:var(--border2);margin:4px auto 8px}
+.sh-t{padding:4px 12px 10px;font-weight:600;font-size:15px;display:flex;gap:8px;align-items:baseline}
+.mi{height:52px;width:100%;border:0;background:transparent;display:flex;gap:14px;align-items:center;padding:0 12px;border-radius:var(--r-lg);font-size:15px}
+.mi.dng{color:var(--danger)}
+.mi.dis{color:#9aa3af}
+.sep{height:1px;background:var(--border);margin:4px 8px}
+.cancel{margin:8px 4px 0;width:calc(100% - 8px);height:48px;border:1px solid var(--border2);border-radius:var(--r-lg);background:var(--surface);font-size:15px;text-align:center}
+.dlg{position:absolute;left:25px;right:25px;top:300px;background:var(--surface);border-radius:12px;box-shadow:var(--sh-dlg);padding:20px 20px 16px}
+.dlg h2{margin:0 0 8px;font-size:17px}
+.dlg p{margin:0 0 8px;font-size:14px}
+.dlg ul{margin:0 0 14px;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--text)}
+.dlg .btns{display:flex;gap:8px}
+.dlg .btns button{flex:1;height:48px;border-radius:var(--r-lg);border:1px solid var(--border2);background:var(--surface);font-size:15px;text-align:center}
+.dlg .btns .dng{background:var(--danger);border-color:var(--danger);color:#fff;font-weight:600}
+</style>
+</helmet>
+<div class="hf wfroot">
+
+<div class="cap" style="left:40px">Day row with menu</div>
+<div class="cap" style="left:470px">Menu open</div>
+<div class="cap" style="left:900px">Delete Day with Events</div>
+
+<!-- 1: closed -->
+<div class="phw" style="left:40px">
+  <div class="top"><b>Kyoto &amp; Osaka</b><button class="ib" aria-label="Notes"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h10l4 4v14H5z"></path><path d="M9 11h6M9 15h6"></path></svg></button><button class="ib" aria-label="Share"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="2.5"></circle><circle cx="18" cy="6" r="2.5"></circle><circle cx="18" cy="18" r="2.5"></circle><path d="M8.2 11l7.6-4M8.2 13l7.6 4"></path></svg></button><button class="ib" aria-label="More">⋯</button></div>
+  <div class="seg"><span class="on">Schedule</span><span>Map</span></div>
+  <div class="tabs"><span class="tab">Day 1<small>3 Nov</small></span><span class="tab on">Day 2<small>4 Nov</small></span><span class="tab">Day 3<small>5 Nov</small></span><span class="tab">Day 4<small>6 Nov</small></span></div>
+  <div class="drow"><b>Day 2</b><span class="muted">Wed 4 Nov</span><span style="flex:1"></span><button class="ib" aria-label="Day 2 menu"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle fill="currentColor" stroke="none" cx="5" cy="12" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="12" cy="12" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="19" cy="12" r="1.6"></circle></svg></button></div>
+  <div class="ban k-l"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19V6"></path><path d="M3 14h18v5"></path><path d="M21 14v-2a3 3 0 0 0-3-3h-7v5"></path></svg><b style="font-weight:600">Hotel Granvia Kyoto</b><span class="muted">· night 2 of 3</span></div>
+  <div class="vp" aria-hidden="true"><div class="ev k-a" style="top:24px;height:72px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Arashiyama Bamboo Grove</span></span></div><div class="ev k-a" style="top:120px;height:48px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Tenryu-ji</span></span></div><div class="ev k-m" style="top:192px;height:48px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M17 3c-2 2-2 6 0 8v10"></path></svg><span>Tofu lunch</span></span></div><div class="ev k-a" style="top:288px;height:72px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Kinkaku-ji</span></span></div></div>
+  <div class="dock" aria-hidden="true"><span>Backlog</span><span>Archive</span><span>Todos</span></div>
+</div>
+
+<!-- 2: menu open -->
+<div class="phw" style="left:470px">
+  <div class="top"><b>Kyoto &amp; Osaka</b><button class="ib" aria-label="Notes"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h10l4 4v14H5z"></path><path d="M9 11h6M9 15h6"></path></svg></button><button class="ib" aria-label="Share"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="2.5"></circle><circle cx="18" cy="6" r="2.5"></circle><circle cx="18" cy="18" r="2.5"></circle><path d="M8.2 11l7.6-4M8.2 13l7.6 4"></path></svg></button><button class="ib" aria-label="More">⋯</button></div>
+  <div class="seg"><span class="on">Schedule</span><span>Map</span></div>
+  <div class="tabs"><span class="tab">Day 1<small>3 Nov</small></span><span class="tab on">Day 2<small>4 Nov</small></span><span class="tab">Day 3<small>5 Nov</small></span><span class="tab">Day 4<small>6 Nov</small></span></div>
+  <div class="drow"><b>Day 2</b><span class="muted">Wed 4 Nov</span><span style="flex:1"></span><button class="ib on" aria-label="Day 2 menu" aria-expanded="true"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle fill="currentColor" stroke="none" cx="5" cy="12" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="12" cy="12" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="19" cy="12" r="1.6"></circle></svg></button></div>
+  <div class="ban k-l"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19V6"></path><path d="M3 14h18v5"></path><path d="M21 14v-2a3 3 0 0 0-3-3h-7v5"></path></svg><b style="font-weight:600">Hotel Granvia Kyoto</b><span class="muted">· night 2 of 3</span></div>
+  <div class="vp" aria-hidden="true"><div class="ev k-a" style="top:24px;height:72px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Arashiyama Bamboo Grove</span></span></div><div class="ev k-a" style="top:120px;height:48px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Tenryu-ji</span></span></div></div>
+  <div class="dock" aria-hidden="true"><span>Backlog</span><span>Archive</span><span>Todos</span></div>
+  <div class="dimw"></div>
+  <section class="sheet" role="menu" aria-label="Day 2 menu">
+    <div class="grab"></div>
+    <div class="sh-t">Day 2 <span class="muted" style="font-weight:400;font-size:13px">Wed 4 Nov</span></div>
+    <button class="mi" role="menuitem"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg>Move earlier</button>
+    <button class="mi" role="menuitem"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>Move later</button>
+    <div class="sep"></div>
+    <button class="mi" role="menuitem"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5v14"></path><path d="M9 12h10M14 7v10"></path></svg>Insert Day before</button>
+    <button class="mi" role="menuitem"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 5v14"></path><path d="M5 12h10M10 7v10"></path></svg>Insert Day after</button>
+    <div class="sep"></div>
+    <button class="mi dng" role="menuitem"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"></path></svg>Delete Day</button>
+    <button class="cancel">Cancel</button>
+  </section>
+</div>
+
+<!-- 3: delete confirmation -->
+<div class="phw" style="left:900px">
+  <div class="top"><b>Kyoto &amp; Osaka</b><button class="ib" aria-label="Notes"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h10l4 4v14H5z"></path><path d="M9 11h6M9 15h6"></path></svg></button><button class="ib" aria-label="Share"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="2.5"></circle><circle cx="18" cy="6" r="2.5"></circle><circle cx="18" cy="18" r="2.5"></circle><path d="M8.2 11l7.6-4M8.2 13l7.6 4"></path></svg></button><button class="ib" aria-label="More">⋯</button></div>
+  <div class="seg"><span class="on">Schedule</span><span>Map</span></div>
+  <div class="tabs"><span class="tab">Day 1<small>3 Nov</small></span><span class="tab on">Day 2<small>4 Nov</small></span><span class="tab">Day 3<small>5 Nov</small></span><span class="tab">Day 4<small>6 Nov</small></span></div>
+  <div class="drow"><b>Day 2</b><span class="muted">Wed 4 Nov</span><span style="flex:1"></span><button class="ib" aria-label="Day 2 menu"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle fill="currentColor" stroke="none" cx="5" cy="12" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="12" cy="12" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="19" cy="12" r="1.6"></circle></svg></button></div>
+  <div class="ban k-l"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19V6"></path><path d="M3 14h18v5"></path><path d="M21 14v-2a3 3 0 0 0-3-3h-7v5"></path></svg><b style="font-weight:600">Hotel Granvia Kyoto</b><span class="muted">· night 2 of 3</span></div>
+  <div class="vp" aria-hidden="true"><div class="ev k-a" style="top:24px;height:72px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Arashiyama Bamboo Grove</span></span></div><div class="ev k-a" style="top:120px;height:48px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Tenryu-ji</span></span></div></div>
+  <div class="dock" aria-hidden="true"><span>Backlog</span><span>Archive</span><span>Todos</span></div>
+  <div class="dimw"></div>
+  <section class="dlg" role="alertdialog" aria-modal="true" aria-label="Delete Day 2">
+    <h2>Delete Day 2?</h2>
+    <p><b>7 Events</b> will move to the Backlog.</p>
+    <ul>
+      <li>Their Todos are kept. Legs between them are removed.</li>
+      <li>Later Days move up: Day 3 becomes Day 2.</li>
+      <li>Hotel Granvia Kyoto loses a night (3 to 2).</li>
+    </ul>
+    <div class="btns"><button>Cancel</button><button class="dng">Delete Day</button></div>
+  </section>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1330,"height":930}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

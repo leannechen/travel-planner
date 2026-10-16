@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Event image states</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="hf.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Nunito:wght@700;800&amp;family=Noto+Sans+TC:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.ei-board{width:2340px;height:1060px;position:relative;overflow:hidden}
+.pc{position:absolute;width:420px;height:470px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:14px 16px;overflow:hidden;box-shadow:var(--sh-card)}
+.pc .ctx{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted);margin-bottom:12px;border-bottom:1px dashed var(--border);padding-bottom:8px}
+.tile{height:190px;border-radius:var(--r-lg);position:relative;overflow:hidden}
+.tile img{width:100%;height:100%;object-fit:cover;display:block}
+.tile.ph.none{width:auto;height:190px;border-radius:var(--r-lg);display:flex;align-items:center;justify-content:center}
+.src{position:absolute;left:8px;bottom:8px;background:rgba(255,255,255,.94);border-radius:6px;padding:2px 9px;font-size:11px;font-weight:600;color:#33415f}
+.acts{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.hint{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.5}
+.bc{position:absolute;width:300px;height:300px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden}
+.bc .ax{position:absolute;inset:0;height:auto;background-image:linear-gradient(to bottom,var(--grid) 1px,transparent 1px);background-size:100% 52px;background-color:var(--axisbg)}
+.bc .ev{left:6px;right:6px}
+.rules{position:absolute;left:1980px;top:48px;width:320px;line-height:1.45}
+.rules table{border-collapse:collapse;width:100%;font-size:12px}
+.rules td{border-top:1px solid var(--border);padding:5px 4px;text-align:left;vertical-align:top}
+.ei-board .cap{position:absolute}
+</style>
+</helmet>
+<div class="hf ei-board">
+<div class="cap" style="left:40px;top:32px">1 · Google place photo (default)</div><section class="pc" style="left:40px;top:60px"><div class="ctx"><b style="color:var(--text)">Image</b><span>Event panel · after Event Todos</span></div><div class="tile"><img alt="" src="assets/fushimi-inari.jpg"><span class="src">Place photo · Google</span></div><div class="acts"><button class="btn sm"><svg class="i" style="width:13px;height:13px" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><circle cx="9" cy="10" r="2"></circle><path d="M21 16l-5-5-9 9"></path></svg>Replace</button><button class="btn sm dng-q">Remove</button></div><div class="hint">Shown when the Event has a location and no upload. Replace opens the file picker. Remove means no image at all.</div></section><div class="cap" style="left:500px;top:32px">2 · User-uploaded image</div><section class="pc" style="left:500px;top:60px"><div class="ctx"><b style="color:var(--text)">Image</b><span>Event panel · after Event Todos</span></div><div class="tile"><img alt="" src="assets/kiyomizu-dera.jpg"><span class="src">Your image</span></div><div class="acts"><button class="btn sm"><svg class="i" style="width:13px;height:13px" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><circle cx="9" cy="10" r="2"></circle><path d="M21 16l-5-5-9 9"></path></svg>Replace</button><button class="btn sm dng-q">Remove</button></div><div class="hint">An upload always wins over the place photo. Changing the location never replaces it.</div></section><div class="cap" style="left:960px;top:32px">3 · No image (after Remove), has location</div><section class="pc" style="left:960px;top:60px"><div class="ctx"><b style="color:var(--text)">Image</b><span>Event panel · after Event Todos</span></div><div class="tile ph none" style="color:var(--a-bar)"><svg class="i" style="width:44px;height:44px" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg></div><div class="acts"><button class="btn sm">Use place photo</button><button class="btn sm"><svg class="i" style="width:13px;height:13px" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Upload image</button></div><div class="hint">Kind icon on a neutral tile. “Use place photo” brings the Google photo back. Upload image is my addition here (the spec lists only Use place photo).</div></section><div class="cap" style="left:1420px;top:32px">4 · No location, no upload</div><section class="pc" style="left:1420px;top:60px"><div class="ctx"><b style="color:var(--text)">Image</b><span>Event panel · after Event Todos</span></div><div class="tile ph none" style="color:var(--a-bar)"><svg class="i" style="width:44px;height:44px" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg></div><div class="acts"><button class="btn sm"><svg class="i" style="width:13px;height:13px" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Upload image</button></div><div class="hint">Kind icon on a neutral tile. No place photo without a location; adding one later fills the default photo.</div></section><div class="cap" style="left:40px;top:612px">Event block · thumbnail when tall enough (104 px shown), kind icon when there is no image</div><div class="bc" style="left:40px;top:640px;height:320px"><div class="ax"><button class="ev k-a img" style="top:20px;height:104px"><span class="ph"><img alt="" src="assets/fushimi-inari.jpg"></span><span class="tx"><span class="t"><svg class="i"  viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Fushimi Inari Taisha</span></span><span class="s">11:00 – 13:00 · Fukakusa, Kyoto</span></span></button></div></div><div class="cap" style="left:40px;top:972px;text-transform:none;letter-spacing:0">Photo (Google)</div><div class="bc" style="left:360px;top:640px;height:320px"><div class="ax"><button class="ev k-a img" style="top:20px;height:104px"><span class="ph"><img alt="" src="assets/kiyomizu-dera.jpg"></span><span class="tx"><span class="t"><svg class="i"  viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Kiyomizu-dera</span></span><span class="s">15:00 – 17:00 · Higashiyama, Kyoto</span></span></button></div></div><div class="cap" style="left:360px;top:972px;text-transform:none;letter-spacing:0">Uploaded image</div><div class="bc" style="left:680px;top:640px;height:320px"><div class="ax"><button class="ev k-a img" style="top:20px;height:104px"><span class="ph none" style="color:var(--a-bar)"><svg class="i" style="width:30px;height:30px" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg></span><span class="tx"><span class="t"><svg class="i"  viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Tenryu-ji</span></span><span class="s">11:00 – 13:00 · Arashiyama, Kyoto</span></span></button></div></div><div class="cap" style="left:680px;top:972px;text-transform:none;letter-spacing:0">No image: Attraction</div><div class="bc" style="left:1000px;top:640px;height:320px"><div class="ax"><button class="ev k-m img" style="top:20px;height:104px"><span class="ph none" style="color:var(--m-bar)"><svg class="i" style="width:30px;height:30px" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M17 3c-2 2-2 6 0 8v10"></path></svg></span><span class="tx"><span class="t"><svg class="i"  viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M17 3c-2 2-2 6 0 8v10"></path></svg><span>Tofu lunch</span></span><span class="s">12:30 – 14:30 · Saga, Kyoto</span></span></button></div></div><div class="cap" style="left:1000px;top:972px;text-transform:none;letter-spacing:0">No image: Meal</div><div class="bc" style="left:1320px;top:640px;height:320px"><div class="ax"><button class="ev k-t img" style="top:20px;height:104px"><span class="ph none" style="color:var(--t-bar)"><svg class="i" style="width:30px;height:30px" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="14" rx="3"></rect><path d="M5 11h14"></path><path d="M9 21l2-4M15 21l-2-4"></path></svg></span><span class="tx"><span class="t"><svg class="i"  viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="14" rx="3"></rect><path d="M5 11h14"></path><path d="M9 21l2-4M15 21l-2-4"></path></svg><span>Limited express to Osaka</span></span><span class="s">11:30 – 13:30 · Kyoto → Osaka</span></span></button></div></div><div class="cap" style="left:1320px;top:972px;text-transform:none;letter-spacing:0">No image: Transport</div><div class="cap" style="left:1660px;top:612px">Shorter blocks</div><div class="bc" style="left:1660px;top:640px;height:320px"><div class="ax"><button class="ev k-a" style="top:20px;height:78px"><span class="t"><svg class="i"  viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Fushimi Inari Taisha</span></span><span class="s">11:00 – 13:00</span></button><button class="ev k-a xs" style="top:130px;height:30px"><span class="t"><svg class="i"  viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Tenryu-ji</span></span></button></div></div><div class="cap" style="left:1660px;top:972px;text-transform:none;letter-spacing:0">Not tall enough: no thumbnail and no icon tile. Same with or without an image.</div>
+<aside class="mc rules"><h4>Image source, in priority order</h4>
+<div>1. The user’s uploaded image</div><div>2. Google place photo, when the Event has a location</div><div>3. The kind’s icon</div>
+<h4 style="margin-top:12px">Behaviour</h4>
+<table><tr><td><b>Remove</b></td><td>No image for this Event. Hides the Google photo too.</td></tr>
+<tr><td><b>Use place photo</b></td><td>Back to the default. Needs a location.</td></tr>
+<tr><td><b>Location changes</b></td><td>The default photo swaps to the new place. An uploaded image stays.</td></tr>
+<tr><td><b>Location cleared</b></td><td>No place photo. Upload stays; otherwise state 4.</td></tr>
+<tr><td><b>Upload removed</b></td><td>Goes to “no image” (state 3), not back to the photo. Matches Remove.</td></tr></table>
+<h4 style="margin-top:12px">Notes for review</h4>
+<div>The block thumbnail is a square centre crop of the same image; the panel shows it wide.</div>
+<div>The kind icon on the tile repeats the one in the title row. Kept for the tall block so the card does not look empty.</div>
+<div>Google requires attribution for place photos; shown as “Place photo · Google” in the panel. In the block it is omitted for space. To check.</div>
+<div>Applies to Attraction, Meal, Lodging and Transport panels (see Event panel by kind).</div>
+<div>Image size limits, accepted formats and upload errors are not drawn.</div></aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":2340,"height":1060}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

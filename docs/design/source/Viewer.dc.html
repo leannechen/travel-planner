@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Viewer read-only mode</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="hf.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Nunito:wght@700;800&amp;family=Noto+Sans+TC:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+
+body{margin:0}
+
+.wfroot{width:2040px;height:900px}
+
+
+.ws{position:absolute;left:40px;top:48px;width:1180px;height:800px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r-lg);overflow:hidden;display:flex;flex-direction:column}
+.tb{height:48px;flex:none;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;padding:0 14px}
+.sq{width:26px;height:26px;border-radius:var(--r-md);background:var(--text)}
+.main{flex:1;display:flex;min-height:0}
+.sidew{width:210px;flex:none;background:var(--surface);border-right:1px solid var(--border);padding:12px}
+.gc{height:50px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--surface2);margin-top:8px;padding:6px 8px;font-size:12px}
+.days{flex:1;display:flex;background:var(--surface);overflow:hidden}
+.gut{width:44px;flex:none}
+.day{width:276px;flex:none;border-left:1px solid var(--border)}
+.dh{height:48px;display:flex;align-items:center;gap:8px;padding:0 10px;border-bottom:1px solid var(--border)}
+.axis{position:relative;height:640px;background-image:linear-gradient(to bottom,var(--grid) 1px,transparent 1px);background-size:100% 52px}
+.pnl{position:absolute;left:1260px;top:48px;width:400px;height:800px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-lg);padding:14px 16px;overflow:hidden}
+.fld{border:1px solid #e1e4e8;border-radius:var(--r-md);background:#f9fafb;padding:7px 10px;margin-top:4px}
+.badge{display:inline-flex;gap:6px;align-items:center;border:1px solid var(--border2);border-radius:12px;padding:2px 10px;font-size:12px;background:var(--surface2)}
+.nt{position:absolute;left:1700px;top:48px;width:300px}
+
+</style>
+</helmet>
+<div class="hf wfroot">
+<div class="cap" style="left:40px;top:20px">Viewer · workspace</div><div class="cap" style="left:1260px;top:20px">Viewer · Event details</div><section class="ws" aria-label="Viewer workspace"><div class="tb"><span class="sq"></span><b style="font-size:15px">Kyoto &amp; Osaka</b><span class="muted">Tue 3 – Sat 7 Nov · 5 days</span>
+<div class="seg" style="margin-left:10px"><span class="on">Schedule</span><span>Map</span></div><span style="flex:1"></span><span class="badge"><svg class="i" style="width:14px;height:14px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>Viewing · read only</span><button class="btn sm">EN</button><button class="btn pri sm">Log in</button></div>
+<div class="main"><aside class="sidew"><b>Backlog</b> <span class="muted">4</span><div class="gc"><b>Nishiki Market</b><br><span class="muted">Meal · 1 h</span></div><div class="gc"><b>Philosopher’s Path</b><br><span class="muted">Attraction · 1.5 h</span></div><div class="gc"><b>Gion walk</b><br><span class="muted">Attraction · 1 h</span></div>
+<div class="muted" style="font-size:12px;margin-top:14px;line-height:1.5">No Archive, Todos or Notes in this view.</div></aside>
+<div class="days"><div class="gut"></div><div class="day"><div class="dh"><b>Day 1</b><span class="muted">Tue 3 Nov</span></div><div class="ban"><svg class="i" style="width:13px;height:13px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19V6"></path><path d="M3 14h18v5"></path><path d="M21 14v-2a3 3 0 0 0-3-3h-7v5"></path></svg><b style="font-weight:600">Hotel Granvia Kyoto</b><span class="muted">· night 1 of 3</span></div><div class="axis"><div class="ev k-t" style="top:26px;height:91px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="14" rx="3"></rect><path d="M5 11h14"></path><path d="M9 21l2-4M15 21l-2-4"></path></svg><span>Shinkansen to Kyoto</span></span><span class="s">08:30 – 10:15</span></div><div class="ev k-a img" style="top:156px;height:104px"><span class="ph"><img alt="" src="assets/fushimi-inari.jpg"></span><span class="tx"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Fushimi Inari Taisha</span></span><span class="s">11:00 – 13:00</span></span></div><div class="ev k-a img" style="top:364px;height:104px"><span class="ph"><img alt="" src="assets/kiyomizu-dera.jpg"></span><span class="tx"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Kiyomizu-dera</span></span><span class="s">15:00 – 17:00</span></span></div><div class="ev k-m" style="top:546px;height:78px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M17 3c-2 2-2 6 0 8v10"></path></svg><span>Dinner in Pontocho</span></span><span class="s">18:30 – 20:00</span></div></div></div><div class="day"><div class="dh"><b>Day 2</b><span class="muted">Wed 4 Nov</span></div><div class="ban"><svg class="i" style="width:13px;height:13px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19V6"></path><path d="M3 14h18v5"></path><path d="M21 14v-2a3 3 0 0 0-3-3h-7v5"></path></svg><b style="font-weight:600">Hotel Granvia Kyoto</b><span class="muted">· night 2 of 3</span></div><div class="axis"><div class="ev k-a" style="top:52px;height:78px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Arashiyama Bamboo Grove</span></span><span class="s">09:00 – 10:30</span></div><div class="ev k-a" style="top:182px;height:52px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Tenryu-ji</span></span><span class="s">11:00 – 12:00</span></div><div class="ev k-m" style="top:260px;height:52px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M17 3c-2 2-2 6 0 8v10"></path></svg><span>Tofu lunch</span></span><span class="s">12:30 – 13:30</span></div></div></div><div class="day"><div class="dh"><b>Day 3</b><span class="muted">Thu 5 Nov</span></div><div class="ban"><svg class="i" style="width:13px;height:13px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19V6"></path><path d="M3 14h18v5"></path><path d="M21 14v-2a3 3 0 0 0-3-3h-7v5"></path></svg><b style="font-weight:600">Hotel Granvia Kyoto</b><span class="muted">· night 3 of 3</span></div><div class="axis"><div class="ev k-a" style="top:104px;height:104px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Nara deer park</span></span><span class="s">10:00 – 12:00</span></div></div></div></div></div></section><section class="pnl" aria-label="Event details, read only"><div style="display:flex;align-items:center"><span class="badge"><svg class="i" style="width:13px;height:13px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg>Attraction</span><span style="flex:1"></span><button class="ib" aria-label="Close"><svg class="i" style="width:16px;height:16px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
+<h2 style="margin:10px 0 2px;font-size:20px">Kiyomizu-dera</h2><div class="muted">Day 1 · Tue 3 Nov · 15:00 – 17:00 (2 h)</div>
+<div style="height:150px;border-radius:var(--r-lg);margin-top:12px;background:repeating-linear-gradient(45deg,#c9d6ea,#c9d6ea 10px,#d9e3f3 10px,#d9e3f3 20px);display:flex;align-items:center;justify-content:center;gap:8px;color:var(--text)" role="img" aria-label="Event image"><svg class="i" style="width:20px;height:20px;" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><circle cx="9" cy="10" r="2"></circle><path d="M21 16l-5-5-9 9"></path></svg>Event image</div><span class="lbl">Location</span><div class="fld">1-294 Kiyomizu, Higashiyama-ku, Kyoto</div>
+<span class="lbl">Description</span><div class="fld" style="min-height:90px">Buy the timed ticket online. Sunset view from the main hall.</div>
+<span class="lbl">Contact</span><div class="fld">Phone +81 75-551-1234</div><div class="fld">Website kiyomizudera.or.jp</div>
+<span class="lbl">Opening hours</span><div class="fld">Daily 06:00 – 18:00</div>
+<div class="muted" style="margin-top:18px;font-size:12px">The image is shown but not replaceable. Fields are plain text. No Event Todos, no kind switch, no autosave status. Contact fields stay visible to Viewers.</div></section><aside class="mc nt"><h4>What a Viewer loses</h4>
+<div>Top bar: no Notes, Share, Export or collaborator avatars. Instead a “Viewing · read only” badge and Log in.</div>
+<div>Left: Backlog only. No Archive. No Todos panel on the right.</div>
+<div>Day headers: no drag handle, no menu. Events: no resize handles, no ghost “New Event”, no drag. Nothing responds to clicking an empty time.</div>
+<div>Map View remains, with Day filter and gray Backlog markers.</div>
+<div>Tall Event blocks show their image above the title and time, as in the editable workspace; short blocks stay text only.</div>
+<div>Clicking an Event opens a read-only panel, same layout as the Event panel.</div>
+<div>Export is not offered to Viewers in the PRD. Confirmed by omission, worth checking.</div></aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":2040,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

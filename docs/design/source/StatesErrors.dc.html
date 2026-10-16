@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Error and limit states</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="hf.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Nunito:wght@700;800&amp;family=Noto+Sans+TC:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+
+body{margin:0}
+
+.wfroot{width:2000px;height:1180px}
+
+
+.cell{position:absolute;width:600px;height:400px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-lg);overflow:hidden}
+.cell .tb{height:34px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;padding:0 10px;font-size:12px}
+.rail{position:absolute;left:0;top:34px;bottom:0;width:150px;background:var(--surface);border-right:1px solid var(--border);padding:10px;font-size:12px}
+.dc{position:absolute;top:34px;bottom:0;width:210px;border-left:1px solid var(--border)}
+.dc .h{height:34px;border-bottom:1px solid var(--border);padding:8px 10px;font-size:12px;font-weight:600}
+.ax{position:absolute;inset:34px 0 0 0;background-image:linear-gradient(to bottom,var(--grid) 1px,transparent 1px);background-size:100% 36px}
+.hint{border:1px dashed var(--muted);border-radius:var(--r-lg);color:var(--muted);font-size:12px;padding:10px;text-align:center}
+.mid{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:8px;color:var(--text)}
+.mid b{font-size:15px;color:var(--text)}
+.spin{animation:none}
+.sk2{height:44px;border-radius:var(--r-md);background:var(--border);margin-bottom:8px}
+.leg{display:inline-flex;gap:6px;align-items:center;border:1px dashed var(--muted);border-radius:11px;background:var(--surface2);padding:2px 10px;font-size:11px}
+.leg.errw{border-color:var(--warn,#b45309);background:#fff4e0;color:#8a3d05}
+.errw{color:var(--danger)}
+.bn{height:30px;display:flex;align-items:center;gap:8px;padding:0 12px;font-size:12px}
+.bn.off{background:#fff4e0;color:#8a3d05;border-bottom:1px solid #e0b87a}
+.pg{position:absolute;inset:34px 0 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;padding:0 50px}
+.pg .big{width:56px;height:56px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.pg b{font-size:17px}
+.sq{width:20px;height:20px;border-radius:5px;background:var(--text);flex:none}
+
+</style>
+</helmet>
+<div class="hf wfroot">
+<div class="cap" style="left:40px;top:32px">Error · place not found</div><section class="cell" style="left:40px;top:60px"><div class="tb"><span class="logo" style="width:22px;height:22px;border-radius:7px"><svg class="i" style="width:13px;height:13px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"></path><path d="M9 4v14M15 6v14"></path></svg></span><b>Kyoto &amp; Osaka</b></div><div style="position:absolute;left:150px;top:50px;width:300px;background:var(--surface);border:1px solid var(--muted);border-radius:var(--r-xl);box-shadow:var(--sh-pop);padding:14px 16px">
+<b>Location</b><div class="in" style="margin-top:6px;border-color:var(--danger);outline:2px solid #f2c4c6"><span class="muted"><svg class="i" style="width:14px;height:14px;" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"></circle><path d="M20 20l-4-4"></path></svg></span><input aria-label="Location" value="Kiyomi temple"></div>
+<div class="errw" style="font-size:12px;margin-top:6px;display:flex;gap:6px"><svg class="i" style="width:14px;height:14px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z"></path><path d="M12 10v5"></path><path d="M12 18v.01"></path></svg>No place found for “Kiyomi temple”. Check the spelling or try a nearby landmark. You can also leave the location empty.</div>
+<div class="muted" style="font-size:12px;margin-top:8px">Events without a location can be scheduled, but have no Legs and do not appear on the Map.</div></div></section><div class="cap" style="left:700px;top:32px">Error · Leg calculation failed</div><section class="cell" style="left:700px;top:60px"><div class="tb"><span class="logo" style="width:22px;height:22px;border-radius:7px"><svg class="i" style="width:13px;height:13px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"></path><path d="M9 4v14M15 6v14"></path></svg></span><b>Kyoto &amp; Osaka</b></div><div class="dc" style="left:0;width:300px;border-left:0"><div class="h">Day 1</div><div class="ax"><button class="ev k-a" style="top:20px;height:50px"><span class="t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg><span>Fushimi Inari</span></span><span class="s">11:00 – 13:00</span></button><div style="position:absolute;left:0;right:0;top:76px;text-align:center"><span class="leg errw"><svg class="i" style="width:12px;height:12px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z"></path><path d="M12 10v5"></path><path d="M12 18v.01"></path></svg>Can’t calculate · <u>Retry</u></span></div><button class="ev k-a" style="top:110px;height:50px"><span class="t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg><span>Kiyomizu-dera</span></span><span class="s">14:30 – 16:00</span></button></div></div>
+<div style="position:absolute;left:330px;top:70px;width:240px" class="muted"><b style="color:var(--text)">Leg state: cannot calculate</b><br>The Leg stays in the column so the gap is visible. Retry recalculates; the travel-mode chooser stays available.</div></section><div class="cap" style="left:1360px;top:32px">Error · offline</div><section class="cell" style="left:1360px;top:60px"><div class="tb"><span class="logo" style="width:22px;height:22px;border-radius:7px"><svg class="i" style="width:13px;height:13px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"></path><path d="M9 4v14M15 6v14"></path></svg></span><b>Kyoto &amp; Osaka</b></div><div class="bn off" style="position:absolute;left:0;right:0;top:34px"><svg class="i" style="width:16px;height:16px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 9a15 15 0 0 1 20 0M5 13a10 10 0 0 1 14 0M8.5 16.5a5 5 0 0 1 7 0"></path><path d="M3 3l18 18"></path></svg><b>You’re offline.</b> Changes can’t be saved until you reconnect.<span style="flex:1"></span><button class="btn sm">Dismiss</button></div>
+<div class="rail" style="top:64px"><b>Backlog</b> <span class="muted">3</span></div><div class="dc" style="left:150px;top:64px"><div class="h">Day 1</div><div class="ax" style="opacity:.6"><button class="ev k-t" style="top:30px;height:70px"><span class="t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h10a2 2 0 0 1 2 2v10a3 3 0 0 1-3 3l2 3M5 5v10a3 3 0 0 0 3 3l-2 3M5 11h14"/></svg><span>Shinkansen</span></span><span class="s">9:00 – 10:30</span></button><button class="ev k-a" style="top:130px;height:70px"><span class="t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg><span>Fushimi Inari</span></span><span class="s">11:00 – 13:00</span></button></div></div></section><div class="cap" style="left:40px;top:532px">Error · share link turned off (Viewer)</div><section class="cell" style="left:40px;top:560px"><div class="tb"><span class="logo" style="width:22px;height:22px;border-radius:7px"><svg class="i" style="width:13px;height:13px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"></path><path d="M9 4v14M15 6v14"></path></svg></span><b>Travel Planner</b></div><div class="pg"><span class="big"><svg class="i" style="width:24px;height:24px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1"></path><path d="M14 10a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1"></path></svg></span><b>This link is turned off</b><span class="muted">The Owner has stopped sharing this Trip. Ask them for a new link.</span></div></section><div class="cap" style="left:700px;top:532px">Error · no permission</div><section class="cell" style="left:700px;top:560px"><div class="tb"><span class="logo" style="width:22px;height:22px;border-radius:7px"><svg class="i" style="width:13px;height:13px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"></path><path d="M9 4v14M15 6v14"></path></svg></span><b>Travel Planner</b></div><div class="pg"><span class="big"><svg class="i" style="width:24px;height:24px;" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg></span><b>You don’t have access to this Trip</b><span class="muted">This Trip is private. Log in with the account that was invited, or ask the Owner to invite you.</span><span style="display:flex;gap:8px"><button class="btn pri">Log in</button><button class="btn">Open the sample Trip</button></span></div></section><div class="cap" style="left:1360px;top:532px">Limit reached · AI daily limit</div><section class="cell" style="left:1360px;top:560px"><div class="tb"><span class="logo" style="width:22px;height:22px;border-radius:7px"><svg class="i" style="width:13px;height:13px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"></path><path d="M9 4v14M15 6v14"></path></svg></span><b>New Trip</b></div><div style="position:absolute;left:60px;top:70px;width:480px"><b style="font-size:16px">Create a Trip from a prompt</b>
+<div class="in" style="margin-top:10px;height:60px;opacity:.55;align-items:flex-start;padding-top:10px"><input aria-label="Prompt" value="5 days in Kyoto and Osaka, food and temples" disabled=""></div>
+<div class="bn off" style="margin-top:10px;border:1px solid #e0b87a;border-radius:var(--r-md)"><svg class="i" style="width:16px;height:16px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z"></path><path d="M12 10v5"></path><path d="M12 18v.01"></path></svg>Daily limit reached. You can create another Trip with AI tomorrow.</div>
+<div style="display:flex;gap:8px;margin-top:12px"><button class="btn" disabled=""><svg class="i" style="width:14px;height:14px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"></path></svg>Generate</button><button class="btn pri">Open the sample Trip</button></div>
+<div class="muted" style="font-size:12px;margin-top:10px">The sample Trip and everything you edit by hand are not limited.</div></div></section><aside class="mc" style="position:absolute;left:40px;top:1000px;width:620px"><h4>Notes for review</h4>
+<div>Each message says what happened and what to do next. Errors never block the rest of the screen.</div>
+<div>Offline: a banner only. Offline reading is a next-phase feature, so no offline Trip list is shown.</div>
+<div>Link off and no permission are full pages, without the workspace behind them.</div>
+<div>The exact limit number and reset time of the AI limit are not in the spec, so the text only says “tomorrow”.</div></aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":2000,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

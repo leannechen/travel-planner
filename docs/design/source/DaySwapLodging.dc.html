@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Swapping Days with a Lodging stay</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="hf.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Nunito:wght@700;800&amp;family=Noto+Sans+TC:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.wfroot{position:relative;overflow:hidden;width:1440px;height:940px}
+.i{width:15px;height:15px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.cap{position:absolute;left:40px;font-size:12px;font-weight:600;color:var(--text);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.row{position:absolute;left:40px;width:1122px;height:380px;display:flex;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-lg);overflow:hidden}
+.row .col{width:272px!important;flex:none;border-left:1px solid var(--border)}
+.col:first-child{border-left:0}
+.dh{height:44px;display:flex;align-items:center;gap:8px;padding:0 10px;border-bottom:1px solid var(--border)}
+.axis{position:relative;height:310px;background-image:linear-gradient(to bottom,var(--grid) 1px,transparent 1px);background-size:100% 30px}
+.b.warn{border:2px solid #b45309;padding:1px 5px}
+.was{font-size:11px;font-weight:600;color:var(--pri-ink);background:var(--pri-tint);border-radius:4px;padding:1px 6px;white-space:nowrap}
+.swap{position:absolute;left:40px;top:456px;width:1122px;height:40px;display:flex;align-items:center;justify-content:center;gap:10px;font-weight:600;color:var(--pri-ink)}
+.swap svg{width:22px;height:22px}
+.sidew{position:absolute;left:1176px;top:48px;width:236px;display:flex;flex-direction:column;gap:10px}
+.hl{outline:2px solid var(--pri-strong);outline-offset:-2px}
+.ban.out{gap:4px;padding:0 8px 0 16px}.ban.out b{font-size:11px;white-space:nowrap}
+</style>
+</helmet>
+<div class="hf wfroot">
+
+<div class="cap" style="top:18px">Before · Day 2 and Day 3 are in their original order</div>
+
+<section class="row" style="top:44px" aria-label="Before">
+  <div class="col">
+    <div class="dh"><b>Day 1</b><span class="muted">Tue 3 Nov</span></div>
+    <div class="ban k-l"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19V6"></path><path d="M3 14h18v5"></path><path d="M21 14v-2a3 3 0 0 0-3-3h-7v5"></path></svg><b style="font-weight:600">Hotel Granvia Kyoto</b><span class="muted">· night 1 of 3</span></div>
+    <div class="axis"><div class="ev k-t" style="top:15px;height:53px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="14" rx="3"></rect><path d="M5 11h14"></path><path d="M9 21l2-4M15 21l-2-4"></path></svg><span>Shinkansen to Kyoto</span></span></div><div class="ev k-a" style="top:90px;height:60px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Fushimi Inari Taisha</span></span></div><div class="ev k-a" style="top:210px;height:60px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Kiyomizu-dera</span></span></div></div>
+  </div>
+  <div class="col">
+    <div class="dh"><b>Day 2</b><span class="muted">Wed 4 Nov</span></div>
+    <div class="ban k-l"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19V6"></path><path d="M3 14h18v5"></path><path d="M21 14v-2a3 3 0 0 0-3-3h-7v5"></path></svg><b style="font-weight:600">Hotel Granvia Kyoto</b><span class="muted">· night 2 of 3</span></div>
+    <div class="axis"><div class="ev k-a" style="top:15px;height:45px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Arashiyama Bamboo Grove</span></span></div><div class="ev k-a xs" style="top:75px;height:30px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Tenryu-ji</span></span></div><div class="ev k-m xs" style="top:120px;height:30px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M17 3c-2 2-2 6 0 8v10"></path></svg><span>Tofu lunch</span></span></div><div class="ev k-a" style="top:195px;height:45px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Tea ceremony</span></span></div></div>
+  </div>
+  <div class="col">
+    <div class="dh"><b>Day 3</b><span class="muted">Thu 5 Nov</span></div>
+    <div class="ban k-l"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19V6"></path><path d="M3 14h18v5"></path><path d="M21 14v-2a3 3 0 0 0-3-3h-7v5"></path></svg><b style="font-weight:600">Hotel Granvia Kyoto</b><span class="muted">· night 3 of 3</span></div>
+    <div class="axis"><div class="ev k-t xs" style="top:60px;height:30px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="14" rx="3"></rect><path d="M5 11h14"></path><path d="M9 21l2-4M15 21l-2-4"></path></svg><span>Limited express to Osaka</span></span></div><div class="ev k-a" style="top:120px;height:60px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Osaka Castle</span></span></div></div>
+  </div>
+  <div class="col">
+    <div class="dh"><b>Day 4</b><span class="muted">Fri 6 Nov</span></div>
+    <div class="ban k-l out"><b style="font-weight:600">Hotel Granvia Kyoto</b><b style="font-size:11px;white-space:nowrap;margin-left:auto;flex:none">Check out 11:00</b></div>
+    <div class="axis"></div>
+  </div>
+</section>
+
+<div class="swap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v14M6 12l6 6 6-6"></path></svg>Swap Day 2 and Day 3</div>
+
+<div class="cap" style="top:496px">After · contents moved, numbers, dates and the stay stayed</div>
+
+<section class="row" style="top:522px" aria-label="After">
+  <div class="col">
+    <div class="dh"><b>Day 1</b><span class="muted">Tue 3 Nov</span></div>
+    <div class="ban k-l"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19V6"></path><path d="M3 14h18v5"></path><path d="M21 14v-2a3 3 0 0 0-3-3h-7v5"></path></svg><b style="font-weight:600">Hotel Granvia Kyoto</b><span class="muted">· night 1 of 3</span></div>
+    <div class="axis"><div class="ev k-t" style="top:15px;height:53px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="14" rx="3"></rect><path d="M5 11h14"></path><path d="M9 21l2-4M15 21l-2-4"></path></svg><span>Shinkansen to Kyoto</span></span></div><div class="ev k-a" style="top:90px;height:60px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Fushimi Inari Taisha</span></span></div><div class="ev k-a" style="top:210px;height:60px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Kiyomizu-dera</span></span></div></div>
+  </div>
+  <div class="col">
+    <div class="dh"><b>Day 2</b><span class="muted">Wed 4 Nov</span><span class="was">was Day 3</span></div>
+    <div class="ban k-l"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19V6"></path><path d="M3 14h18v5"></path><path d="M21 14v-2a3 3 0 0 0-3-3h-7v5"></path></svg><b style="font-weight:600">Hotel Granvia Kyoto</b><span class="muted">· night 2 of 3</span></div>
+    <div class="axis"><div class="ev k-t xs" style="top:60px;height:30px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="14" rx="3"></rect><path d="M5 11h14"></path><path d="M9 21l2-4M15 21l-2-4"></path></svg><span>Limited express to Osaka</span></span></div><div class="ev k-a" style="top:120px;height:60px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Osaka Castle</span></span></div></div>
+  </div>
+  <div class="col">
+    <div class="dh"><b>Day 3</b><span class="muted">Thu 5 Nov</span><span class="was">was Day 2</span></div>
+    <div class="ban k-l"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19V6"></path><path d="M3 14h18v5"></path><path d="M21 14v-2a3 3 0 0 0-3-3h-7v5"></path></svg><b style="font-weight:600">Hotel Granvia Kyoto</b><span class="muted">· night 3 of 3</span></div>
+    <div class="axis"><div class="ev k-a" style="top:15px;height:45px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Arashiyama Bamboo Grove</span></span></div><div class="ev k-a xs" style="top:75px;height:30px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Tenryu-ji</span></span></div><div class="ev k-m xs" style="top:120px;height:30px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M17 3c-2 2-2 6 0 8v10"></path></svg><span>Tofu lunch</span></span></div><div class="ev k-a warn" style="top:195px;height:62px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Tea ceremony</span></span><span class="wmsg"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z"></path><path d="M12 10v5"></path><path d="M12 18v.01"></path></svg>closed Thu</span></div></div>
+  </div>
+  <div class="col">
+    <div class="dh"><b>Day 4</b><span class="muted">Fri 6 Nov</span></div>
+    <div class="ban k-l out"><b style="font-weight:600">Hotel Granvia Kyoto</b><b style="font-size:11px;white-space:nowrap;margin-left:auto;flex:none">Check out 11:00</b></div>
+    <div class="axis"></div>
+  </div>
+</section>
+
+<aside class="sidew">
+  <div class="mc">
+    <h4>What moves</h4>
+    <div>Events, their times, Legs and Todos move with the Day contents, unchanged.</div>
+  </div>
+  <div class="mc">
+    <h4>What stays</h4>
+    <div>Day numbers and dates follow position.</div>
+    <div>The 3-night stay stays on Day 1 to 3 with check-out on Day 4. No banner moves.</div>
+  </div>
+  <div class="mc">
+    <h4>What is recalculated</h4>
+    <div>Opening-hours warnings use the new dates. Here the tea ceremony now falls on a Thursday and gets a warning.</div>  </div>
+</aside>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":940}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

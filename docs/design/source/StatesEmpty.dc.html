@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Empty and loading states</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="hf.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Nunito:wght@700;800&amp;family=Noto+Sans+TC:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+
+body{margin:0}
+
+.wfroot{width:2000px;height:1000px}
+
+
+.cell{position:absolute;width:600px;height:400px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-lg);overflow:hidden}
+.cell .tb{height:34px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;padding:0 10px;font-size:12px}
+.rail{position:absolute;left:0;top:34px;bottom:0;width:150px;background:var(--surface);border-right:1px solid var(--border);padding:10px;font-size:12px}
+.dc{position:absolute;top:34px;bottom:0;width:210px;border-left:1px solid var(--border)}
+.dc .h{height:34px;border-bottom:1px solid var(--border);padding:8px 10px;font-size:12px;font-weight:600}
+.ax{position:absolute;inset:34px 0 0 0;background-image:linear-gradient(to bottom,var(--grid) 1px,transparent 1px);background-size:100% 36px}
+.hint{border:1px dashed var(--muted);border-radius:var(--r-lg);color:var(--muted);font-size:12px;padding:10px;text-align:center}
+.mid{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:8px;color:var(--text)}
+.mid b{font-size:15px;color:var(--text)}
+.spin{animation:none}
+.sk2{height:44px;border-radius:var(--r-md);background:var(--border);margin-bottom:8px}
+.leg{display:inline-flex;gap:6px;align-items:center;border:1px dashed var(--muted);border-radius:11px;background:var(--surface2);padding:2px 10px;font-size:11px}
+.leg.errw{border-color:var(--warn,#b45309);background:#fff4e0;color:#8a3d05}
+.errw{color:var(--danger)}
+.bn{height:30px;display:flex;align-items:center;gap:8px;padding:0 12px;font-size:12px}
+.bn.off{background:#fff4e0;color:#8a3d05;border-bottom:1px solid #e0b87a}
+.pg{position:absolute;inset:34px 0 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;padding:0 50px}
+.pg .big{width:56px;height:56px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.pg b{font-size:17px}
+.sq{width:20px;height:20px;border-radius:5px;background:var(--text);flex:none}
+
+</style>
+</helmet>
+<div class="hf wfroot">
+<div class="cap" style="left:40px;top:32px">Empty Trip</div><section class="cell" style="left:40px;top:60px"><div class="tb"><span class="logo" style="width:22px;height:22px;border-radius:7px"><svg class="i" style="width:13px;height:13px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"></path><path d="M9 4v14M15 6v14"></path></svg></span><b>Kyoto &amp; Osaka</b></div><div class="rail"><b>Backlog</b> <span class="muted">0</span><div class="hint" style="margin-top:10px">Ideas not yet scheduled go here</div></div><div class="dc" style="left:150px"><div class="h">Day 1 <span class="muted" style="font-weight:400">Tue 3 Nov</span></div><div class="ax"></div></div><div class="dc" style="left:360px"><div class="h">Day 2 <span class="muted" style="font-weight:400">Wed 4 Nov</span></div><div class="ax"></div></div>
+<div class="mid" style="left:180px;top:120px;width:360px"><b>Start planning Day 1</b><span>Click a time on a Day to add an Event, or add an idea to the Backlog.</span><span style="display:flex;gap:8px"><button class="btn pri sm"><svg class="i" style="width:13px;height:13px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Add Event</button><button class="btn sm">Add to Backlog</button></span></div></section><div class="cap" style="left:700px;top:32px">Empty Day</div><section class="cell" style="left:700px;top:60px"><div class="tb"><span class="logo" style="width:22px;height:22px;border-radius:7px"><svg class="i" style="width:13px;height:13px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"></path><path d="M9 4v14M15 6v14"></path></svg></span><b>Kyoto &amp; Osaka</b></div><div class="rail"><b>Backlog</b> <span class="muted">3</span><div class="sk" style="height:30px;margin-top:8px"></div><div class="sk" style="height:30px;margin-top:8px"></div></div>
+<div class="dc" style="left:150px"><div class="h">Day 1 <span class="muted" style="font-weight:400">Tue 3 Nov</span></div><div class="ax"><button class="ev k-t" style="top:30px;height:70px"><span class="t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h10a2 2 0 0 1 2 2v10a3 3 0 0 1-3 3l2 3M5 5v10a3 3 0 0 0 3 3l-2 3M5 11h14"/></svg><span>Shinkansen</span></span><span class="s">9:00 – 10:30</span></button><button class="ev k-a" style="top:130px;height:70px"><span class="t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg><span>Fushimi Inari</span></span><span class="s">11:00 – 13:00</span></button></div></div>
+<div class="dc" style="left:360px"><div class="h">Day 2 <span class="muted" style="font-weight:400">Wed 4 Nov</span></div><div class="ax"><div class="hint" style="position:absolute;left:12px;right:12px;top:110px;background:var(--surface)">Nothing planned.<br>Click a time, or drag an idea here.</div></div></div></section><div class="cap" style="left:1360px;top:32px">Empty Backlog and Archive</div><section class="cell" style="left:1360px;top:60px"><div class="tb"><span class="logo" style="width:22px;height:22px;border-radius:7px"><svg class="i" style="width:13px;height:13px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"></path><path d="M9 4v14M15 6v14"></path></svg></span><b>Kyoto &amp; Osaka</b></div><div class="rail" style="width:300px"><b>Backlog</b> <span class="muted">0</span><div class="hint" style="margin:8px 0 18px">No ideas waiting. Add one, or drag an Event here from a Day.</div><b>Archive</b> <span class="muted">0</span><div class="hint" style="margin-top:8px">Nothing archived. Events you give up on go here. Their Todos are deleted when archived.</div></div>
+<div class="dc" style="left:300px;width:298px"><div class="h">Day 1 <span class="muted" style="font-weight:400">Tue 3 Nov</span></div><div class="ax"><button class="ev k-a" style="top:30px;height:70px"><span class="t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg><span>Fushimi Inari</span></span><span class="s">11:00 – 13:00</span></button></div></div></section><div class="cap" style="left:40px;top:532px">Loading · AI creating a Trip</div><section class="cell" style="left:40px;top:560px"><div class="tb"><span class="logo" style="width:22px;height:22px;border-radius:7px"><svg class="i" style="width:13px;height:13px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"></path><path d="M9 4v14M15 6v14"></path></svg></span><b>New Trip</b></div><div class="pg" style="top:34px"><b>Creating your Trip</b><span class="muted">Usually takes under a minute. You can leave this page; it will be in your Trips.</span>
+<div style="display:flex;gap:10px;margin-top:6px;width:100%"><div style="flex:1"><div class="sk2"></div><div class="sk2" style="height:70px"></div><div class="sk2"></div></div><div style="flex:1"><div class="sk2"></div><div class="sk2" style="height:70px"></div><div class="sk2"></div></div><div style="flex:1"><div class="sk2"></div><div class="sk2" style="height:70px"></div><div class="sk2"></div></div></div><button class="btn sm">Cancel</button></div></section><div class="cap" style="left:700px;top:532px">Loading · Leg calculating, map loading</div><section class="cell" style="left:700px;top:560px"><div class="tb"><span class="logo" style="width:22px;height:22px;border-radius:7px"><svg class="i" style="width:13px;height:13px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"></path><path d="M9 4v14M15 6v14"></path></svg></span><b>Kyoto &amp; Osaka</b></div><div class="dc" style="left:0;width:300px;border-left:0"><div class="h">Day 1</div><div class="ax"><button class="ev k-a" style="top:20px;height:50px"><span class="t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg><span>Fushimi Inari</span></span><span class="s">11:00 – 13:00</span></button><div style="position:absolute;left:0;right:0;top:78px;text-align:center"><span class="leg"><svg class="i" style="width:12px;height:12px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9"></path></svg>Calculating…</span></div><button class="ev k-a" style="top:110px;height:50px"><span class="t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg><span>Kiyomizu-dera</span></span><span class="s">14:30 – 16:00</span></button></div></div>
+<div style="position:absolute;left:300px;top:34px;right:0;bottom:0;background:var(--border);border-left:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--muted);flex-direction:column;gap:6px"><svg class="i" style="width:26px;height:26px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"></path><path d="M9 4v14M15 6v14"></path></svg>Loading map…</div></section><aside class="mc" style="position:absolute;left:1360px;top:560px;width:300px"><h4>Notes for review</h4>
+<div>Empty Trip leads with the two real actions. Empty Day only hints inside the column, so it does not compete with the time axis.</div>
+<div>Archive text states that Todos are deleted, as the PRD requires.</div>
+<div>AI generation is the only long wait; the rest use inline spinners or skeletons.</div>
+<div>Cancel while generating, and whether the Trip lands in “Your Trips” when the user leaves, are proposals.</div></aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":2000,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

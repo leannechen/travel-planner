@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Day header and menu</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="hf.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Nunito:wght@700;800&amp;family=Noto+Sans+TC:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.wfroot{position:relative;overflow:hidden;width:1180px;height:800px}
+button{font:inherit;color:inherit;cursor:pointer;text-align:left}
+.i{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.sub{position:absolute;font-size:12px;color:var(--muted);width:330px}
+.col{position:absolute;width:300px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-lg);overflow:visible}
+.dh{height:52px;display:flex;align-items:center;gap:6px;padding:0 8px 0 6px;border-bottom:1px solid var(--border);border-radius:var(--r-lg) 8px 0 0}
+.dh .sp{flex:1}
+.grip{width:22px;height:32px;border:0;background:transparent;padding:0;display:inline-flex;align-items:center;justify-content:center;color:var(--muted);cursor:grab;border-radius:4px}
+.grip .i{width:14px;height:14px}
+.grip.hot{color:var(--text);background:#e8ebef}
+.mbtn{width:32px;height:32px;border:1px solid transparent;border-radius:var(--r-md);background:transparent;padding:0;display:inline-flex;align-items:center;justify-content:center}
+.mbtn.on{background:#e8ebef;border-color:var(--border2)}
+.body{height:40px;background-image:linear-gradient(to bottom,var(--grid) 1px,transparent 1px);background-size:100% 20px;border-radius:0 0 8px 8px}
+.tip{position:absolute;background:var(--text);color:#fff;border-radius:var(--r-md);padding:5px 8px;font-size:12px;display:flex;gap:8px;align-items:center;white-space:nowrap;z-index:5}
+.kbd{font-size:11px;line-height:16px;border:1px solid var(--border2);border-bottom-width:2px;border-radius:4px;padding:0 5px;color:#4b5563;background:var(--surface)}
+.tip .kbd{background:var(--text);color:#fff;border-color:#6b7380}
+.menu{position:absolute;right:6px;top:46px;width:250px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-lg);box-shadow:var(--sh-pop);padding:4px;z-index:4}
+.mi{height:36px;border:0;background:transparent;width:100%;display:flex;gap:10px;align-items:center;padding:0 8px;border-radius:4px}
+.mi .kbd{margin-left:auto}
+.mi.hv{background:var(--pri-tint)}
+.mi.dis{color:#9aa3af}
+.mi.dis .kbd{color:#9aa3af;border-color:var(--border)}
+.mi.dng{color:var(--danger)}
+.sep{height:1px;background:var(--border);margin:4px 0}
+.focus{outline:2px solid var(--pri-strong);outline-offset:-2px}
+.hint{display:inline-flex;gap:6px;align-items:center;font-size:12px;color:var(--pri-ink);background:var(--pri-tint);border-radius:4px;padding:2px 8px}
+</style>
+</helmet>
+<div class="hf wfroot">
+
+<div class="cap" style="left:40px;top:18px">Header states</div>
+
+<!-- DEFAULT -->
+<div class="col" style="left:40px;top:48px">
+  <div class="dh"><button class="grip" aria-label="Reorder Day 2"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle fill="currentColor" stroke="none" cx="9" cy="6" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="15" cy="6" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="9" cy="12" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="15" cy="12" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="9" cy="18" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="15" cy="18" r="1.6"></circle></svg></button><b>Day 2</b><span class="muted">Wed 4 Nov</span><span class="sp"></span><button class="mbtn" aria-label="Day 2 menu"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle fill="currentColor" stroke="none" cx="5" cy="12" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="12" cy="12" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="19" cy="12" r="1.6"></circle></svg></button></div>
+  <div class="ban k-l"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19V6"></path><path d="M3 14h18v5"></path><path d="M21 14v-2a3 3 0 0 0-3-3h-7v5"></path></svg><b style="font-weight:600">Hotel Granvia Kyoto</b><span class="muted">· night 2 of 3</span></div>
+  <div class="body"></div>
+</div>
+<div class="sub" style="left:40px;top:208px">Default. Grip is quiet, menu is always visible.</div>
+
+<!-- HOVER -->
+<div class="col" style="left:400px;top:48px">
+  <div class="dh" style="background:var(--surface2)"><button class="grip hot" aria-label="Reorder Day 2"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle fill="currentColor" stroke="none" cx="9" cy="6" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="15" cy="6" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="9" cy="12" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="15" cy="12" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="9" cy="18" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="15" cy="18" r="1.6"></circle></svg></button><b>Day 2</b><span class="muted">Wed 4 Nov</span><span class="sp"></span><button class="mbtn" aria-label="Day 2 menu"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle fill="currentColor" stroke="none" cx="5" cy="12" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="12" cy="12" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="19" cy="12" r="1.6"></circle></svg></button></div>
+  <div class="ban k-l"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19V6"></path><path d="M3 14h18v5"></path><path d="M21 14v-2a3 3 0 0 0-3-3h-7v5"></path></svg><b style="font-weight:600">Hotel Granvia Kyoto</b><span class="muted">· night 2 of 3</span></div>
+  <div class="body"></div>
+  <div class="tip" style="left:6px;top:58px" role="tooltip">Drag to move this Day</div>
+</div>
+<div class="sub" style="left:400px;top:208px">Hover on the grip: darker grip, grab cursor, tooltip.</div>
+
+<!-- KEYBOARD SELECTED -->
+<div class="col" style="left:760px;top:48px">
+  <div class="dh focus"><button class="grip" aria-label="Reorder Day 2"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle fill="currentColor" stroke="none" cx="9" cy="6" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="15" cy="6" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="9" cy="12" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="15" cy="12" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="9" cy="18" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="15" cy="18" r="1.6"></circle></svg></button><b>Day 2</b><span class="muted">Wed 4 Nov</span><span class="sp"></span><span class="hint"><span class="kbd">⌥</span><span class="kbd">←</span><span class="kbd">→</span> move</span></div>
+  <div class="ban k-l"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19V6"></path><path d="M3 14h18v5"></path><path d="M21 14v-2a3 3 0 0 0-3-3h-7v5"></path></svg><b style="font-weight:600">Hotel Granvia Kyoto</b><span class="muted">· night 2 of 3</span></div>
+  <div class="body"></div>
+</div>
+<div class="sub" style="left:760px;top:208px">Header selected with the keyboard: focus ring and a move hint.</div>
+
+<div class="cap" style="left:40px;top:262px">Day menu</div>
+
+<!-- MENU: middle Day -->
+<div class="col" style="left:40px;top:292px;height:460px">
+  <div class="dh"><button class="grip" aria-label="Reorder Day 2"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle fill="currentColor" stroke="none" cx="9" cy="6" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="15" cy="6" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="9" cy="12" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="15" cy="12" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="9" cy="18" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="15" cy="18" r="1.6"></circle></svg></button><b>Day 2</b><span class="muted">Wed 4 Nov</span><span class="sp"></span><button class="mbtn on" aria-label="Day 2 menu" aria-expanded="true"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle fill="currentColor" stroke="none" cx="5" cy="12" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="12" cy="12" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="19" cy="12" r="1.6"></circle></svg></button></div>
+  <div class="menu" role="menu">
+    <button class="mi hv" role="menuitem"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg>Move earlier<span class="kbd">⌥ ←</span></button>
+    <button class="mi" role="menuitem"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>Move later<span class="kbd">⌥ →</span></button>
+    <div class="sep"></div>
+    <button class="mi" role="menuitem"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5v14"></path><path d="M9 12h10M14 7v10"></path></svg>Insert Day before</button>
+    <button class="mi" role="menuitem"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 5v14"></path><path d="M5 12h10M10 7v10"></path></svg>Insert Day after</button>
+    <div class="sep"></div>
+    <button class="mi dng" role="menuitem"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"></path></svg>Delete Day</button>
+  </div>
+  <div class="tip" style="left:-12px;top:96px;transform:translateX(-100%)" role="tooltip">Move Day earlier <span class="kbd">⌥ ←</span></div>
+</div>
+<div class="sub" style="left:40px;top:760px;width:300px">Items show their shortcut inside the item and in the tooltip. Hover item shown on “Move earlier”.</div>
+
+<!-- MENU: first Day -->
+<div class="col" style="left:400px;top:292px;height:460px">
+  <div class="dh"><button class="grip" aria-label="Reorder Day 1"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle fill="currentColor" stroke="none" cx="9" cy="6" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="15" cy="6" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="9" cy="12" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="15" cy="12" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="9" cy="18" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="15" cy="18" r="1.6"></circle></svg></button><b>Day 1</b><span class="muted">Tue 3 Nov</span><span class="sp"></span><button class="mbtn on" aria-label="Day 1 menu" aria-expanded="true"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle fill="currentColor" stroke="none" cx="5" cy="12" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="12" cy="12" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="19" cy="12" r="1.6"></circle></svg></button></div>
+  <div class="menu" role="menu">
+    <button class="mi dis" role="menuitem" aria-disabled="true"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg>Move earlier<span class="kbd">⌥ ←</span></button>
+    <button class="mi" role="menuitem"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>Move later<span class="kbd">⌥ →</span></button>
+    <div class="sep"></div>
+    <button class="mi" role="menuitem"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5v14"></path><path d="M9 12h10M14 7v10"></path></svg>Insert Day before</button>
+    <button class="mi" role="menuitem"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 5v14"></path><path d="M5 12h10M10 7v10"></path></svg>Insert Day after</button>
+    <div class="sep"></div>
+    <button class="mi dng" role="menuitem"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"></path></svg>Delete Day</button>
+  </div>
+</div>
+<div class="sub" style="left:400px;top:760px;width:300px">First Day: “Move earlier” is disabled. The last Day disables “Move later” the same way.</div>
+
+<!-- MENU: last Day -->
+<div class="col" style="left:760px;top:292px;height:460px">
+  <div class="dh"><button class="grip" aria-label="Reorder Day 4"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle fill="currentColor" stroke="none" cx="9" cy="6" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="15" cy="6" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="9" cy="12" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="15" cy="12" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="9" cy="18" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="15" cy="18" r="1.6"></circle></svg></button><b>Day 4</b><span class="muted">Fri 6 Nov</span><span class="sp"></span><button class="mbtn on" aria-label="Day 4 menu" aria-expanded="true"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle fill="currentColor" stroke="none" cx="5" cy="12" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="12" cy="12" r="1.6"></circle><circle fill="currentColor" stroke="none" cx="19" cy="12" r="1.6"></circle></svg></button></div>
+  <div class="menu" role="menu">
+    <button class="mi" role="menuitem"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg>Move earlier<span class="kbd">⌥ ←</span></button>
+    <button class="mi dis" role="menuitem" aria-disabled="true"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>Move later<span class="kbd">⌥ →</span></button>
+    <div class="sep"></div>
+    <button class="mi" role="menuitem"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5v14"></path><path d="M9 12h10M14 7v10"></path></svg>Insert Day before</button>
+    <button class="mi" role="menuitem"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 5v14"></path><path d="M5 12h10M10 7v10"></path></svg>Insert Day after</button>
+    <div class="sep"></div>
+    <button class="mi dng" role="menuitem"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"></path></svg>Delete Day</button>
+  </div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1180,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

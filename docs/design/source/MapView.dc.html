@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Map View</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="hf.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Nunito:wght@700;800&amp;family=Noto+Sans+TC:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.mp-list{width:320px;flex:none;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.mp-lh{display:flex;align-items:center;gap:8px;padding:0 14px;height:48px;font:800 14px/1 Nunito,"Noto Sans TC",sans-serif;border-bottom:1px solid var(--border);flex:none}
+.mp-gh{display:flex;align-items:center;gap:8px;padding:0 14px;height:40px;font-weight:700;border-bottom:1px solid var(--border);background:var(--surface2);flex:none}
+.mp-dot{width:12px;height:12px;border-radius:50%;flex:none}
+.mp-it{display:flex;gap:10px;align-items:center;padding:6px 14px;border-bottom:1px solid var(--border);min-height:52px;width:100%;background:var(--surface);position:relative}
+.mp-it:hover{background:var(--surface2)}
+.mp-it.sel{background:var(--pri-tint);box-shadow:inset 3px 0 0 var(--pri)}
+.mp-it b{font-weight:600}
+.mp-it small{display:block;color:var(--muted);font-size:12px}
+.mp-num{width:26px;height:26px;border-radius:50%;color:#fff;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.mp-num.g{background:var(--surface);color:var(--muted);border:1.5px dashed var(--muted)}
+.mp-map{flex:1;position:relative;overflow:hidden;background:#e8eee6;min-width:0}
+.mp-pin{position:absolute;width:32px;height:32px;margin:-16px 0 0 -16px;border-radius:50%;border:2px solid #fff;color:#fff;font-weight:700;font-size:12px;box-shadow:0 1px 5px rgba(22,34,59,.45);display:flex;align-items:center;justify-content:center;padding:0;text-align:center}
+.mp-pin.g{background:#f4f7fb;color:#5b6a86;border:2px dashed #5b6a86;box-shadow:none}
+.mp-pin.sel{width:42px;height:42px;margin:-21px 0 0 -21px;font-size:15px;outline:3px solid var(--pri);outline-offset:2px}
+.mp-card{position:absolute;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-lg);box-shadow:var(--sh-pop)}
+.mp-chip{height:32px;border:1px solid var(--border2);border-radius:16px;background:var(--surface);padding:0 12px;display:inline-flex;gap:7px;align-items:center;white-space:nowrap;font-weight:500}
+.mp-chip.on{background:var(--text);border-color:var(--text);color:var(--surface);font-weight:600}
+.mp-pop{right:16px;top:16px;bottom:16px;width:380px}
+.mp-pop .pb{flex:1;overflow:hidden;gap:11px;padding:12px 14px}
+</style>
+</helmet>
+<div class="hf app">
+
+<header class="topbar">
+  <span class="logo"><svg class="i" style="width:17px;height:17px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"></path><path d="M9 4v14M15 6v14"></path></svg></span>
+  <button class="title" aria-haspopup="true" aria-label="Trips: Kyoto &amp; Osaka">Kyoto &amp; Osaka<svg class="i" style="color:var(--muted)" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button><span class="muted">Tue 3 – Sat 7 Nov · 5 days</span>
+  <div class="seg" style="margin-left:10px"><button><svg class="i" style="width:15px;height:15px;" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"></rect><path d="M3 10h18M8 2v4M16 2v4"></path></svg>Schedule</button><button class="on"><svg class="i" style="width:15px;height:15px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"></path><path d="M9 4v14M15 6v14"></path></svg>Map</button></div>
+  <span style="flex:1"></span>
+  <button class="btn"><svg class="i" style="width:15px;height:15px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v12l-4 4H5z"></path><path d="M15 20v-4h4M8 9h8M8 13h4"></path></svg>Notes<span class="kbd">Ctrl ⇧ N</span></button><button class="btn"><svg class="i" style="width:15px;height:15px;" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="2.5"></circle><circle cx="18" cy="6" r="2.5"></circle><circle cx="18" cy="18" r="2.5"></circle><path d="M8.2 11l7.6-4M8.2 13l7.6 4"></path></svg>Share</button><button class="btn"><svg class="i" style="width:15px;height:15px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"></path></svg>Export</button><button class="btn">EN<svg class="i" style="width:14px;height:14px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button>
+  <span style="display:flex;padding-left:8px"><span class="av on" style="background:#bcd4fb">L</span><span class="av on" style="background:#fbd9b3">J</span><span class="av" style="background:#d4dcec">M</span></span><button class="ib" aria-label="Keyboard shortcuts"><span class="kbd">?</span></button>
+</header>
+
+<div style="flex:1;display:flex;min-height:0">
+
+<aside class="mp-list">
+  <div class="mp-lh">Events on the map<span style="flex:1"></span><button class="btn sm">Fit all</button></div>
+
+  <div class="mp-gh"><span class="mp-dot" style="background:var(--d1)"></span>Day 1<span class="muted" style="font-weight:400">Tue 3 Nov</span><span style="flex:1"></span><span class="cnt">5</span></div>
+  <button class="mp-it"><span class="mp-num" style="background:var(--d1)">1</span><span style="flex:1;min-width:0"><b>Shinkansen to Kyoto</b><small>08:30 – 10:15 · Transport</small></span></button>
+  <button class="mp-it"><span class="mp-num" style="background:var(--d1)">2</span><span style="flex:1;min-width:0"><b>Fushimi Inari Taisha</b><small>11:00 – 13:00 · Attraction</small></span></button>
+  <button class="mp-it"><span class="mp-num" style="background:var(--d1)">3</span><span style="flex:1;min-width:0"><b>Inari soba lunch</b><small>13:30 – 14:30 · Meal</small></span></button>
+  <button class="mp-it sel" aria-current="true"><span class="mp-num" style="background:var(--d1)">4</span><span style="flex:1;min-width:0"><b>Kiyomizu-dera</b><small>15:00 – 17:00 · Attraction</small></span></button>
+  <button class="mp-it"><span class="mp-num" style="background:var(--d1)">5</span><span style="flex:1;min-width:0"><b>Dinner in Pontocho</b><small>18:30 – 20:00 · Meal</small></span></button>
+
+  <div class="mp-gh"><svg class="i" style="color:var(--muted)" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg><span class="mp-dot" style="background:var(--d2)"></span>Day 2<span class="muted" style="font-weight:400">Wed 4 Nov</span><span style="flex:1"></span><span class="cnt">6</span></div>
+  <div class="mp-gh"><svg class="i" style="color:var(--muted)" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg><span class="mp-dot" style="background:var(--d3)"></span>Day 3<span class="muted" style="font-weight:400">Thu 5 Nov</span><span style="flex:1"></span><span class="cnt">2</span></div>
+  <div class="mp-gh"><svg class="i" style="color:var(--muted)" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg><span class="mp-dot" style="background:var(--d4)"></span>Day 4<span class="muted" style="font-weight:400">Fri 6 Nov</span><span style="flex:1"></span><span class="cnt">1</span></div>
+
+  <div class="mp-gh"><span class="mp-dot" style="background:var(--surface);border:1.5px dashed var(--muted)"></span>Backlog<span class="muted" style="font-weight:400">not scheduled</span><span style="flex:1"></span><span class="cnt">3</span></div>
+  <button class="mp-it"><span class="mp-num g">–</span><span style="flex:1;min-width:0"><b>Philosopher's Path</b><small>1h 30m · Attraction</small></span><span class="btn sm">Schedule</span></button>
+  <button class="mp-it"><span class="mp-num g">–</span><span style="flex:1;min-width:0"><b>Ryokan night in Kurama</b><small>1 night · Lodging</small></span><span class="btn sm">Schedule</span></button>
+  <button class="mp-it"><span class="mp-num g">–</span><span style="flex:1;min-width:0"><b>Nara deer park</b><small>3h 00m · Attraction</small></span><span class="btn sm">Schedule</span></button>
+</aside>
+
+<section class="mp-map">
+  <svg width="100%" height="100%" viewBox="0 0 1120 844" preserveAspectRatio="xMidYMid slice" aria-hidden="true" style="position:absolute;inset:0">
+    <rect width="1120" height="844" fill="#e8eee6"></rect>
+    <path d="M0 520 C200 470 340 560 520 520 S900 430 1120 470 L1120 520 C900 480 700 580 520 565 S200 520 0 565 Z" fill="#cde2f1"></path>
+    <rect x="80" y="40" width="150" height="90" rx="14" fill="#d3e6cf"></rect>
+    <rect x="560" y="610" width="200" height="130" rx="16" fill="#d3e6cf"></rect>
+    <rect x="260" y="420" width="120" height="70" rx="12" fill="#d3e6cf"></rect>
+    <g stroke="#fff" stroke-width="7" fill="none" stroke-linecap="round">
+      <path d="M0 330 L1120 300"></path><path d="M0 640 L1120 690"></path><path d="M300 0 L340 844"></path><path d="M620 0 L560 844"></path><path d="M900 0 L940 844"></path><path d="M0 130 L700 90"></path><path d="M160 844 L460 380 L760 0"></path>
+    </g>
+    <g stroke="#f7e8c4" stroke-width="3" fill="none"><path d="M0 220 L1120 190"></path><path d="M0 760 L1120 740"></path><path d="M440 0 L470 844"></path><path d="M780 0 L800 844"></path></g>
+    <g fill="none" stroke-width="3.5" stroke-dasharray="7 6" stroke-linecap="round">
+      <path d="M400 560 L520 700 L590 660 L500 380 L360 340" stroke="#1e2a4a"></path>
+      <path d="M110 250 L150 290 L200 330 L300 100 L340 190 L330 300" stroke="#d6336c"></path>
+    </g>
+  </svg>
+
+  <div class="mp-card" style="left:16px;top:16px;padding:8px 10px;display:flex;gap:8px;align-items:center">
+    <button class="mp-chip on">All days</button>
+    <button class="mp-chip"><span class="mp-dot" style="background:var(--d1)"></span>Day 1</button>
+    <button class="mp-chip"><span class="mp-dot" style="background:var(--d2)"></span>Day 2</button>
+    <button class="mp-chip"><span class="mp-dot" style="background:var(--d3)"></span>Day 3</button>
+    <button class="mp-chip"><span class="mp-dot" style="background:var(--d4)"></span>Day 4</button>
+    <span style="width:1px;height:24px;background:var(--border);margin:0 4px"></span>
+    <label style="display:flex;gap:8px;align-items:center"><span class="tog on"></span>Backlog</label>
+  </div>
+
+  <div class="mp-card" style="left:16px;top:84px;display:flex;flex-direction:column;overflow:hidden">
+    <button class="ib" style="width:40px;height:40px;border-radius:0;border-bottom:1px solid var(--border)" aria-label="Zoom in"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+    <button class="ib" style="width:40px;height:40px;border-radius:0" aria-label="Zoom out"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"></path></svg></button>
+  </div>
+
+  <button class="mp-pin" style="left:400px;top:560px;background:var(--d1)" aria-label="Day 1, 1: Shinkansen to Kyoto">1</button>
+  <button class="mp-pin" style="left:520px;top:700px;background:var(--d1)" aria-label="Day 1, 2: Fushimi Inari Taisha">2</button>
+  <button class="mp-pin" style="left:590px;top:660px;background:var(--d1)" aria-label="Day 1, 3: Inari soba lunch">3</button>
+  <button class="mp-pin sel" style="left:500px;top:380px;background:var(--d1)" aria-label="Day 1, 4: Kiyomizu-dera, selected">4</button>
+  <button class="mp-pin" style="left:360px;top:340px;background:var(--d1)" aria-label="Day 1, 5: Dinner in Pontocho">5</button>
+  <button class="mp-pin" style="left:110px;top:250px;background:var(--d2)" aria-label="Day 2, 1: Arashiyama Bamboo Grove">1</button>
+  <button class="mp-pin" style="left:150px;top:290px;background:var(--d2)" aria-label="Day 2, 2: Tenryu-ji">2</button>
+  <button class="mp-pin" style="left:200px;top:330px;background:var(--d2)" aria-label="Day 2, 3: Tofu lunch">3</button>
+  <button class="mp-pin" style="left:300px;top:100px;background:var(--d2)" aria-label="Day 2, 4: Kinkaku-ji">4</button>
+  <button class="mp-pin" style="left:340px;top:190px;background:var(--d2)" aria-label="Day 2, 5: Tea ceremony">5</button>
+  <button class="mp-pin" style="left:330px;top:300px;background:var(--d2)" aria-label="Day 2, 6: Nishiki Market">6</button>
+  <button class="mp-pin g" style="left:620px;top:210px" aria-label="Backlog: Philosopher's Path"></button>
+  <button class="mp-pin g" style="left:560px;top:70px" aria-label="Backlog: Ryokan night in Kurama"></button>
+  <button class="mp-pin g" style="left:640px;top:790px" aria-label="Backlog: Nara deer park"></button>
+
+  <div class="mp-card" style="left:484px;top:414px;padding:6px 10px;white-space:nowrap;border-radius:var(--r-md)"><b>Kiyomizu-dera</b> <span class="muted">· Day 1 · 15:00</span></div>
+
+  <div class="mp-card" style="left:16px;bottom:16px;padding:9px 14px;display:flex;gap:16px;align-items:center;font-size:12px">
+    <span style="display:flex;gap:7px;align-items:center"><span class="mp-num" style="background:var(--d1);width:20px;height:20px;font-size:10px">1</span>Order within the Day</span>
+    <span style="display:flex;gap:7px;align-items:center"><span class="mp-num g" style="width:20px;height:20px"></span>Backlog</span>
+    <span class="muted">Day 3–4 are in Osaka, outside this view</span>
+    <button class="btn sm">Fit all</button>
+  </div>
+
+  <section class="pn mp-pop" aria-label="Edit Event">
+    <div class="pb">
+      <div style="display:flex;align-items:center;gap:6px">
+        <div class="kcs">
+          <button class="kc on k-a"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg>Attraction</button>
+          <button class="kc k-m" aria-label="Meal"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M17 3c-2 2-2 6 0 8v10"></path></svg></button>
+          <button class="kc k-l" aria-label="Lodging"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19V6"></path><path d="M3 14h18v5"></path><path d="M21 14v-2a3 3 0 0 0-3-3h-7v5"></path></svg></button>
+          <button class="kc k-t" aria-label="Transport"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="14" rx="3"></rect><path d="M5 11h14"></path><path d="M9 21l2-4M15 21l-2-4"></path></svg></button>
+        </div>
+        <span style="flex:1"></span>
+        <button class="ib" aria-label="Expand to dialog"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"></path></svg></button>
+        <button class="ib" aria-label="Close panel"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+      </div>
+      <div class="in lg" style="height:42px;font-size:16px">Kiyomizu-dera</div>
+      <div class="row">
+        <div style="flex:1.2"><span class="lbl">Day</span><div class="in" style="justify-content:space-between">Day 1<svg class="i" style="color:var(--muted)" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></div></div>
+        <div><span class="lbl">Start</span><div class="in">15:00</div></div>
+        <div><span class="lbl">Duration</span><div class="in">2h 00m</div></div>
+      </div>
+      <div>
+        <span class="lbl">Location</span>
+        <div class="in"><svg class="i" style="color:var(--muted)" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 0 0-14 0c0 4.8 7 11 7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg><span style="flex:1;overflow:hidden;text-overflow:ellipsis">294 Kiyomizu, Higashiyama, Kyoto</span><span class="btn sm">Change</span></div>
+      </div>
+      <div>
+        <span class="lbl">Description</span>
+        <div class="md"><div class="mdh"><b class="on">Write</b><b>Preview</b></div><div class="mdb">- Last entry 17:30
+- Stage viewpoint is best at golden hour</div></div>
+      </div>
+      <div class="cgrp"><div class="gh"><svg class="i" style="color:var(--muted)" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg><b style="font-weight:600">Contact</b><span class="muted">phone, email, website</span></div></div>
+      <div><span class="lbl">Opening hours</span><div class="in" style="justify-content:space-between">06:00 – 18:00<svg class="i" style="color:var(--muted)" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></div></div>
+      <div class="row" style="align-items:flex-end">
+        <div style="flex:none;width:96px"><span class="lbl">Image</span><div class="ph" style="width:96px;height:56px"><img alt="" src="assets/kiyomizu-dera.jpg"></div></div>
+        <span class="btn sm" style="flex:none">Replace</span>
+      </div>
+      <div><span class="lbl">Event Todos · 1</span><label class="todo" style="padding:4px 0"><input type="checkbox"><span>Check evening illumination hours</span></label></div>
+    </div>
+    <div class="foot"><button class="btn">Archive</button><button class="btn dng-q">Delete</button><span style="flex:1"></span><span class="saved"><svg class="i" style="stroke-width:2.4" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>Saved automatically</span></div>
+  </section>
+</section>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

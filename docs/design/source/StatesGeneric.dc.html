@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Empty, loading and error states</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="hf.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Nunito:wght@700;800&amp;family=Noto+Sans+TC:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.sg{width:2000px;height:900px;position:relative;overflow:hidden}
+.sg .cap{position:absolute;top:24px}
+.col{position:absolute;top:56px;width:620px;display:flex;flex-direction:column;gap:18px}
+.panelx{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);box-shadow:var(--sh-card);overflow:hidden}
+.ph-h{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);font:800 14px/1 Nunito,sans-serif}
+.skc{border:1px solid var(--border);border-radius:var(--r-lg);padding:12px 14px;background:var(--surface);height:64px}
+.skd{flex:1;border-left:1px solid var(--border);min-width:0}
+.skd:first-child{border-left:0}
+.skh{height:46px;display:flex;align-items:center;gap:10px;padding:0 12px;border-bottom:1px solid var(--border)}
+.dash{border:1.5px dashed var(--border2);border-radius:var(--r-lg);background:var(--surface2)}
+.fe{color:var(--danger);font-size:12px;display:flex;gap:6px;align-items:center;margin-top:6px}
+.sg .note{font-size:12px;color:var(--muted);line-height:1.5}
+</style>
+</helmet>
+<div class="hf sg">
+
+<div class="cap" style="left:40px">Empty state</div>
+<div class="col" style="left:40px">
+  <div class="panelx"><div class="ph-h">Day 3 <span class="muted" style="font:500 12px Inter">Thu 5 Nov</span></div>
+    <div class="empty" style="padding:28px 24px"><div class="art"><svg class="i"  viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"></rect><path d="M3 10h18M8 2v4M16 2v4"></path></svg></div><h4>Nothing planned yet</h4><p class="muted">Add an Event, or drag one in from the Backlog.</p><button class="btn pri"><svg class="i" style="width:14px;height:14px" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Add Event</button></div></div>
+  <div class="panelx"><div class="ph-h">Backlog <span class="cnt">0</span></div>
+    <div class="empty" style="padding:22px 24px"><div class="art"><svg class="i"  viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"></path></svg></div><h4>No ideas parked</h4><p class="muted">Ideas you are not ready to schedule go here.</p><button class="btn sec2"><svg class="i" style="width:14px;height:14px" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Add to Backlog</button></div></div>
+  <div class="panelx" style="height:230px;display:flex"><div class="empty" style="flex:1"><div class="art"><svg class="i"  viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"></path><path d="M9 4v14M15 6v14"></path></svg></div><h4>Nothing to show on the map</h4><p class="muted">Events with a location appear here.</p></div></div>
+  <div class="note"><b>Anatomy:</b> 56 px icon tile in the primary tint, 15 px heading, one line of muted help, at most one action. Compact in side panels, centred in empty views. No illustrations.</div>
+</div>
+
+<div class="cap" style="left:720px">Loading skeleton</div>
+<div class="col" style="left:720px">
+  <div class="panelx" style="display:flex;height:420px;overflow:hidden"><div class="skd"><div class="skh"><div class="sk" style="width:56px;height:14px;"></div><div class="sk" style="width:70px;height:11px;"></div></div><div style="padding:8px;display:flex;flex-direction:column;gap:10px"><div class="skc" style="height:84px"><div class="sk" style="width:65%;height:12px;"></div><div class="sk" style="width:40%;height:10px;margin-top:8px"></div></div><div class="skc" style="height:64px"><div class="sk" style="width:65%;height:12px;"></div><div class="sk" style="width:40%;height:10px;margin-top:8px"></div></div><div class="skc" style="height:110px"><div class="sk" style="width:65%;height:12px;"></div><div class="sk" style="width:40%;height:10px;margin-top:8px"></div></div><div class="skc" style="height:64px"><div class="sk" style="width:65%;height:12px;"></div><div class="sk" style="width:40%;height:10px;margin-top:8px"></div></div></div></div><div class="skd"><div class="skh"><div class="sk" style="width:56px;height:14px;"></div><div class="sk" style="width:70px;height:11px;"></div></div><div style="padding:8px;display:flex;flex-direction:column;gap:10px"><div class="skc" style="height:64px"><div class="sk" style="width:65%;height:12px;"></div><div class="sk" style="width:40%;height:10px;margin-top:8px"></div></div><div class="skc" style="height:110px"><div class="sk" style="width:65%;height:12px;"></div><div class="sk" style="width:40%;height:10px;margin-top:8px"></div></div><div class="skc" style="height:64px"><div class="sk" style="width:65%;height:12px;"></div><div class="sk" style="width:40%;height:10px;margin-top:8px"></div></div></div></div><div class="skd"><div class="skh"><div class="sk" style="width:56px;height:14px;"></div><div class="sk" style="width:70px;height:11px;"></div></div><div style="padding:8px;display:flex;flex-direction:column;gap:10px"><div class="skc" style="height:84px"><div class="sk" style="width:65%;height:12px;"></div><div class="sk" style="width:40%;height:10px;margin-top:8px"></div></div><div class="skc" style="height:64px"><div class="sk" style="width:65%;height:12px;"></div><div class="sk" style="width:40%;height:10px;margin-top:8px"></div></div></div></div></div>
+  <div class="panelx"><div class="ph-h">Backlog <div class="sk" style="width:22px;height:16px;border-radius:10px"></div></div><div style="padding:10px 12px;display:flex;flex-direction:column;gap:8px"><div class="skc"><div class="sk" style="width:60%;height:12px;"></div><div class="sk" style="width:40%;height:10px;margin-top:8px"></div></div><div class="skc"><div class="sk" style="width:60%;height:12px;"></div><div class="sk" style="width:40%;height:10px;margin-top:8px"></div></div></div></div>
+  <div class="note"><b>Anatomy:</b> grey shapes at the size of the final content, shimmer 1.6 s left to right, no spinner. The top bar and layout are real, only the data is skeleton. Reduced motion: shimmer off. Shown after 300 ms so fast loads do not flash.</div>
+</div>
+
+<div class="cap" style="left:1400px">Error banner</div>
+<div class="col" style="left:1400px;width:560px">
+  <div class="banner err" role="alert"><svg class="i"  viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v6"></path><path d="M12 16.5v.01"></path></svg><div style="flex:1"><b>Couldn’t load this Trip</b><div style="margin-top:2px">Check your connection and try again. Your changes are safe.</div></div><button class="btn sm"><svg class="i" style="width:14px;height:14px" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"></path><path d="M20 4v7h-7"></path></svg>Retry</button></div>
+  <div class="banner warn" role="status"><svg class="i"  viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z"></path><path d="M12 10v5"></path><path d="M12 18v.01"></path></svg><div style="flex:1"><b>You’re offline</b><div style="margin-top:2px">Changes will sync when you reconnect.</div></div></div>
+  <div class="panelx" style="padding:16px"><span class="lbl">Title</span><div class="in" style="border-color:var(--danger);box-shadow:0 0 0 3px var(--danger-tint)">&nbsp;</div><div class="fe"><svg class="i" style="width:14px;height:14px"  viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v6"></path><path d="M12 16.5v.01"></path></svg>Title can’t be empty.</div></div>
+  <div style="display:flex"><div class="toast"><svg class="i" style="width:16px;height:16px;color:#ffb4b4"  viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18a4 4 0 0 1-.6-7.9A6 6 0 0 1 18 9.5 4.3 4.3 0 0 1 17 18z"></path><path d="M4 4l16 16"></path></svg>Couldn’t save “Fushimi Inari Taisha”<button>Retry</button><button aria-label="Dismiss" style="color:#fff;opacity:.7"><svg class="i" style="width:14px;height:14px" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div></div>
+  <div class="panelx" style="height:230px;display:flex"><div class="empty err" style="flex:1"><div class="art"><svg class="i" style="width:28px;height:28px"  viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v6"></path><path d="M12 16.5v.01"></path></svg></div><h4>Something went wrong</h4><p class="muted">We couldn’t open this page. Reload, or go back to your Trips.</p><div style="display:flex;gap:8px"><button class="btn pri">Reload</button><button class="btn">Your Trips</button></div></div></div>
+  <div class="note"><b>Anatomy:</b> banner = icon, bold line, one muted line, one action. Red for failed actions, amber for degraded. Field errors sit under the input in 12 px. Toast for background save failures, stays until dismissed. Full-page error only when nothing can render.</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":2000,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

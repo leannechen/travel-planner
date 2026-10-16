@@ -141,7 +141,7 @@ When a Trip has dates and an Event with opening hours is placed in a Day, a warn
 
 - A **Trip Todo** belongs to the whole Trip (for example "Request leave 3/21–3/24"). An **Event Todo** belongs to one Event (for example "Book the room" on a Lodging).
 - When an Event is put in the Archive or deleted, its Event Todos are deleted.
-  - If the Event has at least one Todo, a confirmation is shown first, stating how many Todos will be deleted, including those created by other people. The dialog offers "do not remind me again".
+  - If the Event has at least one Todo, a confirmation is shown first, stating how many Todos will be deleted, including those created by other people. The dialog offers "do not remind me again"; there is no setting to turn the reminder back on in v1.
   - If the Event has no Todos, the action proceeds without a prompt.
 - Deleting an Event can be undone for a few seconds, restoring its Todos too. Moving an Event to the Archive has no undo.
 - Todos have no assignee in v1.
@@ -160,6 +160,7 @@ When a Trip has dates and an Event with opening hours is placed in a Day, a warn
 - Clicking a marker opens the same edit panel as the time-axis view.
 - Backlog Events are shown with a gray marker by default, so the user can judge which Day they fit; this can be turned off.
 - Events without a location do not appear.
+- Within a Day, a dashed line connects markers in the order of the Day. It shows the Day's order only; it is not a route and not a Leg, and it can be turned off. A Transport event gets a marker at its departure place and one at its destination, joined by a thin line.
 - The default and complete editing experience stays in the time-axis view. Adding Events from the map is a next-phase feature.
 
 ## 7. AI-generated Trips
@@ -168,12 +169,12 @@ When a Trip has dates and an Event with opening hours is placed in a Day, a warn
 - Preferences are part of the free text (for example "likes hot springs, relaxed pace"); there are no structured fields in v1.
 - Generated Events use real Google Maps places and are scheduled with times. The user edits the result; they may discard it and generate again.
 - AI is limited to creating new Trips and does not read existing Trip content.
-- Usage is limited per user per day. The sample Trip is pre-built and does not call AI.
+- Only logged-in users can generate a Trip with AI; usage is limited per user per day. Guests cannot use AI: on the landing page the prompt field shows an example and cannot be edited, and the button asks them to log in. The sample Trip is pre-built and does not call AI.
 
 ## 8. Accounts, sharing and collaboration
 
 - **Login**: email or Google.
-- **Guest use**: a visitor can open the sample Trip and edit it in an anonymous browser session without logging in. On login or sign-up, the guest's Trips are added to the account (existing Trips are kept, nothing is overwritten). Clearing browser data before logging in loses guest data, and the save prompt says so.
+- **Guest use**: a visitor can open the sample Trip (but cannot use AI generation) and edit it in an anonymous browser session without logging in. On login or sign-up, the guest's Trips are added to the account (existing Trips are kept, nothing is overwritten). Clearing browser data before logging in loses guest data, and the save prompt says so.
 - **Roles** (ADR 0003):
 
 | Action | Owner | Editor | Viewer |
@@ -183,9 +184,17 @@ When a Trip has dates and an Event with opening hours is placed in a Day, a warn
 | Delete the Trip | yes | no | no |
 | Invite people, change sharing | yes | no | no |
 
-- **Viewer**: opens a share link, read-only, no login required. Sees Days, the Map View and the Backlog. Contact fields (phone, email) of Events are visible. The Owner can turn the link off at any time.
+- **Viewer**: opens a share link, read-only, no login required. Viewers cannot export. Sees Days, the Map View and the Backlog. Contact fields (phone, email) of Events are visible. The Owner can turn the link off at any time.
 - **Editor**: invited by email; must log in. The Owner can see and remove Editors.
 - **Collaboration**: changes from one person appear promptly for others. Conflicts resolve per Event, with the last write winning.
+
+### 8.1 Trip management
+
+- A user has a list of their Trips and a separate list of Trips shared with them (as Editor). The list is a collapsible sidebar on desktop and a full screen on phone, opened from the Trip title; switching Trips loses no edits, since everything autosaves.
+- **New Trip**: title, optional start date, default travel mode. Create with AI is offered first for logged-in users.
+- Trip actions: rename, Trip settings, export, share, and delete (Owner only). Deleting asks the Owner to type the Trip title, and states what is lost: its Events, Backlog, Archive, Todos and Notes, and that Editors and the share link lose access.
+- **Import backup** creates a new Trip from a full-backup file (§9).
+- Search, folders, favorites and reordering Trips are not in v1.
 
 ## 9. Export
 
@@ -202,7 +211,7 @@ When a Trip has dates and an Event with opening hours is placed in a Day, a warn
 
 ## 11. Constraints
 
-- **Google Maps cost control**: Legs are created by user action and recalculated only when their two locations or travel mode change; place search results and Leg durations are cached on the server per pair of points and mode; AI generation is rate-limited per user.
+- **Google Maps cost control**: Legs are created by user action and recalculated only when their two locations or travel mode change; place search results and Leg durations are cached on the server per pair of points and mode; AI generation is limited to logged-in users and rate-limited per user.
 - **Collaboration limits**: v1 does not provide merge of simultaneous edits to one field.
 - **Data safety**: deleting Todos along with an Event is irreversible after confirmation, so the confirmation must state the count.
 
@@ -217,10 +226,11 @@ The product uses the terms in `CONTEXT.md`. In the Traditional Chinese interface
 - Frequent actions use single keys, active only when no text field is focused. App-wide actions (such as opening the notes panel) use modifier combinations.
 - Pressing `?` shows a shortcut cheat sheet. Every button's tooltip also shows its shortcut.
 
-## 14. Interface language
+## 14. Interface language and theme
 
 - The default interface language is English; the user can switch to Traditional Chinese.
 - The switch applies to interface text. AI generation uses the current interface language. Fixed labels in exports (such as "Day 1" and date formats) follow the interface language. Text the user typed is never translated.
+- The language switch and the theme switch (light or dark) sit in the top right of the screen; there is no separate preferences screen. The theme follows the system setting by default and the user's choice overrides it.
 - Logged-in users keep the setting on their account; guests keep it in the browser. A Viewer sees the interface in the language of their own browser, defaulting to English.
 
 ## 15. Open items deferred to the design spec

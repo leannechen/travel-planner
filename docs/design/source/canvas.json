@@ -1,0 +1,379 @@
+{
+ "v": 3,
+ "attachments": {},
+ "boards": {
+  "ConfirmEvent.dc.html": {
+   "h": 880,
+   "title": "Archive and delete confirmations, toasts, phone · High fidelity",
+   "w": 2000,
+   "x": 2460,
+   "y": 5800
+  },
+  "DSComponents.dc.html": {
+   "h": 1180,
+   "title": "Design system — components and their states",
+   "w": 2400,
+   "x": 1980,
+   "y": 12880
+  },
+  "DSOverlays.dc.html": {
+   "h": 1180,
+   "title": "Design system — dialogs, popovers, banners, tooltips and the shortcut format",
+   "w": 1800,
+   "x": 4460,
+   "y": 12880
+  },
+  "DSTokens.dc.html": {
+   "h": 1180,
+   "title": "Design system — color tokens (light and dark), type scale, spacing, radius, shadow",
+   "w": 1900,
+   "x": 0,
+   "y": 12880
+  },
+  "DayDelete.dc.html": {
+   "expand": "fill",
+   "h": 900,
+   "title": "Delete Day — confirmation and undo toast · High fidelity",
+   "w": 1440,
+   "x": 2780,
+   "y": 3100
+  },
+  "DayDrag.dc.html": {
+   "expand": "fill",
+   "h": 900,
+   "title": "Dragging a Day — lifted Day, drop position, live renumbering · High fidelity",
+   "w": 1440,
+   "x": 1260,
+   "y": 3100
+  },
+  "DayHeader.dc.html": {
+   "h": 800,
+   "title": "Day header — handle, states and Day menu (desktop) · High fidelity",
+   "w": 1180,
+   "x": 0,
+   "y": 3100
+  },
+  "DayMenuPhone.dc.html": {
+   "h": 930,
+   "title": "Day menu and delete confirmation — phone · High fidelity",
+   "w": 1330,
+   "x": 4300,
+   "y": 3100
+  },
+  "DaySwapLodging.dc.html": {
+   "h": 940,
+   "title": "Swapping two Days — the 3-night stay stays in place · High fidelity",
+   "w": 1440,
+   "x": 5710,
+   "y": 3100
+  },
+  "Dialogs.dc.html": {
+   "h": 900,
+   "title": "Dialogs — Share (on / off), Export, Trip settings · High fidelity",
+   "w": 2380,
+   "x": 0,
+   "y": 5800
+  },
+  "EventImage.dc.html": {
+   "h": 1060,
+   "title": "Event image — panel states and Event block · High fidelity",
+   "w": 2340,
+   "x": 0,
+   "y": 10100
+  },
+  "EventPanel.dc.html": {
+   "h": 900,
+   "title": "Event panel — phone bottom sheet · High fidelity",
+   "w": 470,
+   "x": 1990,
+   "y": 0
+  },
+  "EventPanelModal.dc.html": {
+   "expand": "fill",
+   "h": 900,
+   "title": "Event panel — expanded: modal (Collapse → side panel) · High fidelity",
+   "w": 1440,
+   "x": 4060,
+   "y": 0
+  },
+  "EventPanelSide.dc.html": {
+   "expand": "fill",
+   "h": 900,
+   "title": "Event panel — default: side panel (Expand → modal) · High fidelity",
+   "w": 1440,
+   "x": 2540,
+   "y": 0
+  },
+  "ExportImage.dc.html": {
+   "h": 920,
+   "title": "Exported image — poster · High fidelity",
+   "w": 1960,
+   "x": 4540,
+   "y": 5800
+  },
+  "Landing.dc.html": {
+   "h": 1000,
+   "title": "Landing — desktop and phone · High fidelity",
+   "w": 2300,
+   "x": 0,
+   "y": 4300
+  },
+  "LegDetail.dc.html": {
+   "h": 900,
+   "title": "Leg — chooser, detail, warning, cannot calculate, phone sheet · High fidelity",
+   "w": 3200,
+   "x": 4180,
+   "y": 8900
+  },
+  "LodgingBanner.dc.html": {
+   "h": 900,
+   "title": "Lodging banner in Day columns — 3 nights, Day 1 to Day 4 · High fidelity",
+   "w": 1400,
+   "x": 5450,
+   "y": 1500
+  },
+  "Main.dc.html": {
+   "expand": "fill",
+   "h": 900,
+   "title": "Trip workspace — desktop · High fidelity",
+   "w": 1440,
+   "x": 0,
+   "y": 0
+  },
+  "MainDark.dc.html": {
+   "expand": "fill",
+   "h": 900,
+   "title": "Trip workspace — desktop, dark theme · High fidelity",
+   "w": 1440,
+   "x": 0,
+   "y": 14340
+  },
+  "MapView.dc.html": {
+   "expand": "fill",
+   "h": 900,
+   "title": "Map View · High fidelity",
+   "w": 1440,
+   "x": 5580,
+   "y": 0
+  },
+  "NotesPanel.dc.html": {
+   "h": 1200,
+   "title": "Notes panel — open on Schedule and Map, movable, states · High fidelity",
+   "w": 2580,
+   "x": 2380,
+   "y": 4300
+  },
+  "PanelKinds.dc.html": {
+   "h": 1080,
+   "title": "Event panel by kind — desktop (Attraction · Meal · Lodging · Transport) · High fidelity",
+   "w": 1840,
+   "x": 0,
+   "y": 1500
+  },
+  "PanelKindsPhone.dc.html": {
+   "h": 1260,
+   "title": "Event panel by kind — phone bottom sheets · High fidelity",
+   "w": 1710,
+   "x": 1920,
+   "y": 1500
+  },
+  "PanelSwitch.dc.html": {
+   "h": 1040,
+   "title": "Switching kind — Attraction to Lodging, before and after · High fidelity (after state)",
+   "w": 1660,
+   "x": 3710,
+   "y": 1500
+  },
+  "Phone.dc.html": {
+   "h": 844,
+   "title": "Trip workspace — phone · High fidelity",
+   "w": 390,
+   "x": 1520,
+   "y": 0
+  },
+  "StatesEmpty.dc.html": {
+   "h": 1000,
+   "title": "States — empty Trip, Day, Backlog and Archive; loading · High fidelity",
+   "w": 2000,
+   "x": 0,
+   "y": 7220
+  },
+  "StatesErrors.dc.html": {
+   "h": 1180,
+   "title": "States — errors and limit reached · High fidelity",
+   "w": 2000,
+   "x": 2080,
+   "y": 7220
+  },
+  "StatesGeneric.dc.html": {
+   "h": 900,
+   "title": "Empty state, loading skeleton and error banner — one generic style each · High fidelity",
+   "w": 2000,
+   "x": 0,
+   "y": 11500
+  },
+  "TripList.dc.html": {
+   "h": 920,
+   "title": "Trip list — sidebar, item menu, New Trip, Create with AI, Delete Trip, phone · High fidelity",
+   "w": 4100,
+   "x": 0,
+   "y": 8900
+  },
+  "TripListNav.dc.html": {
+   "h": 940,
+   "title": "Trip list — collapsed rail, drawer, pinned; Backlog/Archive collapse; switching Trips · High fidelity",
+   "w": 4540,
+   "x": 2420,
+   "y": 10100
+  },
+  "Viewer.dc.html": {
+   "h": 900,
+   "title": "Viewer mode — read-only workspace and Event details · High fidelity",
+   "w": 2040,
+   "x": 5040,
+   "y": 4300
+  }
+ },
+ "createdOnFiles": {
+  "at": "2026-10-16T10:08:00Z",
+  "v": 1
+ },
+ "designSystems": [],
+ "launch": {
+  "view": "canvas"
+ },
+ "notes": {
+  "s0": {
+   "fill": "blue",
+   "maxH": 96,
+   "text": "Single source of truth. Every board is high fidelity, in the same order and with the same names as the wireframe artifact. Boards converted from wireframes reuse the tokens and components from the last section; some details (for example backdrops behind dialogs) are still simplified.",
+   "w": 760,
+   "x": 0,
+   "y": -150
+  },
+  "t1": {
+   "kind": "title1",
+   "maxW": 7020,
+   "text": "Travel Planner — Wireframes, phase 1",
+   "w": 240,
+   "x": 0,
+   "y": -260
+  },
+  "t10": {
+   "kind": "title1",
+   "maxW": 6260,
+   "text": "Design system — tokens and components",
+   "w": 240,
+   "x": 0,
+   "y": 12620
+  },
+  "t11": {
+   "kind": "title1",
+   "maxW": 1440,
+   "text": "Dark theme sample",
+   "w": 240,
+   "x": 0,
+   "y": 14080
+  },
+  "t2": {
+   "kind": "title1",
+   "maxW": 6850,
+   "text": "Event panel by kind — wireframes, round 2",
+   "w": 240,
+   "x": 0,
+   "y": 1240
+  },
+  "t3": {
+   "kind": "title1",
+   "maxW": 7150,
+   "text": "Day management — wireframes, round 3",
+   "w": 240,
+   "x": 0,
+   "y": 2840
+  },
+  "t4": {
+   "kind": "title1",
+   "maxW": 7080,
+   "text": "Remaining screens — wireframes, round 4 (Landing, Notes, Viewer)",
+   "w": 240,
+   "x": 0,
+   "y": 4040
+  },
+  "t5": {
+   "kind": "title1",
+   "maxW": 6500,
+   "text": "Dialogs, confirmations and exported image",
+   "w": 240,
+   "x": 0,
+   "y": 5540
+  },
+  "t6": {
+   "kind": "title1",
+   "maxW": 4080,
+   "text": "States — empty, loading, errors, limits",
+   "w": 240,
+   "x": 0,
+   "y": 6960
+  },
+  "t7": {
+   "kind": "title1",
+   "maxW": 7400,
+   "text": "Trip list and Leg detail — wireframes, round 5",
+   "w": 240,
+   "x": 0,
+   "y": 8640
+  },
+  "t8": {
+   "kind": "title1",
+   "maxW": 6960,
+   "text": "Event image — wireframes, round 6",
+   "w": 240,
+   "x": 0,
+   "y": 9840
+  },
+  "t9": {
+   "kind": "title1",
+   "maxW": 2000,
+   "text": "Empty, loading and error — generic styles",
+   "w": 240,
+   "x": 0,
+   "y": 11240
+  }
+ },
+ "order": [
+  "Main.dc.html",
+  "Phone.dc.html",
+  "EventPanel.dc.html",
+  "EventPanelSide.dc.html",
+  "EventPanelModal.dc.html",
+  "MapView.dc.html",
+  "PanelKinds.dc.html",
+  "PanelKindsPhone.dc.html",
+  "PanelSwitch.dc.html",
+  "LodgingBanner.dc.html",
+  "DayHeader.dc.html",
+  "DayDrag.dc.html",
+  "DayDelete.dc.html",
+  "DayMenuPhone.dc.html",
+  "DaySwapLodging.dc.html",
+  "Landing.dc.html",
+  "NotesPanel.dc.html",
+  "Viewer.dc.html",
+  "Dialogs.dc.html",
+  "ConfirmEvent.dc.html",
+  "ExportImage.dc.html",
+  "StatesEmpty.dc.html",
+  "StatesErrors.dc.html",
+  "TripList.dc.html",
+  "LegDetail.dc.html",
+  "EventImage.dc.html",
+  "TripListNav.dc.html",
+  "StatesGeneric.dc.html",
+  "DSTokens.dc.html",
+  "DSComponents.dc.html",
+  "DSOverlays.dc.html",
+  "MainDark.dc.html"
+ ],
+ "pages": [],
+ "title": "Travel Planner — High Fidelity"
+}

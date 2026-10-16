@@ -43,7 +43,7 @@ Each step lists what it needs from earlier steps and when it is done.
 ### Experience
 
 - [ ] **11. Keyboard operation.** Selection model, single-key and modifier shortcuts, tooltips with shortcuts, `?` cheat sheet. *Needs:* 9, 10.
-- [ ] **12. Interface language.** English and Traditional Chinese with a switch; terms from the design spec mapping. *Needs:* 11.
+- [ ] **12. Interface language and theme.** English and Traditional Chinese, and light and dark themes, each with a switch in the top right; terms from the design spec mapping. *Needs:* 11.
 - [ ] **13. Phone layout.** One Day at a time, bottom drawers for Backlog, Archive and Todos, field-based moves across areas. *Needs:* 9.
 
 ### Places and travel
@@ -66,9 +66,14 @@ Each step lists what it needs from earlier steps and when it is done.
 - [ ] **23. AI generation.** Prompt to a new Trip with real places and times, daily limit. *Needs:* 14, 15, 18.
 - [ ] **24. Export.** Document, backup with import, and whole-Trip image. *Needs:* 15.
 
+### Trips
+
+- [ ] **25. Trip management.** Trip list and Shared-with-me, New Trip, rename, delete with typed confirmation, import backup, switching Trips. *Needs:* 18, 20, 24. (PRD §8.1)
+
 ### Release
 
-- [ ] **25. Deploy.** Docker image on fly.io, production Postgres, environment configuration. *Needs:* 18.
+- [ ] **26. Photo attribution.** Add author attribution for the placeholder photos, once all features are done.
+- [ ] **27. Deploy.** Docker image on fly.io, production Postgres, environment configuration. *Needs:* 18.
 
 ## Next phase (not scheduled)
 

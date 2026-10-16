@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Design system dialogs, popovers and banners</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="hf.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Nunito:wght@700;800&amp;family=Noto+Sans+TC:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.dso{width:1800px;height:1180px;position:relative;overflow:hidden;background:var(--bg)}
+.dso .cap{position:absolute}
+.stg{position:absolute;border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden;background:var(--surface)}
+.faux{padding:20px;display:flex;flex-direction:column;gap:12px}.fb{height:14px;border-radius:7px;background:var(--border);width:90%}
+.stg .overlay{position:absolute}
+.dico{width:30px;height:30px;border-radius:50%;background:var(--pri-tint);color:var(--pri-ink);display:inline-flex;align-items:center;justify-content:center;flex:none}
+.dico.d{background:var(--danger-tint);color:var(--danger)}
+.dp{margin:0 0 12px;color:var(--muted);line-height:1.5;font-size:13px}
+.df{display:flex;justify-content:flex-end;gap:8px}
+.stg .pop{position:absolute}
+.col3{position:absolute;left:1180px;top:50px;width:580px;display:flex;flex-direction:column;gap:12px}
+.tp{display:flex;align-items:center;gap:16px;height:40px}
+.pnl2{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:14px 18px;box-shadow:var(--sh-card)}
+.pnl2 h5{margin:0 0 10px;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+table.st{border-collapse:collapse;width:100%;font-size:12px}.st th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);text-align:left;padding:4px 0}.st td{border-top:1px solid var(--border);padding:7px 4px 7px 0;vertical-align:middle}
+</style>
+</helmet>
+<div class="hf dso">
+<div class="cap" style="left:40px;top:24px">Dialog · destructive</div><div class="stg" style="left:40px;top:50px;width:560px;height:320px"><div class="faux"><div class="fb"></div><div class="fb" style="width:60%"></div><div class="fb" style="width:80%"></div></div><div class="overlay"><div class="dlg" style="width:420px"><h2><span class="dico d"><svg class="i" style="width:18px;height:18px" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z"></path><path d="M12 10v5"></path><path d="M12 18v.01"></path></svg></span>Delete Day 2?</h2><p class="dp">This removes Day 2 and its 4 Events and Legs. Later Days move up and renumber. You can undo for 10 seconds.</p><label class="todo" style="margin:4px 0 14px"><input type="checkbox"><span>Move its Events to the Backlog instead</span></label><div class="df"><button class="btn">Cancel</button><button class="btn dng">Delete Day</button></div></div></div></div>
+<div class="cap" style="left:40px;top:394px">Dialog · standard</div><div class="stg" style="left:40px;top:420px;width:560px;height:280px"><div class="faux"><div class="fb"></div><div class="fb" style="width:60%"></div><div class="fb" style="width:80%"></div></div><div class="overlay"><div class="dlg" style="width:420px"><h2><span class="dico"><svg class="i" style="width:18px;height:18px" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5"></path><path d="M12 8v.01"></path></svg></span>Archive “Philosopher’s Path”?</h2><p class="dp">It leaves the Backlog and is kept in Archive, where you can restore it any time.</p><div class="df"><button class="btn">Cancel</button><button class="btn pri">Archive</button></div></div></div></div>
+<div class="cap" style="left:40px;top:748px;text-transform:none;letter-spacing:0;font-weight:500;width:560px;white-space:normal;line-height:1.5">Dialogs: 12 px radius, dialog shadow, 50% scrim, max 440 px wide. Cancel left, action right. The destructive action is the only red button in the app. Esc and scrim click cancel. Focus starts on Cancel for destructive, on the action otherwise.</div>
+<div class="cap" style="left:620px;top:24px">Popovers · menu, select, Leg detail</div><div class="stg" style="left:620px;top:50px;width:560px;height:500px"><div class="faux"><div class="fb"></div><div class="fb" style="width:60%"></div><div class="fb" style="width:80%"></div></div><div class="pop" style="left:20px;top:20px;width:240px"><button class="mi"><svg class="i"  viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"></path></svg>Rename</button><button class="mi hov"><svg class="i"  viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M4 16V6a2 2 0 0 1 2-2h10"></path></svg>Duplicate Day<span class="kbd">Ctrl D</span></button><button class="mi"><svg class="i"  viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16M3 8l4-4 4 4M17 20V4M13 16l4 4 4-4"></path></svg>Swap with…</button><hr><button class="mi dng"><svg class="i"  viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"></path></svg>Delete Day…</button></div>
+<div class="pop" style="left:290px;top:20px;width:200px;padding:6px"><div class="grp" style="padding:4px 10px">Day</div><button class="mi">Day 1</button><button class="mi on-i" style="background:var(--pri-tint);color:var(--pri-ink);font-weight:700">Day 2<svg class="i" style="margin-left:auto" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></button><button class="mi">Day 3</button><button class="mi">Day 4</button></div>
+<div class="pop" style="left:20px;top:230px;width:300px;padding:12px 14px"><div style="display:flex;align-items:center;gap:8px;font-weight:700"><svg class="i"  viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="14" rx="3"></rect><path d="M5 11h14"></path><path d="M9 21l2-4M15 21l-2-4"></path></svg>Transit · 25 min</div><div class="muted" style="font-size:12px;margin:6px 0 10px">Hotel Granvia Kyoto → Fushimi Inari<br>Departs 10:35 · arrives 11:00</div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="tl on" style="height:28px">Transit</button><button class="tl" style="width:auto;padding:0 10px;height:28px">Walk</button><button class="tl" style="width:auto;padding:0 10px;height:28px">Drive</button></div></div>
+<div class="muted" style="position:absolute;left:340px;top:230px;width:170px;font-size:12px;line-height:1.5">Popover: 10 px radius, pop shadow, 6 px padding. Rows 34 px (44 px on phone). One level only. Esc and outside click close it.</div></div>
+<div class="col3">
+ <div class="cap" style="position:static;margin-bottom:-4px">Banners · info, warning, error, success</div>
+ <div style="display:flex;flex-direction:column;gap:10px"><div class="banner info" role="status"><svg class="i"  viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5"></path><path d="M12 8v.01"></path></svg><div style="flex:1"><b>Imported 12 Events</b><div class="muted" style="margin-top:2px">Check the Days before sharing.</div></div><button class="btn sm ghost">Dismiss</button></div>
+<div class="banner warn" role="status"><svg class="i"  viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z"></path><path d="M12 10v5"></path><path d="M12 18v.01"></path></svg><div style="flex:1"><b>2 Events overlap on Day 3</b><div style="margin-top:2px">They are shown side by side.</div></div></div>
+<div class="banner err" role="alert"><svg class="i"  viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v6"></path><path d="M12 16.5v.01"></path></svg><div style="flex:1"><b>Couldn’t save changes</b><div style="margin-top:2px">Check your connection.</div></div><button class="btn sm">Retry</button></div>
+<div class="banner ok" role="status"><svg class="i"  viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M8 12l3 3 5-6"></path></svg><div style="flex:1"><b>Link copied</b><div class="muted" style="margin-top:2px">Anyone with the link can view.</div></div></div></div>
+ <div class="cap" style="position:static;margin:8px 0 -4px">Tooltips and toast</div>
+ <div class="pnl2" style="padding:6px 18px"><div class="tp"><div class="tip" style="position:relative">Notes <span class="kbd">Ctrl ⇧ N</span></div><span class="muted">Button tooltip with shortcut</span></div>
+<div class="tp"><div class="tip" style="position:relative">Reorder Day</div><span class="muted">Plain tooltip, 400 ms delay</span></div>
+<div class="tp"><div class="tip" style="position:relative">Duplicate <span class="kbd">Ctrl D</span></div><span class="muted">Menu row shows it right-aligned instead</span></div>
+<div class="tp"><div class="toast">Day 2 deleted<button>Undo</button></div><span class="muted">Toast, 10 s</span></div></div>
+ <div class="cap" style="position:static;margin:8px 0 -4px">Keyboard shortcut format</div>
+ <div class="pnl2"><table class="st"><tr><th>Rule</th><th>Example</th></tr>
+<tr><td>One key cap for the whole combo; parts separated by a thin space</td><td><span class="kbd">Ctrl ⇧ N</span></td></tr>
+<tr><td>Order: Ctrl, Alt, ⇧, key</td><td><span class="kbd">Ctrl Alt ⇧ K</span></td></tr>
+<tr><td>Mac swaps Ctrl for ⌘ and Alt for ⌥</td><td><span class="kbd">⌘ ⇧ N</span></td></tr>
+<tr><td>Single keys are capitalised</td><td><span class="kbd">?</span> <span class="kbd">Esc</span> <span class="kbd">Enter</span></td></tr>
+<tr><td>Sits after the label, 8 px gap; in tooltips on a translucent cap</td><td>Notes <span class="kbd">Ctrl ⇧ N</span></td></tr></table></div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1800,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

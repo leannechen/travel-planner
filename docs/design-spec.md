@@ -41,6 +41,7 @@ Layout, left to right:
 ## 3. Components
 
 ### 3.1 Event block
+- Image: shown in the block when it is tall enough (thumbnail on the left, title, time and place on the right); it is the place's Google photo by default, the user's upload when replaced, or the kind's icon when there is none.
 - Variants for the four kinds, distinguishable by color and icon (palette to be chosen by design; it must work for color-blind users, so also rely on the icon).
 - Content by available height: title only (short), title and time (medium), image, title, time and place (tall).
 - Lodging renders as a thin banner at the top of its Day.
@@ -56,7 +57,7 @@ Layout, left to right:
 ### 3.3 Event edit panel
 - A popover on desktop, a bottom sheet on phone.
 - Fields depend on the kind (PRD §3.2). Attraction and Meal share one layout; Lodging replaces start time and duration with check-in Day, nights and check-in and check-out times; Transport has departure and destination places, departure and arrival times (with "+1" when arriving on a later day), a transport label and a booking link. Design all four variants.
-- Common fields: kind and title; Day and time; location (Google place search); Description (Markdown); contact (phone, email, website, collapsed by default); opening hours (Attraction, Meal); image; Event Todos.
+- The image area has Replace and Remove. After Remove, it shows the kind's icon and, if the Event has a location, a "Use place photo" action. Common fields: kind and title; Day and time; location (Google place search); Description (Markdown); contact (phone, email, website, collapsed by default); opening hours (Attraction, Meal); image; Event Todos.
 - Switching the kind keeps hidden values and shows a short note naming what is hidden; design that transition (PRD §3.2).
 - Creation dialog follows the draft: kind chip, place input, confirm button.
 

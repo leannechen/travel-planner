@@ -80,7 +80,10 @@ Only the title is required.
 
 - **Location is optional for every kind.** A free-text idea such as "tempura place a friend recommended in Ginza" is valid. Events without a location are ignored by Legs and the Map View.
 - **Opening hours** are filled from Google place data when available and can be overridden by the user. They are stored as a per-weekday structure.
-- **Preview image** defaults to the Google place photo; the user may upload a replacement. Without a photo, the kind's icon is shown.
+- **Preview image** defaults to the Google place photo when the Event has a location; the user may upload a replacement. Without an image, the kind's icon is shown.
+  - **Replace** uploads the user's own image. **Remove** means "no image for this Event": the Google photo is no longer shown and the kind's icon is used. If the Event has a location, the image area then offers "Use place photo" to bring the default back.
+  - Changing the location swaps the default Google photo to the new place's photo, but never replaces an image the user uploaded.
+  - Google's terms for place photos (attribution, storage and reuse limits) are checked at implementation time (plan step 14). If they are stricter than assumed in §9, the affected exports leave Google photos out.
 - **Lodging** appears as a thin banner at the top of each Day whose night it covers, and also on the check-out Day, labelled with the check-out time. It is the default start point for that Day's first Leg. Three nights from Day 1 cover Days 1 to 3 and check out on Day 4.
 - **Lodging is tied to Day positions, not to the Days' contents.** Reordering Days never changes a Lodging; the user adjusts it themselves if needed, so there are no surprising side effects. Inserting or deleting a Day adjusts a Lodging like a range: inserting before its check-in Day shifts it, inserting inside it adds a night, inserting after it changes nothing; deleting a Day inside it removes a night, and a Lodging left with no nights moves to the Backlog.
 - **Transport times**: the user enters departure and arrival time; the duration is derived and stored like any other Event's. An arrival on a later day shows "+1".
@@ -188,9 +191,9 @@ When a Trip has dates and an Event with opening hours is placed in a Day, a warn
 
 | Format | Content | Purpose |
 |---|---|---|
-| Document (openable in Google Docs) | Each Day's schedule with Event details; no Todos, no Archive | Print or send to companions |
-| Full backup (this app's format) | Everything: Todos, Notes, Backlog, Archive; importing creates a new Trip | Clone or restore a Trip |
-| Image | One image for the whole Trip, Days side by side, with Leg durations and travel-mode icons; no map | Sharing in chats |
+| Document (openable in Google Docs) | Each Day's schedule with Event details; no Todos, no Archive, no images | Print or send to companions |
+| Full backup (this app's format) | Everything: Todos, Notes, Backlog, Archive, and images the user uploaded (not Google photos); importing creates a new Trip | Clone or restore a Trip |
+| Image | One image for the whole Trip, Days side by side, with Leg durations and travel-mode icons and Event images where Google's terms allow; no map | Sharing in chats |
 
 ## 10. Devices
 

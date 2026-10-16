@@ -48,7 +48,7 @@ Each step lists what it needs from earlier steps and when it is done.
 
 ### Places and travel
 
-- [ ] **14. Places.** Attach a location to an Event through a place-search interface, first with a fake provider, then Google. *Needs:* 4. (Opening hours auto-fill and warnings in step 16.)
+- [ ] **14. Places.** Attach a location to an Event through a place-search interface, first with a fake provider, then Google. *Needs:* 4. Check Google's terms for place photos here and adjust PRD §3.2 and §9 if needed. (Opening hours auto-fill and warnings in step 16.)
 - [ ] **15. Legs.** Click the slot between two Events to create a Leg; travel mode choice; lifecycle rules from PRD §3.3 with tests; first with a fake travel-time provider, then Google, with server-side caching. *Needs:* 5, 14. (ADR 0002)
 - [ ] **16. Opening hours.** Fill from Google place data, manual override, warnings when a Trip has dates. *Needs:* 14.
 - [ ] **17. Map View.** Markers colored by Day, Day filter, gray Backlog markers, marker opens the edit panel. *Needs:* 14.

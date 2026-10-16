@@ -19,13 +19,13 @@ Reference material in `docs/reference/`: `excalidraw-design-draft.png` (Day layo
 ### 2.2 Trip workspace (desktop)
 Layout, left to right:
 - **Backlog** panel and **Archive** panel (collapsible).
-- **Days**: columns side by side, each with a header (Day number, optional date), a time axis, and Event blocks. Horizontal scroll when many Days.
+- **Days**: columns side by side, each with a header (drag handle for reordering, Day number, optional date, menu with move, insert and delete), a time axis, and Event blocks. Horizontal scroll when many Days.
 - **Todos** panel (Trip Todos, with Event Todos grouped under their Event).
 - A top bar: Trip title, view switch (Schedule / Map), Notes, Share, Export, language, collaborators.
 - A floating **Notes panel**, opened from anywhere with a keyboard shortcut: a field for a new Note on top (focused on open), then pinned Notes, then the rest by most recent edit. Markdown is edited in place.
 
 ### 2.3 Trip workspace (phone)
-- One Day at a time, with a Day switcher (tabs or swipe) and the date when set.
+- One Day at a time, with a Day switcher (tabs or swipe) and the date when set. The Day menu has "Move earlier", "Move later", insert and delete; reordering is not done by dragging on phone.
 - Holding areas and Todos in bottom drawers.
 - Event creation: tap a time slot. Moving between a Day and a holding area, or between Days: edit the Day and start-time fields in the Event panel.
 

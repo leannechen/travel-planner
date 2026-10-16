@@ -49,6 +49,10 @@ Each non-goal is listed with its reason, so it is not reopened without new infor
 - A Trip has numbered Days (Day 1..N). Day numbers always exist.
 - A Trip may have a start date. When set, each Day also shows its calendar date. Dates are display information and enable opening-hours checks (§3.5).
 - Each Day shows its Events on a time axis.
+- **Day order**: Days can be reordered. Day numbers always follow position (1..N) and dates always follow the start date by position, so reordering moves the Days' contents, not their numbers. Events inside a moved Day are unchanged, and opening-hours warnings are recalculated for the new dates.
+  - Desktop: drag the handle on a Day's header. Phone: a Day menu with "Move earlier" and "Move later". Keyboard: select a Day header and use a shortcut to move it left or right.
+- **Adding a Day**: a Day can be inserted at any position; later Days are renumbered.
+- **Deleting a Day**: a confirmation states how many Events will move to the Backlog; after confirming, they move there (not to the Archive), so their Event Todos are kept and their Legs are removed.
 
 ### 3.2 Events
 
@@ -78,6 +82,7 @@ Only the title is required.
 - **Opening hours** are filled from Google place data when available and can be overridden by the user. They are stored as a per-weekday structure.
 - **Preview image** defaults to the Google place photo; the user may upload a replacement. Without a photo, the kind's icon is shown.
 - **Lodging** appears as a thin banner at the top of each Day whose night it covers, and also on the check-out Day, labelled with the check-out time. It is the default start point for that Day's first Leg. Three nights from Day 1 cover Days 1 to 3 and check out on Day 4.
+- **Lodging is tied to Day positions, not to the Days' contents.** Reordering Days never changes a Lodging; the user adjusts it themselves if needed, so there are no surprising side effects. Inserting or deleting a Day adjusts a Lodging like a range: inserting before its check-in Day shifts it, inserting inside it adds a night, inserting after it changes nothing; deleting a Day inside it removes a night, and a Lodging left with no nights moves to the Backlog.
 - **Transport times**: the user enters departure and arrival time; the duration is derived and stored like any other Event's. An arrival on a later day shows "+1".
 
 **Changing an Event's kind** never silently loses data:

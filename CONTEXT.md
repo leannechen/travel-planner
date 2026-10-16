@@ -9,7 +9,7 @@ A complete travel plan: a set of Days, the two holding areas, Todos and Notes. C
 _Avoid_: Itinerary, plan, project
 
 **Day**:
-One numbered day of a Trip (Day 1, Day 2, ...), holding Events on a time axis. Day numbers always exist; a calendar date is optional display information.
+One numbered day of a Trip (Day 1, Day 2, ...), holding Events on a time axis. Day numbers always follow position and exist even when dates do not; a calendar date is optional display information. Days can be reordered, inserted and deleted.
 _Avoid_: List, column
 
 **Event**:

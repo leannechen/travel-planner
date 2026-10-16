@@ -54,7 +54,9 @@ Layout, left to right:
 
 ### 3.3 Event edit panel
 - A popover on desktop, a bottom sheet on phone.
-- Fields grouped: kind and title; Day and start time; duration; location (Google place search); Description (Markdown); contact; opening hours; image; Event Todos.
+- Fields depend on the kind (PRD §3.2). Attraction and Meal share one layout; Lodging replaces start time and duration with check-in Day, nights and check-in and check-out times; Transport has departure and destination places, departure and arrival times (with "+1" when arriving on a later day), a transport label and a booking link. Design all four variants.
+- Common fields: kind and title; Day and time; location (Google place search); Description (Markdown); contact (phone, email, website, collapsed by default); opening hours (Attraction, Meal); image; Event Todos.
+- Switching the kind keeps hidden values and shows a short note naming what is hidden; design that transition (PRD §3.2).
 - Creation dialog follows the draft: kind chip, place input, confirm button.
 
 ### 3.4 Confirmation dialogs

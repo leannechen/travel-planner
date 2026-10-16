@@ -24,11 +24,11 @@ _Avoid_: Location, sight, place
 An Event kind for a restaurant or a meal.
 
 **Lodging**:
-An Event kind for accommodation. It can span consecutive nights and appears as a thin banner at the top of each Day it covers.
+An Event kind for accommodation. It has a check-in Day and a number of nights instead of a start time and duration, and appears as a thin banner at the top of each Day it covers and on its check-out Day.
 _Avoid_: Hotel, accommodation
 
 **Transport event**:
-An Event kind for transport with its own character, created by the user (for example a ferry or a scenic train). It may have a start and an end location.
+An Event kind for transport with its own character, created by the user (for example a ferry or a scenic train). It has departure and arrival times and may have a departure and a destination place.
 _Avoid_: Travel
 
 **Leg**:

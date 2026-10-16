@@ -53,29 +53,38 @@ Each non-goal is listed with its reason, so it is not reopened without new infor
 ### 3.2 Events
 
 - An Event has a **kind**: Attraction, Meal, Lodging or Transport event. The four kinds must be visually distinguishable at a glance; the specific colors are decided in the design spec.
-- Inside a Day, an Event has an absolute start time and a duration (ADR 0001). Events may overlap and are displayed side by side when they do. Editing an Event never moves another Event.
+- Inside a Day, an Event has an absolute start time and a duration (ADR 0001). Events may overlap and are displayed side by side when they do. Editing an Event never moves another Event. **Lodging is the exception**: it has a check-in Day and a number of nights instead of a start time and duration.
 - The user can click any time on a Day's time axis (for example 10:00 or 15:30) to create an Event there, and can drag Events up and down and resize them on desktop and on phone within a Day.
-- In a holding area an Event has a duration but no start time.
+- In a holding area an Event has a duration (Lodging: nights) but no start time or Day.
 
-**Event attributes**
+**Event attributes by kind**
 
-| Attribute | Applies to | Required |
-|---|---|---|
-| Title | all | yes |
-| Kind | all | yes |
-| Duration | all | yes |
-| Location (Google Maps place or link) | all | no |
-| Opening hours | Attraction, Meal | no |
-| Phone, email | Attraction, Meal, Lodging | no |
-| Start and end location | Transport event | no |
-| Description (Markdown) | all | no |
-| Preview image | all | no |
-| Event Todos | all | no |
+| Attribute | Attraction | Meal | Lodging | Transport event |
+|---|---|---|---|---|
+| Title (required) | yes | yes | yes | yes |
+| Day | yes | yes | check-in Day | yes |
+| Time | start time and duration | start time and duration | check-in time and check-out time, optional, display only | departure and arrival time |
+| Location | one place | one place | one place | departure and destination, both optional |
+| Nights | | | yes | |
+| Opening hours | yes | yes | | |
+| Contact (phone, email, website) | yes | yes | yes | |
+| Booking link | | optional | yes | yes |
+| Transport label (flight, train, ferry, bus, other), sets the icon | | | | yes |
+| Description (Markdown), preview image, Event Todos | yes | yes | yes | yes |
+
+Only the title is required.
 
 - **Location is optional for every kind.** A free-text idea such as "tempura place a friend recommended in Ginza" is valid. Events without a location are ignored by Legs and the Map View.
 - **Opening hours** are filled from Google place data when available and can be overridden by the user. They are stored as a per-weekday structure.
 - **Preview image** defaults to the Google place photo; the user may upload a replacement. Without a photo, the kind's icon is shown.
-- **Lodging** spans a range of nights and appears as a thin banner at the top of each Day it covers. It is the default start point for that Day's first Leg.
+- **Lodging** appears as a thin banner at the top of each Day whose night it covers, and also on the check-out Day, labelled with the check-out time. It is the default start point for that Day's first Leg. Three nights from Day 1 cover Days 1 to 3 and check out on Day 4.
+- **Transport times**: the user enters departure and arrival time; the duration is derived and stored like any other Event's. An arrival on a later day shows "+1".
+
+**Changing an Event's kind** never silently loses data:
+
+- Fields both kinds have (title, Description, image, Todos, location, contact) are kept as they are.
+- Fields the new kind does not have are hidden but their values are kept, and reappear if the user switches back. A short note names what is hidden (for example "Opening hours kept, hidden for Lodging"). No confirmation is needed.
+- Fields with a natural counterpart are converted: Attraction to Transport turns the location into the departure place; Transport to Attraction turns it back and keeps the destination hidden; Attraction to Lodging turns the Day into the check-in Day, the start time into the check-in time and sets nights to 1, keeping the duration hidden; Lodging to Attraction does the reverse and restores the kept duration or a default.
 
 ### 3.3 Legs
 
@@ -95,7 +104,7 @@ Each non-goal is listed with its reason, so it is not reopened without new infor
 
 ### 3.4 Transport events
 
-A Transport event is an Event the user creates for transport with its own character (ferry, scenic train). It has its own time, Description and booking link and may have start and end locations. Legs connect the previous Event to its start location and its end location to the next Event.
+A Transport event is an Event the user creates for transport with its own character (ferry, scenic train). It has departure and arrival times, a transport label, a booking link and a Description, and may have departure and destination places. Legs connect the previous Event to its departure place and its destination to the next Event.
 
 ### 3.5 Opening-hours check
 

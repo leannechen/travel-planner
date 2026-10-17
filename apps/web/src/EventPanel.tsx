@@ -2,6 +2,8 @@ import {
   formatMinute,
   MAX_DURATION_MINUTES,
   parseTime,
+  planEventSave,
+  type EventFields,
   type CreateEventInput,
   type Day,
   type Event,
@@ -23,13 +25,12 @@ type Props = {
   onClose: () => void;
 };
 
-type Fields = { title: string; dayId: string; start: string; duration: string };
 
 // Edits one Event. Fields are saved when the user leaves them or presses Enter, not on every
 // keystroke. A new Event is created once it has a title. Remount it (key) for another Event.
 export function EventPanel({ days, event, newEvent, onCreate, onUpdate, onDraftChange, onClose }: Props) {
   const initial = event ?? { title: "", ...newEvent! };
-  const [fields, setFields] = useState<Fields>({
+  const [fields, setFields] = useState<EventFields>({
     title: initial.title,
     dayId: initial.dayId,
     start: formatMinute(initial.startMinute),
@@ -40,10 +41,10 @@ export function EventPanel({ days, event, newEvent, onCreate, onUpdate, onDraftC
   const saved = useRef<Event | undefined>(event);
   // Saves run one after another, each reading the latest fields when it starts.
   const queue = useRef<Promise<void>>(Promise.resolve());
+  // The fields as last typed; change() is the only writer, so a queued save never sees stale text.
   const latest = useRef(fields);
-  latest.current = fields;
 
-  function change(next: Partial<Fields>) {
+  function change(next: Partial<EventFields>) {
     const merged = { ...latest.current, ...next };
     latest.current = merged;
     setFields(merged);
@@ -61,44 +62,24 @@ export function EventPanel({ days, event, newEvent, onCreate, onUpdate, onDraftC
   }
 
   async function save() {
-    const f = latest.current;
-    const title = f.title.trim();
-    const startMinute = parseTime(f.start);
-    const durationMinutes = Number(f.duration);
     const current = saved.current;
-
-    if (!title) {
-      // A new Event waits for its title; an existing one cannot lose it.
-      if (current) setStatus({ kind: "error", message: "Title is required" });
+    const plan = planEventSave(latest.current, current);
+    if (plan.kind === "wait") return;
+    if (plan.kind === "nothing") {
+      setStatus({ kind: "idle" });
       return;
     }
-    if (
-      startMinute === undefined ||
-      !Number.isInteger(durationMinutes) ||
-      durationMinutes < 1 ||
-      durationMinutes > MAX_DURATION_MINUTES
-    ) {
-      setStatus({
-        kind: "error",
-        message: `Enter a start time and a duration of 1 to ${MAX_DURATION_MINUTES} whole minutes`,
-      });
+    if (plan.kind === "error") {
+      setStatus({ kind: "error", message: plan.message });
       return;
-    }
-
-    const patch: UpdateEventInput = {};
-    if (current) {
-      if (title !== current.title) patch.title = title;
-      if (f.dayId !== current.dayId) patch.dayId = f.dayId;
-      if (startMinute !== current.startMinute) patch.startMinute = startMinute;
-      if (durationMinutes !== current.durationMinutes) patch.durationMinutes = durationMinutes;
-      if (Object.keys(patch).length === 0) return;
     }
 
     setStatus({ kind: "saving" });
     try {
-      saved.current = current
-        ? await onUpdate(current.id, patch)
-        : await onCreate({ title, startMinute, durationMinutes }, f.dayId);
+      saved.current =
+        plan.kind === "update"
+          ? await onUpdate(current!.id, plan.patch)
+          : await onCreate(plan.input, plan.dayId);
       setStatus({ kind: "saved" });
     } catch (err) {
       setStatus({ kind: "error", message: err instanceof Error ? err.message : "Something went wrong" });
@@ -115,7 +96,11 @@ export function EventPanel({ days, event, newEvent, onCreate, onUpdate, onDraftC
       className="event-panel"
       aria-label="Event"
       onKeyDown={(e) => {
-        if (e.key === "Escape") onClose();
+        if (e.key === "Escape") {
+          // The field being edited will not blur once the panel is gone, so save it first.
+          commit();
+          onClose();
+        }
       }}
     >
       <div className="panel-top">

@@ -93,7 +93,7 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
                   Delete Day
                 </button>
               </div>
-              <button type="button" onClick={() => onCreateAt(day.id, DEFAULT_START_MINUTE)}>
+              <button type="button" disabled={busy} onClick={() => onCreateAt(day.id, DEFAULT_START_MINUTE)}>
                 Add event
               </button>
             </section>,

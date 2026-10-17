@@ -52,7 +52,7 @@ export function DayTimeline({ events, range, selectedEventId, draft, onSelectEve
   // Only clicks on the empty axis create; clicks on an Event card select it instead.
   // Keyboard users create through the Day's "Add event" button.
   function handleAxisClick(e: MouseEvent<HTMLUListElement>) {
-    if ((e.target as HTMLElement).closest(".event-card")) return;
+    if ((e.target as HTMLElement).closest(".event-card, .new-event")) return;
     const top = e.currentTarget.getBoundingClientRect().top;
     onCreateAt(minuteAtOffset(e.clientY - top, range, PX_PER_HOUR));
   }

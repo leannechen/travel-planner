@@ -70,4 +70,5 @@ export type ReorderDaysInput = z.infer<typeof reorderDaysInputSchema>;
 
 export * from "./day-order";
 export * from "./event-list";
+export * from "./event-save";
 export * from "./time-layout";

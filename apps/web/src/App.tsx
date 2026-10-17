@@ -1,6 +1,6 @@
 import { DEFAULT_DURATION_MINUTES, upsertEvent } from "@travel-planner/shared";
 import type { CreateEventInput, Day, Trip, UpdateEventInput } from "@travel-planner/shared";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { addEvent, createTrip, listTrips, updateEvent } from "./api";
 import { EventPanel } from "./EventPanel";
 import { TitleForm } from "./TitleForm";
@@ -18,6 +18,8 @@ export function App() {
   // Changes when the user picks something else, so the panel starts fresh. It stays the same when
   // a new Event is saved, so the panel keeps its fields and focus.
   const [panelKey, setPanelKey] = useState(0);
+  // The same number, readable from a save that finishes later.
+  const panelKeyRef = useRef(0);
 
   useEffect(() => {
     listTrips().then(setTrips, (e: Error) => setError(e.message));
@@ -34,19 +36,26 @@ export function App() {
     );
   }
 
-  function handleDaysChange(tripId: string, newDays: Day[]) {
-    setTripDays(tripId, () => newDays);
-  }
-
   function select(next: Selection | undefined) {
     setSelection(next);
-    setPanelKey((k) => k + 1);
+    panelKeyRef.current += 1;
+    setPanelKey(panelKeyRef.current);
+  }
+
+  function handleDaysChange(tripId: string, newDays: Day[]) {
+    setTripDays(tripId, () => newDays);
+    // A new Event set up on a Day that no longer exists cannot be saved.
+    if (selection?.tripId === tripId && "draft" in selection && !newDays.some((d) => d.id === selection.draft.dayId)) {
+      select(undefined);
+    }
   }
 
   async function handleCreateEvent(tripId: string, input: CreateEventInput, dayId: string) {
+    const panel = panelKeyRef.current;
     const event = await addEvent(tripId, dayId, input);
     setTripDays(tripId, (days) => upsertEvent(days, event));
-    setSelection({ tripId, eventId: event.id });
+    // Follow the new Event only if the user is still on the panel that created it.
+    if (panelKeyRef.current === panel) setSelection({ tripId, eventId: event.id });
     return event;
   }
 
@@ -76,7 +85,10 @@ export function App() {
             onDaysChange={handleDaysChange}
             selectedEventId={mine && "eventId" in mine ? mine.eventId : undefined}
             draft={mine && "draft" in mine ? mine.draft : undefined}
-            onSelectEvent={(eventId) => select({ tripId: trip.id, eventId })}
+            onSelectEvent={(eventId) => {
+              // Clicking the Event that is already open must not reset the panel.
+              if (!(mine && "eventId" in mine && mine.eventId === eventId)) select({ tripId: trip.id, eventId });
+            }}
             onCreateAt={(dayId, startMinute) =>
               select({
                 tripId: trip.id,

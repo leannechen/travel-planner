@@ -2,7 +2,7 @@
 
 Product rules are in [`PRD.md`](./PRD.md); vocabulary in [`CONTEXT.md`](../CONTEXT.md); decisions in [`docs/adr/`](./adr/). This file orders the work and tracks status. It changes often; the PRD should not.
 
-**Current step: 1 (walking skeleton).** Step 0 is done. The final design is in [`docs/design/`](./design/); a few designer fixes are pending and do not block step 0.
+**Current step: 2 (multiple Days).** Steps 0 and 1 are done. The final design is in [`docs/design/`](./design/); a few designer fixes are pending and do not block step 0.
 
 ## Working agreement
 
@@ -23,7 +23,7 @@ Each step lists what it needs from earlier steps and when it is done.
 ### Foundation
 
 - [x] **0. Tooling baseline.** Workspaces, TypeScript, lint, Vitest, local Postgres via Docker Compose, CI that runs tests. *Done when:* `npm test` passes on an empty test and the web and API apps start.
-- [ ] **1. Walking skeleton.** Create a Trip with Day 1 and add an Event with only a title; it persists and is listed. A fixed development user owns the Trip. *Needs:* 0. *Done when:* reloading the page still shows the Event.
+- [x] **1. Walking skeleton.** Create a Trip with Day 1 and add an Event with only a title; it persists and is listed. A fixed development user owns the Trip. *Needs:* 0. *Done when:* reloading the page still shows the Event.
 - [ ] **2. Multiple Days.** Insert, delete (moving Events to the Backlog once step 8 exists; until then deletion is only allowed for an empty Day) and reorder Days; Days are shown side by side. *Needs:* 1.
 
 ### Schedule

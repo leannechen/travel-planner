@@ -9,7 +9,7 @@ Requires Node.js 22 or later and Docker.
 ```sh
 npm install
 cp .env.example .env
-npm run db:up      # PostgreSQL on localhost:5433
+npm run db:up      # PostgreSQL on localhost:5432
 npm run dev        # API on :3001, web on :5173
 ```
 

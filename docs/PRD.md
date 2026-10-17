@@ -174,6 +174,7 @@ When a Trip has dates and an Event with opening hours is placed in a Day, a warn
 ## 8. Accounts, sharing and collaboration
 
 - **Login**: email or Google, on a login page hosted by Auth0 (ADR 0006). One page serves both login and sign-up. Every entry point (the Landing page link, the guest save button, Share, Export, New Trip) goes straight to that page, with no extra prompt in between.
+- **Hosted page limits**: only branding (logo, colors, font, background) can be customized. The page cannot follow the in-app theme switch, so it follows the system theme. The interface language is passed to it where Auth0 supports that (to be verified at plan step 18).
 - **After login**: a user with guest Trips sees a confirmation that they were added to the account and lands in the Trip; a user without lands on the Trip list. If login fails or is cancelled, the user returns to where they were with a dismissible message.
 - **Account menu**: top right, shows the user's email, "My Trips" and "Log out". There is no profile or preferences screen. Logging out returns to the Landing page.
 - **Session expiry**: if the session expires while editing, a banner asks the user to log in again; the Trip stays on screen read-only until then, and unsaved edits are not discarded silently.

@@ -1,7 +1,13 @@
 {
- "v": 3,
  "attachments": {},
  "boards": {
+  "AccountMenu.dc.html": {
+   "h": 2266,
+   "title": "Account menu — logged out, logged in, open · High fidelity",
+   "w": 5780,
+   "x": 0,
+   "y": 22778
+  },
   "ConfirmEvent.dc.html": {
    "h": 880,
    "title": "Archive and delete confirmations, toasts, phone · High fidelity",
@@ -105,11 +111,32 @@
    "y": 0
   },
   "ExportImage.dc.html": {
-   "h": 920,
+   "h": 1120,
    "title": "Exported image — poster · High fidelity",
    "w": 1960,
    "x": 4540,
    "y": 5800
+  },
+  "GuestTooltip.dc.html": {
+   "h": 1956,
+   "title": "Guest workspace — tooltip on “Log in to save your progress” · High fidelity",
+   "w": 2340,
+   "x": 0,
+   "y": 15740
+  },
+  "GuestWorkspace.dc.html": {
+   "h": 960,
+   "title": "Guest workspace — Log in to save, phone banner and “…” menu, login note · High fidelity",
+   "w": 2940,
+   "x": 7600,
+   "y": 4300
+  },
+  "InviteEditor.dc.html": {
+   "h": 1956,
+   "title": "Invited Editor from an email link, logged out · High fidelity",
+   "w": 2340,
+   "x": 0,
+   "y": 29316
   },
   "Landing.dc.html": {
    "h": 1000,
@@ -122,7 +149,7 @@
    "h": 900,
    "title": "Leg — chooser, detail, warning, cannot calculate, phone sheet · High fidelity",
    "w": 3200,
-   "x": 4180,
+   "x": 4740,
    "y": 8900
   },
   "LodgingBanner.dc.html": {
@@ -132,12 +159,41 @@
    "x": 5450,
    "y": 1500
   },
+  "LoginHosted.dc.html": {
+   "h": 2456,
+   "title": "Hosted login page (Auth0, themed) — opened directly from every entry point; log in, sign up, wrong password · High fidelity",
+   "w": 5780,
+   "x": 0,
+   "y": 17816
+  },
+  "LoginReturn.dc.html": {
+   "h": 2266,
+   "title": "Returning to the app after login — Trip added, Trip list, login didn’t complete · High fidelity",
+   "w": 5780,
+   "x": 0,
+   "y": 20392
+  },
+  "Logout.dc.html": {
+   "h": 1956,
+   "title": "Log out — Landing with “You’re logged out” toast · High fidelity",
+   "w": 2340,
+   "x": 0,
+   "y": 25164
+  },
   "Main.dc.html": {
    "expand": "fill",
    "h": 900,
    "title": "Trip workspace — desktop · High fidelity",
    "w": 1440,
    "x": 0,
+   "y": 0
+  },
+  "MainCollapsed.dc.html": {
+   "expand": "fill",
+   "h": 900,
+   "title": "Trip workspace — desktop, both side panels collapsed · High fidelity",
+   "w": 1440,
+   "x": 7100,
    "y": 0
   },
   "MainDark.dc.html": {
@@ -158,8 +214,8 @@
   },
   "NotesPanel.dc.html": {
    "h": 1200,
-   "title": "Notes panel — open on Schedule and Map, movable, states · High fidelity",
-   "w": 2580,
+   "title": "Notes panel — open on Schedule and Map, movable, states, phone sheet · High fidelity",
+   "w": 3040,
    "x": 2380,
    "y": 4300
   },
@@ -191,6 +247,13 @@
    "x": 1520,
    "y": 0
   },
+  "SessionExpired.dc.html": {
+   "h": 1956,
+   "title": "Session expired while editing — read-only Trip and banner · High fidelity",
+   "w": 2340,
+   "x": 0,
+   "y": 27240
+  },
   "StatesEmpty.dc.html": {
    "h": 1000,
    "title": "States — empty Trip, Day, Backlog and Archive; loading · High fidelity",
@@ -214,8 +277,8 @@
   },
   "TripList.dc.html": {
    "h": 920,
-   "title": "Trip list — sidebar, item menu, New Trip, Create with AI, Delete Trip, phone · High fidelity",
-   "w": 4100,
+   "title": "Trip list — sidebar, item menu, New Trip (Blank / Generate with AI), Delete Trip, phone · High fidelity",
+   "w": 4660,
    "x": 0,
    "y": 8900
   },
@@ -230,7 +293,7 @@
    "h": 900,
    "title": "Viewer mode — read-only workspace and Event details · High fidelity",
    "w": 2040,
-   "x": 5040,
+   "x": 5500,
    "y": 4300
   }
  },
@@ -246,7 +309,7 @@
   "s0": {
    "fill": "blue",
    "maxH": 96,
-   "text": "Single source of truth. Every board is high fidelity, in the same order and with the same names as the wireframe artifact. Boards converted from wireframes reuse the tokens and components from the last section; some details (for example backdrops behind dialogs) are still simplified.",
+   "text": "Single source of truth. Every board is high fidelity. Boards reuse the tokens and components from the design-system section; some details (for example backdrops behind dialogs) are simplified.",
    "w": 760,
    "x": 0,
    "y": -150
@@ -254,7 +317,7 @@
   "t1": {
    "kind": "title1",
    "maxW": 7020,
-   "text": "Travel Planner — Wireframes, phase 1",
+   "text": "Travel Planner — High Fidelity",
    "w": 240,
    "x": 0,
    "y": -260
@@ -275,10 +338,18 @@
    "x": 0,
    "y": 14080
   },
+  "t12": {
+   "kind": "title1",
+   "maxW": 5760,
+   "text": "Login and account — high fidelity",
+   "w": 240,
+   "x": 0,
+   "y": 15480
+  },
   "t2": {
    "kind": "title1",
    "maxW": 6850,
-   "text": "Event panel by kind — wireframes, round 2",
+   "text": "Event panel by kind",
    "w": 240,
    "x": 0,
    "y": 1240
@@ -286,7 +357,7 @@
   "t3": {
    "kind": "title1",
    "maxW": 7150,
-   "text": "Day management — wireframes, round 3",
+   "text": "Day management",
    "w": 240,
    "x": 0,
    "y": 2840
@@ -294,7 +365,7 @@
   "t4": {
    "kind": "title1",
    "maxW": 7080,
-   "text": "Remaining screens — wireframes, round 4 (Landing, Notes, Viewer)",
+   "text": "Landing, Notes panel and Viewer mode",
    "w": 240,
    "x": 0,
    "y": 4040
@@ -318,7 +389,7 @@
   "t7": {
    "kind": "title1",
    "maxW": 7400,
-   "text": "Trip list and Leg detail — wireframes, round 5",
+   "text": "Trip list and Leg detail",
    "w": 240,
    "x": 0,
    "y": 8640
@@ -326,7 +397,7 @@
   "t8": {
    "kind": "title1",
    "maxW": 6960,
-   "text": "Event image — wireframes, round 6",
+   "text": "Event image",
    "w": 240,
    "x": 0,
    "y": 9840
@@ -372,8 +443,18 @@
   "DSTokens.dc.html",
   "DSComponents.dc.html",
   "DSOverlays.dc.html",
-  "MainDark.dc.html"
+  "MainDark.dc.html",
+  "MainCollapsed.dc.html",
+  "GuestWorkspace.dc.html",
+  "GuestTooltip.dc.html",
+  "LoginHosted.dc.html",
+  "LoginReturn.dc.html",
+  "AccountMenu.dc.html",
+  "Logout.dc.html",
+  "SessionExpired.dc.html",
+  "InviteEditor.dc.html"
  ],
  "pages": [],
- "title": "Travel Planner — High Fidelity"
+ "title": "Travel Planner — High Fidelity",
+ "v": 3
 }

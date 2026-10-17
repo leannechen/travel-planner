@@ -4,8 +4,8 @@ This folder is the **final** design for Travel Planner. It replaces the earlier 
 
 - **Design name:** Travel Planner — High Fidelity
 - **Date:** 2026-10-17
-- **Fidelity:** all 32 screens are high fidelity. There are no wireframe-only screens left. Some dialog backdrops are still simplified (see the "Notes for review" asides inside the screens).
-- **Order and names:** same order and screen names as the wireframe set. The two-digit number in each PNG name is the order.
+- **Fidelity:** all 41 screens are high fidelity. There are no wireframe-only screens left. Some dialog backdrops are still simplified (see the "Design notes" asides inside the screens).
+- **Order and names:** The two-digit number in each image name is the screen order.
 
 ## Layout
 
@@ -22,7 +22,7 @@ design/
 
 ## Images
 
-All images in `png/` are exported at **2x** (twice the CSS pixel width and height). Divide pixel measurements by 2 to get CSS pixels. `16-landing` and `26-event-image` are WebP instead of PNG to keep the repo small because they contain large photos. Screen sizes in the table below are in CSS pixels.
+All images in `png/` are exported at **2x** (twice the CSS pixel width and height). Divide pixel measurements by 2 to get CSS pixels. `16-landing`, `26-event-image`, `36-login-hosted`, `39-logout` and `41-invite-editor` are WebP instead of PNG to keep the repo small because they contain large photos. Screen sizes in the table below are in CSS pixels.
 
 ## Reading values from the source
 
@@ -34,8 +34,8 @@ All images in `png/` are exported at **2x** (twice the CSS pixel width and heigh
 
 ## Screens
 
-| # | PNG | Source | Size (px) | Title |
-|---|-----|--------|-----------|-------|
+| # | Image | Source | Size (px) | Title |
+|---|-------|--------|-----------|-------|
 | 01 | `png/01-desktop-workspace.png` | `source/Main.dc.html` | 1440x900 | Trip workspace — desktop |
 | 02 | `png/02-phone-workspace.png` | `source/Phone.dc.html` | 390x844 | Trip workspace — phone |
 | 03 | `png/03-event-panel-phone-sheet.png` | `source/EventPanel.dc.html` | 470x900 | Event panel — phone bottom sheet |
@@ -52,14 +52,14 @@ All images in `png/` are exported at **2x** (twice the CSS pixel width and heigh
 | 14 | `png/14-day-menu-phone.png` | `source/DayMenuPhone.dc.html` | 1330x930 | Day menu and delete confirmation — phone |
 | 15 | `png/15-day-swap-lodging.png` | `source/DaySwapLodging.dc.html` | 1440x940 | Swapping two Days — the 3-night stay stays in place |
 | 16 | `png/16-landing.webp` | `source/Landing.dc.html` | 2300x1000 | Landing — desktop and phone |
-| 17 | `png/17-notes-panel.png` | `source/NotesPanel.dc.html` | 2580x1200 | Notes panel — open on Schedule and Map, movable, states |
+| 17 | `png/17-notes-panel.png` | `source/NotesPanel.dc.html` | 3040x1200 | Notes panel — open on Schedule and Map, movable, states, phone sheet |
 | 18 | `png/18-viewer-mode.png` | `source/Viewer.dc.html` | 2040x900 | Viewer mode — read-only workspace and Event details |
 | 19 | `png/19-dialogs.png` | `source/Dialogs.dc.html` | 2380x900 | Dialogs — Share (on / off), Export, Trip settings |
 | 20 | `png/20-confirm-archive-delete.png` | `source/ConfirmEvent.dc.html` | 2000x880 | Archive and delete confirmations, toasts, phone |
-| 21 | `png/21-export-image.png` | `source/ExportImage.dc.html` | 1960x920 | Exported image — poster |
+| 21 | `png/21-export-image.png` | `source/ExportImage.dc.html` | 1960x1120 | Exported image — poster |
 | 22 | `png/22-states-empty-loading.png` | `source/StatesEmpty.dc.html` | 2000x1000 | States — empty Trip, Day, Backlog and Archive; loading |
 | 23 | `png/23-states-errors.png` | `source/StatesErrors.dc.html` | 2000x1180 | States — errors and limit reached |
-| 24 | `png/24-trip-list.png` | `source/TripList.dc.html` | 4100x920 | Trip list — sidebar, item menu, New Trip, Create with AI, Delete Trip, phone |
+| 24 | `png/24-trip-list.png` | `source/TripList.dc.html` | 4660x920 | Trip list — sidebar, item menu, New Trip (Blank / Generate with AI), Delete Trip, phone |
 | 25 | `png/25-leg-detail.png` | `source/LegDetail.dc.html` | 3200x900 | Leg — chooser, detail, warning, cannot calculate, phone sheet |
 | 26 | `png/26-event-image.webp` | `source/EventImage.dc.html` | 2340x1060 | Event image — panel states and Event block |
 | 27 | `png/27-trip-list-nav.png` | `source/TripListNav.dc.html` | 4540x940 | Trip list — collapsed rail, drawer, pinned; Backlog/Archive collapse; switching Trips |
@@ -68,6 +68,15 @@ All images in `png/` are exported at **2x** (twice the CSS pixel width and heigh
 | 30 | `png/30-ds-components.png` | `source/DSComponents.dc.html` | 2400x1180 | Design system — components and their states |
 | 31 | `png/31-ds-overlays.png` | `source/DSOverlays.dc.html` | 1800x1180 | Design system — dialogs, popovers, banners, tooltips and the shortcut format |
 | 32 | `png/32-desktop-workspace-dark.png` | `source/MainDark.dc.html` | 1440x900 | Trip workspace — desktop, dark theme |
+| 33 | `png/33-desktop-workspace-collapsed.png` | `source/MainCollapsed.dc.html` | 1440x900 | Trip workspace — desktop, both side panels collapsed |
+| 34 | `png/34-guest-workspace.png` | `source/GuestWorkspace.dc.html` | 2940x960 | Guest workspace — Log in to save, phone banner and “…” menu, login note |
+| 35 | `png/35-guest-login-tooltip.png` | `source/GuestTooltip.dc.html` | 2340x1956 | Guest workspace — tooltip on “Log in to save your progress” |
+| 36 | `png/36-login-hosted.webp` | `source/LoginHosted.dc.html` | 5780x2456 | Hosted login page (Auth0, themed) — log in, sign up, wrong password |
+| 37 | `png/37-login-return.png` | `source/LoginReturn.dc.html` | 5780x2266 | Returning to the app after login — Trip added, Trip list, login didn’t complete |
+| 38 | `png/38-account-menu.png` | `source/AccountMenu.dc.html` | 5780x2266 | Account menu — logged out, logged in, open |
+| 39 | `png/39-logout.webp` | `source/Logout.dc.html` | 2340x1956 | Log out — Landing with “You’re logged out” toast |
+| 40 | `png/40-session-expired.png` | `source/SessionExpired.dc.html` | 2340x1956 | Session expired while editing — read-only Trip and banner |
+| 41 | `png/41-invite-editor.webp` | `source/InviteEditor.dc.html` | 2340x1956 | Invited Editor from an email link, logged out |
 
 ## Notes
 

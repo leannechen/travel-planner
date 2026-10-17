@@ -316,3 +316,9 @@
 .wfroot .blk{background:var(--card)!important;border-color:var(--cardbd)!important;border-left-color:var(--bar)!important;color:var(--text)!important}
 .wfroot .kc:not(.on){width:auto}
 .in input,.in textarea{border:0;outline:0;background:transparent;flex:1;min-width:0;padding:0}
+
+.thsw{display:inline-flex;height:34px;border:1px solid var(--border2);border-radius:var(--r-md);background:var(--surface);padding:3px;gap:2px;flex:none;align-items:center}
+.thsw button{width:28px;height:26px;border-radius:var(--r-sm);display:inline-flex;align-items:center;justify-content:center;color:var(--muted)}
+.thsw button.on{background:var(--pri-tint);color:var(--pri-ink)}
+.thsw .i{width:15px;height:15px}
+.thsw.sm{height:30px}.thsw.sm button{height:22px}

@@ -30,6 +30,7 @@ body{margin:0}
 .mp-card{position:absolute;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-lg);box-shadow:var(--sh-pop)}
 .mp-chip{height:32px;border:1px solid var(--border2);border-radius:16px;background:var(--surface);padding:0 12px;display:inline-flex;gap:7px;align-items:center;white-space:nowrap;font-weight:500}
 .mp-chip.on{background:var(--text);border-color:var(--text);color:var(--surface);font-weight:600}
+.mp-dep{position:absolute;width:28px;height:28px;margin:-14px 0 0 -14px;border-radius:50%;background:#fff;border:2px solid var(--d1);color:var(--d1);display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(22,34,59,.3);padding:0}
 .mp-pop{right:16px;top:16px;bottom:16px;width:380px}
 .mp-pop .pb{flex:1;overflow:hidden;gap:11px;padding:12px 14px}
 </style>
@@ -41,7 +42,7 @@ body{margin:0}
   <button class="title" aria-haspopup="true" aria-label="Trips: Kyoto &amp; Osaka">Kyoto &amp; Osaka<svg class="i" style="color:var(--muted)" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button><span class="muted">Tue 3 – Sat 7 Nov · 5 days</span>
   <div class="seg" style="margin-left:10px"><button><svg class="i" style="width:15px;height:15px;" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"></rect><path d="M3 10h18M8 2v4M16 2v4"></path></svg>Schedule</button><button class="on"><svg class="i" style="width:15px;height:15px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"></path><path d="M9 4v14M15 6v14"></path></svg>Map</button></div>
   <span style="flex:1"></span>
-  <button class="btn"><svg class="i" style="width:15px;height:15px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v12l-4 4H5z"></path><path d="M15 20v-4h4M8 9h8M8 13h4"></path></svg>Notes<span class="kbd">Ctrl ⇧ N</span></button><button class="btn"><svg class="i" style="width:15px;height:15px;" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="2.5"></circle><circle cx="18" cy="6" r="2.5"></circle><circle cx="18" cy="18" r="2.5"></circle><path d="M8.2 11l7.6-4M8.2 13l7.6 4"></path></svg>Share</button><button class="btn"><svg class="i" style="width:15px;height:15px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"></path></svg>Export</button><button class="btn">EN<svg class="i" style="width:14px;height:14px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button>
+  <button class="btn"><svg class="i" style="width:15px;height:15px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v12l-4 4H5z"></path><path d="M15 20v-4h4M8 9h8M8 13h4"></path></svg>Notes<span class="kbd">Ctrl ⇧ N</span></button>
   <span style="display:flex;padding-left:8px"><span class="av on" style="background:#bcd4fb">L</span><span class="av on" style="background:#fbd9b3">J</span><span class="av" style="background:#d4dcec">M</span></span><button class="ib" aria-label="Keyboard shortcuts"><span class="kbd">?</span></button>
 </header>
 
@@ -65,7 +66,7 @@ body{margin:0}
   <button class="mp-it"><span class="mp-num g">–</span><span style="flex:1;min-width:0"><b>Philosopher's Path</b><small>1h 30m · Attraction</small></span><span class="btn sm">Schedule</span></button>
   <button class="mp-it"><span class="mp-num g">–</span><span style="flex:1;min-width:0"><b>Ryokan night in Kurama</b><small>1 night · Lodging</small></span><span class="btn sm">Schedule</span></button>
   <button class="mp-it"><span class="mp-num g">–</span><span style="flex:1;min-width:0"><b>Nara deer park</b><small>3h 00m · Attraction</small></span><span class="btn sm">Schedule</span></button>
-</aside>
+<div style="flex:1"></div><div style="border-top:1px solid var(--border);padding:10px 12px 8px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;gap:8px"><button class="btn" style="flex:1;justify-content:center"><svg class="i" style="width:15px;height:15px;" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="2.5"></circle><circle cx="18" cy="6" r="2.5"></circle><circle cx="18" cy="18" r="2.5"></circle><path d="M8.2 11l7.6-4M8.2 13l7.6 4"></path></svg>Share</button><button class="btn" style="flex:1;justify-content:center"><svg class="i" style="width:15px;height:15px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"></path></svg>Export</button></div><div style="display:flex;gap:8px;align-items:center"><button class="btn" style="flex:1;justify-content:space-between" aria-label="Language">EN<svg class="i" style="width:14px;height:14px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button><span class="thsw" role="group" aria-label="Theme"><button class="on" aria-label="Light theme" aria-pressed="true"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg></button><button class="" aria-label="Dark theme" aria-pressed="false"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"></path></svg></button></span></div></div></aside>
 
 <section class="mp-map">
   <svg width="100%" height="100%" viewBox="0 0 1120 844" preserveAspectRatio="xMidYMid slice" aria-hidden="true" style="position:absolute;inset:0">
@@ -78,6 +79,7 @@ body{margin:0}
       <path d="M0 330 L1120 300"></path><path d="M0 640 L1120 690"></path><path d="M300 0 L340 844"></path><path d="M620 0 L560 844"></path><path d="M900 0 L940 844"></path><path d="M0 130 L700 90"></path><path d="M160 844 L460 380 L760 0"></path>
     </g>
     <g stroke="#f7e8c4" stroke-width="3" fill="none"><path d="M0 220 L1120 190"></path><path d="M0 760 L1120 740"></path><path d="M440 0 L470 844"></path><path d="M780 0 L800 844"></path></g>
+    <path d="M148 612 L392 566" fill="none" stroke="#1e2a4a" stroke-width="1.6" stroke-linecap="round"></path>
     <g fill="none" stroke-width="3.5" stroke-dasharray="7 6" stroke-linecap="round">
       <path d="M400 560 L520 700 L590 660 L500 380 L360 340" stroke="#1e2a4a"></path>
       <path d="M110 250 L150 290 L200 330 L300 100 L340 190 L330 300" stroke="#d6336c"></path>
@@ -91,7 +93,7 @@ body{margin:0}
     <button class="mp-chip"><span class="mp-dot" style="background:var(--d3)"></span>Day 3</button>
     <button class="mp-chip"><span class="mp-dot" style="background:var(--d4)"></span>Day 4</button>
     <span style="width:1px;height:24px;background:var(--border);margin:0 4px"></span>
-    <label style="display:flex;gap:8px;align-items:center"><span class="tog on"></span>Backlog</label>
+    <label style="display:flex;gap:8px;align-items:center"><span class="tog on"></span>Backlog</label><label style="display:flex;gap:8px;align-items:center"><span class="tog on"></span>Day lines</label>
   </div>
 
   <div class="mp-card" style="left:16px;top:84px;display:flex;flex-direction:column;overflow:hidden">
@@ -99,7 +101,9 @@ body{margin:0}
     <button class="ib" style="width:40px;height:40px;border-radius:0" aria-label="Zoom out"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"></path></svg></button>
   </div>
 
-  <button class="mp-pin" style="left:400px;top:560px;background:var(--d1)" aria-label="Day 1, 1: Shinkansen to Kyoto">1</button>
+  <button class="mp-pin" style="left:400px;top:560px;background:var(--d1)" aria-label="Day 1, 1: Shinkansen to Kyoto, destination Kyoto Station">1</button>
+  <button class="mp-dep" style="left:140px;top:620px" aria-label="Day 1, 1: Shinkansen to Kyoto, departure Tokyo Station"><svg class="i" style="width:14px;height:14px" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="14" rx="3"></rect><path d="M5 11h14"></path><path d="M9 21l2-4M15 21l-2-4"></path></svg></button>
+  <div class="mp-card" style="left:96px;top:642px;padding:5px 9px;white-space:nowrap;border-radius:var(--r-md);font-size:12px"><b>Tokyo Station</b> <span class="muted">· departs 08:30</span></div>
   <button class="mp-pin" style="left:520px;top:700px;background:var(--d1)" aria-label="Day 1, 2: Fushimi Inari Taisha">2</button>
   <button class="mp-pin" style="left:590px;top:660px;background:var(--d1)" aria-label="Day 1, 3: Inari soba lunch">3</button>
   <button class="mp-pin sel" style="left:500px;top:380px;background:var(--d1)" aria-label="Day 1, 4: Kiyomizu-dera, selected">4</button>
@@ -116,12 +120,7 @@ body{margin:0}
 
   <div class="mp-card" style="left:484px;top:414px;padding:6px 10px;white-space:nowrap;border-radius:var(--r-md)"><b>Kiyomizu-dera</b> <span class="muted">· Day 1 · 15:00</span></div>
 
-  <div class="mp-card" style="left:16px;bottom:16px;padding:9px 14px;display:flex;gap:16px;align-items:center;font-size:12px">
-    <span style="display:flex;gap:7px;align-items:center"><span class="mp-num" style="background:var(--d1);width:20px;height:20px;font-size:10px">1</span>Order within the Day</span>
-    <span style="display:flex;gap:7px;align-items:center"><span class="mp-num g" style="width:20px;height:20px"></span>Backlog</span>
-    <span class="muted">Day 3–4 are in Osaka, outside this view</span>
-    <button class="btn sm">Fit all</button>
-  </div>
+  <div class="mp-card" style="left:16px;bottom:16px;padding:10px 14px;display:flex;flex-direction:column;gap:9px;font-size:12px"><div style="display:flex;gap:16px;align-items:center"><span style="display:flex;gap:7px;align-items:center"><span class="mp-num" style="background:var(--d1);width:20px;height:20px;font-size:10px">1</span>Order within the Day</span><span style="display:flex;gap:7px;align-items:center"><span class="mp-num g" style="width:20px;height:20px"></span>Backlog</span><button class="btn sm" style="margin-left:auto">Fit all</button></div><div style="display:flex;gap:7px;align-items:center"><svg width="34" height="8" viewBox="0 0 34 8" aria-hidden="true"><path d="M1 4 H33" stroke="#1e2a4a" stroke-width="3" stroke-dasharray="6 5" stroke-linecap="round"></path></svg><span>Dashed line shows the Day’s order only, not a route</span></div><div style="display:flex;gap:7px;align-items:center"><span class="mp-dep" style="position:static;margin:0;width:20px;height:20px"><svg class="i" style="width:11px;height:11px" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="14" rx="3"></rect><path d="M5 11h14"></path><path d="M9 21l2-4M15 21l-2-4"></path></svg></span><svg width="22" height="8" viewBox="0 0 22 8" aria-hidden="true"><path d="M1 4 H21" stroke="#1e2a4a" stroke-width="1.6" stroke-linecap="round"></path></svg><span class="mp-num" style="background:var(--d1);width:20px;height:20px;font-size:10px">1</span><span>Transport: departure and destination, joined by a thin line</span></div><div class="muted">Day 3–4 are in Osaka, outside this view</div></div>
 
   <section class="pn mp-pop" aria-label="Edit Event">
     <div class="pb">

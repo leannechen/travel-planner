@@ -9,7 +9,7 @@ import {
   type Event,
   type UpdateEventInput,
 } from "@travel-planner/shared";
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 type Status = { kind: "idle" } | { kind: "saving" } | { kind: "saved" } | { kind: "error"; message: string };
 
@@ -44,6 +44,21 @@ export function EventPanel({ days, event, newEvent, onCreate, onUpdate, onDraftC
   // The fields as last typed; change() is the only writer, so a queued save never sees stale text.
   const latest = useRef(fields);
 
+  // What this panel last sent for the time, so its own saves are not mistaken for outside changes.
+  const lastSent = useRef<{ startMinute: number; durationMinutes: number } | undefined>(undefined);
+
+  // The time can change from outside while the panel is open (drag or resize on the axis); the
+  // effect reacts to the Event's time only.
+  useEffect(() => {
+    const current = saved.current;
+    if (!event || !current) return;
+    if (event.startMinute === current.startMinute && event.durationMinutes === current.durationMinutes) return;
+    const sent = lastSent.current;
+    if (sent && event.startMinute === sent.startMinute && event.durationMinutes === sent.durationMinutes) return;
+    saved.current = { ...current, startMinute: event.startMinute, durationMinutes: event.durationMinutes };
+    change({ start: formatMinute(event.startMinute), duration: String(event.durationMinutes) });
+  }, [event?.startMinute, event?.durationMinutes]);
+
   function change(next: Partial<EventFields>) {
     const merged = { ...latest.current, ...next };
     latest.current = merged;
@@ -74,6 +89,12 @@ export function EventPanel({ days, event, newEvent, onCreate, onUpdate, onDraftC
       return;
     }
 
+    if (plan.kind === "update" && current) {
+      lastSent.current = {
+        startMinute: plan.patch.startMinute ?? current.startMinute,
+        durationMinutes: plan.patch.durationMinutes ?? current.durationMinutes,
+      };
+    }
     setStatus({ kind: "saving" });
     try {
       saved.current =

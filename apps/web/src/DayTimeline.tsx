@@ -1,7 +1,8 @@
 import { DragDropProvider, useDraggable } from "@dnd-kit/react";
-import { PointerActivationConstraints, PointerSensor } from "@dnd-kit/dom";
+import { Modifier, type DragOperation } from "@dnd-kit/abstract";
+import { Accessibility, PointerActivationConstraints, PointerSensor } from "@dnd-kit/dom";
 import { RestrictToElement } from "@dnd-kit/dom/modifiers";
-import { RestrictToVerticalAxis, SnapModifier } from "@dnd-kit/abstract/modifiers";
+import { RestrictToVerticalAxis } from "@dnd-kit/abstract/modifiers";
 import {
   formatMinute,
   layoutDay,
@@ -14,7 +15,7 @@ import {
   SNAP_MINUTES,
   type Event,
 } from "@travel-planner/shared";
-import { useRef, useState, type MouseEvent, type PointerEvent } from "react";
+import { useMemo, useRef, useState, type MouseEvent, type PointerEvent } from "react";
 
 export const PX_PER_HOUR = 64;
 const SNAP_PX = (PX_PER_HOUR * SNAP_MINUTES) / 60;
@@ -57,12 +58,38 @@ type Props = {
   onChangeTimes: (eventId: string, times: EventTimes) => void;
 };
 
-// A drag starts after the pointer moves a few pixels, so a plain click still selects.
+// A drag starts after the pointer moves a few pixels, so a plain click still selects. The
+// constraints are created for each press, as the library does by default.
 const sensors = [
   PointerSensor.configure({
-    activationConstraints: [new PointerActivationConstraints.Distance({ value: 5 })],
+    activationConstraints: () => [new PointerActivationConstraints.Distance({ value: 5 })],
   }),
 ];
+
+// Snaps the vertical movement to the nearest grid step. (The library's SnapModifier rounds up, so
+// a one-pixel wobble after the drag starts would move the Event a whole step.)
+class RoundSnapY extends Modifier {
+  apply({ transform }: DragOperation) {
+    return { ...transform, y: Math.round(transform.y / SNAP_PX) * SNAP_PX };
+  }
+}
+
+// Keyboard dragging is off, so screen reader users are pointed to the panel's Start field. The
+// library's default texts promise keyboard dragging and read out the Event's id.
+function accessibility(events: Event[]) {
+  const title = (operation: DragOperation) =>
+    events.find((e) => e.id === operation.source?.id)?.title ?? "event";
+  return Accessibility.configure({
+    screenReaderInstructions: {
+      draggable:
+        "Drag with the mouse to change the time. With the keyboard, select the event and use the Start and Duration fields in the edit panel.",
+    },
+    announcements: {
+      dragstart: ({ operation }: { operation: DragOperation }) => `Picked up ${title(operation)}`,
+      dragend: ({ operation }: { operation: DragOperation }) => `Dropped ${title(operation)}`,
+    },
+  });
+}
 
 // One Day's Events on the shared axis. Events running past midnight are cut off there.
 // Dragging a card moves it up or down; the handles on the selected card resize it. Only the
@@ -112,6 +139,7 @@ export function DayTimeline({
       target.removeEventListener("pointermove", onMove);
       target.removeEventListener("pointerup", onUp);
       target.removeEventListener("pointercancel", onCancel);
+      target.removeEventListener("lostpointercapture", onCancel);
     };
     const onUp = (u: globalThis.PointerEvent) => {
       stop();
@@ -130,12 +158,15 @@ export function DayTimeline({
     target.addEventListener("pointermove", onMove);
     target.addEventListener("pointerup", onUp);
     target.addEventListener("pointercancel", onCancel);
+    // The handle can be removed mid-gesture (the selection changed); then no pointerup arrives.
+    target.addEventListener("lostpointercapture", onCancel);
     onSelectEvent(event.id);
   }
 
   return (
     <DragDropProvider
       sensors={sensors}
+      plugins={(defaults) => [...defaults.filter((p) => p !== Accessibility), accessibility(events)]}
       onDragStart={(drag) => {
         const id = drag.operation.source?.id;
         if (typeof id === "string") onSelectEvent(id);
@@ -171,6 +202,7 @@ export function DayTimeline({
               column={placement.column}
               columnCount={placement.columnCount}
               selected={event.id === selectedEventId}
+              resizing={resizing?.id === event.id}
               timelineRef={timelineRef}
               onSelect={() => onSelectEvent(event.id)}
               onResizeStart={(edge, e) => startResize(event, edge, e)}
@@ -200,6 +232,7 @@ type CardProps = {
   column: number;
   columnCount: number;
   selected: boolean;
+  resizing: boolean;
   timelineRef: React.RefObject<HTMLUListElement | null>;
   onSelect: () => void;
   onResizeStart: (edge: "top" | "bottom", e: PointerEvent<HTMLElement>) => void;
@@ -212,19 +245,23 @@ function EventCard({
   column,
   columnCount,
   selected,
+  resizing,
   timelineRef,
   onSelect,
   onResizeStart,
 }: CardProps) {
   // Only the card's button starts a drag, so the resize handles never do.
-  const { ref, handleRef, isDragging } = useDraggable({
-    id: event.id,
-    modifiers: [
+  // Created once per card, so the library does not rebuild them on every render during a drag.
+  // Snap first, keep inside the axis last.
+  const modifiers = useMemo(
+    () => [
       RestrictToVerticalAxis,
+      RoundSnapY,
       RestrictToElement.configure({ element: () => timelineRef.current }),
-      SnapModifier.configure({ size: SNAP_PX }),
     ],
-  });
+    [timelineRef],
+  );
+  const { ref, handleRef, isDragging } = useDraggable({ id: event.id, modifiers });
 
   const realEnd = times.startMinute + times.durationMinutes;
   const drawnHeight = toPx(Math.min(realEnd, MINUTES_PER_DAY) - times.startMinute);
@@ -247,7 +284,7 @@ function EventCard({
           {formatMinute(times.startMinute)} – {formatEnd(realEnd)}
         </span>
       </button>
-      {selected && (
+      {(selected || resizing) && (
         <>
           <div className="resize-handle top" onPointerDown={(e) => onResizeStart("top", e)} />
           <div className="resize-handle bottom" onPointerDown={(e) => onResizeStart("bottom", e)} />

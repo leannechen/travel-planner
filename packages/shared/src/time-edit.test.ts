@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MIN_DURATION_MINUTES, moveEvent, pxToMinutes, resizeBottom, resizeTop } from "./time-edit";
+import { MIN_DURATION_MINUTES, moveEvent, pxToMinutes, resizeBottom, resizeTop, snapToGrid } from "./time-edit";
 
 const h = (hours: number, minutes = 0) => hours * 60 + minutes;
 const bounds = { startMinute: h(8), endMinute: h(22) };
@@ -95,5 +95,43 @@ describe("resizeTop", () => {
   it("stops at the top of the axis", () => {
     const result = resizeTop({ startMinute: h(9), durationMinutes: 60 }, -600, bounds);
     expect(result).toEqual({ startMinute: h(8), durationMinutes: 120 });
+  });
+});
+
+describe("snapping to the grid", () => {
+  it("rounds to the nearest 15 minutes", () => {
+    expect(snapToGrid(h(10, 7))).toBe(h(10));
+    expect(snapToGrid(h(10, 8))).toBe(h(10, 15));
+    expect(snapToGrid(h(10, 22))).toBe(h(10, 15));
+  });
+
+  it("puts a moved Event that started off the grid on the grid", () => {
+    // 10:07 dragged down one step ends on 10:15, not 10:22.
+    expect(moveEvent({ startMinute: h(10, 7), durationMinutes: 60 }, 15, bounds).startMinute).toBe(h(10, 15));
+  });
+
+  it("leaves an off-grid Event alone when the drag does not move it", () => {
+    const offGrid = { startMinute: h(10, 7), durationMinutes: 50 };
+    expect(moveEvent(offGrid, 0, bounds)).toEqual(offGrid);
+    expect(resizeTop(offGrid, 0, bounds)).toEqual(offGrid);
+    expect(resizeBottom(offGrid, 0, bounds)).toEqual(offGrid);
+  });
+
+  it("puts a resized edge on the grid", () => {
+    // The end 10:57 moved by 15 minutes lands on 11:15.
+    expect(resizeBottom({ startMinute: h(10, 7), durationMinutes: 50 }, 15, bounds)).toEqual({
+      startMinute: h(10, 7),
+      durationMinutes: 68,
+    });
+    // The start 10:07 moved by -15 is 09:52, whose nearest grid time is 09:45; the end 10:57 stays.
+    expect(resizeTop({ startMinute: h(10, 7), durationMinutes: 50 }, -15, bounds)).toEqual({
+      startMinute: h(9, 45),
+      durationMinutes: 72,
+    });
+  });
+
+  it("resizes the top of an Event that runs past the axis without pushing its end", () => {
+    const longEvent = { startMinute: h(21), durationMinutes: 180 };
+    expect(resizeTop(longEvent, -60, bounds)).toEqual({ startMinute: h(20), durationMinutes: 240 });
   });
 });

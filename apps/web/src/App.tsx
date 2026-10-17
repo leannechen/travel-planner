@@ -1,5 +1,5 @@
 import { DEFAULT_DURATION_MINUTES, upsertEvent } from "@travel-planner/shared";
-import type { CreateEventInput, Day, Trip, UpdateEventInput } from "@travel-planner/shared";
+import type { CreateEventInput, Day, Event, Trip, UpdateEventInput } from "@travel-planner/shared";
 import { useEffect, useRef, useState } from "react";
 import { addEvent, createTrip, listTrips, updateEvent } from "./api";
 import { EventPanel } from "./EventPanel";
@@ -14,12 +14,22 @@ type Selection = { tripId: string; eventId: string } | { tripId: string; draft: 
 export function App() {
   const [trips, setTrips] = useState<Trip[] | undefined>();
   const [error, setError] = useState<string | undefined>();
+  // Why a drag or resize could not be saved; kept apart from the load error.
+  const [saveError, setSaveError] = useState<string | undefined>();
   const [selection, setSelection] = useState<Selection | undefined>();
   // Changes when the user picks something else, so the panel starts fresh. It stays the same when
   // a new Event is saved, so the panel keeps its fields and focus.
   const [panelKey, setPanelKey] = useState(0);
   // The same number, readable from a save that finishes later.
   const panelKeyRef = useRef(0);
+  // The latest Trips, for saves that finish later.
+  const tripsRef = useRef(trips);
+  tripsRef.current = trips;
+  // Saves of one Event can overlap (a drag while the panel is saving). Each save gets a number;
+  // only the latest one for an Event may change the screen, so an older answer arriving late
+  // cannot undo a newer one. `confirmed` is what the server last said about an Event.
+  const saveCounts = useRef(new Map<string, number>());
+  const confirmed = useRef(new Map<string, Event>());
 
   useEffect(() => {
     listTrips().then(setTrips, (e: Error) => setError(e.message));
@@ -59,35 +69,61 @@ export function App() {
     return event;
   }
 
-  async function handleUpdateEvent(tripId: string, eventId: string, input: UpdateEventInput) {
-    const event = await updateEvent(tripId, eventId, input);
+  function beginSave(eventId: string) {
+    const n = (saveCounts.current.get(eventId) ?? 0) + 1;
+    saveCounts.current.set(eventId, n);
+    return n;
+  }
+
+  const isLatestSave = (eventId: string, n: number) => saveCounts.current.get(eventId) === n;
+
+  // Puts a saved Event on screen, unless a newer save for it has started since.
+  function applySaved(tripId: string, event: Event, n: number) {
+    if (!isLatestSave(event.id, n)) return;
+    confirmed.current.set(event.id, event);
     setTripDays(tripId, (days) => upsertEvent(days, event));
+  }
+
+  async function handleUpdateEvent(tripId: string, eventId: string, input: UpdateEventInput) {
+    const n = beginSave(eventId);
+    const event = await updateEvent(tripId, eventId, input);
+    applySaved(tripId, event, n);
     return event;
   }
 
-  // Dragging or resizing: show the new time at once, and put it back if saving fails.
+  // Changes only the time of an Event already in `days`, whatever else changed meanwhile.
+  function withTimes(days: Day[], eventId: string, times: { startMinute: number; durationMinutes: number }) {
+    const event = days.flatMap((d) => d.events).find((e) => e.id === eventId);
+    return event ? upsertEvent(days, { ...event, ...times }) : days;
+  }
+
+  // Dragging or resizing: show the new time at once, and put the last saved time back if saving
+  // fails. The panel follows the Event's time by itself.
   async function handleChangeTimes(
     tripId: string,
     eventId: string,
     times: { startMinute: number; durationMinutes: number },
   ) {
-    const previous = trips
+    const current = tripsRef.current
       ?.find((t) => t.id === tripId)
       ?.days.flatMap((d) => d.events)
       .find((e) => e.id === eventId);
-    if (!previous) return;
+    if (!current) return;
 
-    setError(undefined);
-    setTripDays(tripId, (days) => upsertEvent(days, { ...previous, ...times }));
-    // Reopen the panel so it shows the new time.
-    select({ tripId, eventId });
+    if (!confirmed.current.has(eventId)) confirmed.current.set(eventId, current);
+    const n = beginSave(eventId);
+    setSaveError(undefined);
+    setTripDays(tripId, (days) => withTimes(days, eventId, times));
     try {
-      const event = await updateEvent(tripId, eventId, times);
-      setTripDays(tripId, (days) => upsertEvent(days, event));
+      applySaved(tripId, await updateEvent(tripId, eventId, times), n);
     } catch (err) {
-      setTripDays(tripId, (days) => upsertEvent(days, previous));
-      select({ tripId, eventId });
-      setError(err instanceof Error ? err.message : "Could not save the new time");
+      // A newer save has taken over; its own result decides what is shown.
+      if (!isLatestSave(eventId, n)) return;
+      const last = confirmed.current.get(eventId)!;
+      setTripDays(tripId, (days) =>
+        withTimes(days, eventId, { startMinute: last.startMinute, durationMinutes: last.durationMinutes }),
+      );
+      setSaveError(err instanceof Error ? err.message : "Could not save the new time");
     }
   }
 
@@ -102,6 +138,7 @@ export function App() {
       <h1>Travel Planner</h1>
       <TitleForm label="Trip title" submitLabel="Create trip" onSubmit={handleCreateTrip} />
       {error && <p role="alert">{error}</p>}
+      {saveError && <p role="alert">{saveError}</p>}
       {trips?.map((trip) => {
         const mine = selection?.tripId === trip.id ? selection : undefined;
         return (

@@ -16,29 +16,36 @@ export function pxToMinutes(px: number, pxPerHour: number, snap: number = SNAP_M
 
 const clamp = (value: number, low: number, high: number) => Math.min(Math.max(value, low), high);
 
+// The nearest time on the grid; an Event that starts off the grid (typed in the panel) lands on it
+// as soon as it is dragged.
+export const snapToGrid = (minute: number, snap: number = SNAP_MINUTES) => Math.round(minute / snap) * snap;
+
 // Move by `delta` minutes, keeping the Event inside the axis. An Event that already runs past
 // the bottom of the axis is never pushed by a drag that does not move it.
 export function moveEvent(event: Times, delta: number, bounds: Bounds): Times {
+  if (delta === 0) return event;
   const low = Math.min(bounds.startMinute, event.startMinute);
   const high = Math.max(bounds.endMinute - event.durationMinutes, event.startMinute);
   return {
-    startMinute: clamp(event.startMinute + delta, low, high),
+    startMinute: clamp(snapToGrid(event.startMinute + delta), low, high),
     durationMinutes: event.durationMinutes,
   };
 }
 
 // Move the bottom edge: the start stays, the duration changes.
 export function resizeBottom(event: Times, delta: number, bounds: Bounds): Times {
+  if (delta === 0) return event;
   const end = event.startMinute + event.durationMinutes;
-  const newEnd = clamp(end + delta, event.startMinute + MIN_DURATION_MINUTES, Math.max(bounds.endMinute, end));
+  const newEnd = clamp(snapToGrid(end + delta), event.startMinute + MIN_DURATION_MINUTES, Math.max(bounds.endMinute, end));
   return { startMinute: event.startMinute, durationMinutes: newEnd - event.startMinute };
 }
 
 // Move the top edge: the end stays, the start and the duration change.
 export function resizeTop(event: Times, delta: number, bounds: Bounds): Times {
+  if (delta === 0) return event;
   const end = event.startMinute + event.durationMinutes;
   const newStart = clamp(
-    event.startMinute + delta,
+    snapToGrid(event.startMinute + delta),
     Math.min(bounds.startMinute, event.startMinute),
     end - MIN_DURATION_MINUTES,
   );

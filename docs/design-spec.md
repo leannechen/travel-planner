@@ -17,6 +17,12 @@ Reference material in `docs/reference/`: `excalidraw-design-draft.png` (Day layo
 - Secondary action: log in. There is no prompt field for AI generation on the landing page; logged-in users generate from the New Trip action in their Trip list.
 - In a guest's workspace the top bar shows a "Log in to save your progress" button (wording to be confirmed) until they log in.
 
+### 2.1a Sign-in and sign-up
+- Login prompt dialog inside the app, with a reason line per entry point and the guest-data note.
+- Themed Auth0 hosted page (login and sign-up tabs, Google button, error state); only branding can be customized.
+- After login: guest Trip added, Trip list, and failure states.
+- Account menu in the top right (logged-in and logged-out versions), logout result, session-expired banner, and the invited-Editor landing page.
+
 ### 2.2 Trip workspace (desktop)
 Layout, left to right:
 - **Backlog** panel and **Archive** panel (collapsible).

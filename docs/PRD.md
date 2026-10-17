@@ -173,7 +173,10 @@ When a Trip has dates and an Event with opening hours is placed in a Day, a warn
 
 ## 8. Accounts, sharing and collaboration
 
-- **Login**: email or Google.
+- **Login**: email or Google, on a login page hosted by Auth0 (ADR 0006). One page serves both login and sign-up. Our app shows a prompt before redirecting, with a reason that depends on where the user came from (Landing page, the guest save button, Share, Export, New Trip).
+- **After login**: a user with guest Trips sees a confirmation that they were added to the account and lands in the Trip; a user without lands on the Trip list. If login fails or is cancelled, the user returns to where they were with a dismissible message.
+- **Account menu**: top right, shows the user's email, "My Trips" and "Log out". There is no profile or preferences screen. Logging out returns to the Landing page.
+- **Session expiry**: if the session expires while editing, a banner asks the user to log in again; the Trip stays on screen read-only until then, and unsaved edits are not discarded silently.
 - **Guest use**: a visitor can open the sample Trip (but cannot use AI generation) and edit it in an anonymous browser session without logging in. While a guest is not logged in, the workspace shows a "Log in to save your progress" button (wording to be confirmed). On login or sign-up, the guest's Trips are added to the account (existing Trips are kept, nothing is overwritten). Clearing browser data before logging in loses guest data, and the save prompt says so.
 - **Roles** (ADR 0003):
 
@@ -185,7 +188,7 @@ When a Trip has dates and an Event with opening hours is placed in a Day, a warn
 | Invite people, change sharing | yes | no | no |
 
 - **Viewer**: opens a share link, read-only, no login required. Viewers cannot export. Sees Days, the Map View and the Backlog. Contact fields (phone, email) of Events are visible. The Owner can turn the link off at any time.
-- **Editor**: invited by email; must log in. The Owner can see and remove Editors.
+- **Editor**: invited by email; must log in. Following the invitation link while logged out shows who invited them and to which Trip, with Log in and Sign up; afterwards they land in the Trip. The Owner can see and remove Editors.
 - **Collaboration**: changes from one person appear promptly for others. Conflicts resolve per Event, with the last write winning.
 
 ### 8.1 Trip management

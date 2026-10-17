@@ -1,4 +1,4 @@
-import type { Day, Trip } from "@travel-planner/shared";
+import type { CreateEventInput, Day, Trip } from "@travel-planner/shared";
 import { useEffect, useState } from "react";
 import { addEvent, createTrip, listTrips } from "./api";
 import { TitleForm } from "./TitleForm";
@@ -17,8 +17,8 @@ export function App() {
     setTrips((current) => [trip, ...(current ?? [])]);
   }
 
-  async function handleAddEvent(tripId: string, dayId: string, title: string) {
-    const event = await addEvent(tripId, dayId, { title });
+  async function handleAddEvent(tripId: string, dayId: string, input: CreateEventInput) {
+    const event = await addEvent(tripId, dayId, input);
     setTrips((current) =>
       current?.map((trip) =>
         trip.id !== tripId
@@ -26,7 +26,9 @@ export function App() {
           : {
               ...trip,
               days: trip.days.map((day) =>
-                day.id === dayId ? { ...day, events: [...day.events, event] } : day,
+                day.id === dayId
+                  ? { ...day, events: [...day.events, event].sort((a, b) => a.startMinute - b.startMinute) }
+                  : day,
               ),
             },
       ),

@@ -2,7 +2,7 @@
 
 Product rules are in [`PRD.md`](./PRD.md); vocabulary in [`CONTEXT.md`](../CONTEXT.md); decisions in [`docs/adr/`](./adr/). This file orders the work and tracks status. It changes often; the PRD should not.
 
-**Current step: 3 (time model).** Steps 0 to 2 are done. The final design is in [`docs/design/`](./design/); a few designer fixes are pending and do not block step 0.
+**Current step: 4 (create and edit on the axis).** Steps 0 to 3 are done. The final design is in [`docs/design/`](./design/); a few designer fixes are pending and do not block step 0.
 
 ## Working agreement
 
@@ -11,6 +11,8 @@ Product rules are in [`PRD.md`](./PRD.md); vocabulary in [`CONTEXT.md`](../CONTE
 - Rules (Leg lifecycle, overlap layout, Todo deletion) are written test-first with Vitest, before the UI that uses them.
 - External services (Google Maps, Claude, Auth0) start behind a small interface with a fake implementation; the real one is its own step.
 - Everything committed is in English.
+- Before each commit, `npm run lint`, `npm run typecheck`, `npm test` and `npm run build` all pass.
+- At the end of each step, say how to check the new behavior in the browser.
 
 ## Stack
 
@@ -28,15 +30,15 @@ Each step lists what it needs from earlier steps and when it is done.
 
 ### Schedule
 
-- [ ] **3. Time model.** Events get a start time and duration and are drawn on the time axis; overlapping Events share width (pure layout logic with tests). *Needs:* 2.
+- [x] **3. Time model.** Events get a start time and duration and are drawn on the time axis; overlapping Events share width (pure layout logic with tests). The axis shows 08:00 to 22:00 and widens to cover Events; an Event running past midnight is cut off there. *Needs:* 2.
 - [ ] **4. Create and edit on the axis.** Click a time to create an Event there; edit title, time and duration in the edit panel. *Needs:* 3.
 - [ ] **5. Drag and resize (desktop).** Move and resize Events within a Day with snapping; nothing else moves. *Needs:* 4. (ADR 0001)
-- [ ] **6. Kinds and Lodging.** Four kinds with distinct looks; Lodging spans nights and shows as a banner on each Day. *Needs:* 4.
+- [ ] **6. Kinds and Lodging.** Four kinds with distinct looks; Lodging spans nights and shows as a banner on each Day; inserting or deleting a Day adjusts a Lodging's nights (PRD §3.2), and reordering Days leaves it alone. Transport arrival on a later day shows "+1". *Needs:* 4.
 - [ ] **7. Description and contacts.** Markdown Description, phone and email, with preview. *Needs:* 4.
 
 ### Holding areas and Todos
 
-- [ ] **8. Backlog and Archive.** Events without a start time; schedule through the Day and start-time fields; desktop drag between areas and Days. *Needs:* 5.
+- [ ] **8. Backlog and Archive.** Events without a start time; schedule through the Day and start-time fields; desktop drag between areas and Days. Deleting a Day that has Events becomes allowed: a confirmation dialog states how many Events move to the Backlog, with an Undo toast (design 13). *Needs:* 5.
 - [ ] **9. Todos.** Trip Todos and Event Todos; deleting or archiving an Event deletes its Todos with the confirmation and count, "do not remind me again", and an undo window for deletion. *Needs:* 8.
 - [ ] **10. Notes.** Floating Notes panel with Markdown, pinning and ordering by last edit. *Needs:* 1.
 

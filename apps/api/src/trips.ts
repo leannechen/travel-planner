@@ -23,8 +23,8 @@ export async function listTrips(db: Db, ownerId: string): Promise<Trip[]> {
         columns: { id: true, position: true },
         with: {
           events: {
-            orderBy: [asc(events.createdAt), asc(events.id)],
-            columns: { id: true, dayId: true, title: true },
+            orderBy: [asc(events.startMinute), asc(events.createdAt), asc(events.id)],
+            columns: { id: true, dayId: true, title: true, startMinute: true, durationMinutes: true },
           },
         },
       },
@@ -69,8 +69,14 @@ export async function addEvent(
       .where(and(eq(days.id, dayId), eq(days.tripId, tripId)));
     if (!day) return undefined;
 
-    const [event] = await tx.insert(events).values({ dayId, title: input.title }).returning();
-    return { id: event!.id, dayId: event!.dayId, title: event!.title };
+    const [event] = await tx.insert(events).values({ dayId, title: input.title, startMinute: input.startMinute, durationMinutes: input.durationMinutes }).returning();
+    return {
+      id: event!.id,
+      dayId: event!.dayId,
+      title: event!.title,
+      startMinute: event!.startMinute,
+      durationMinutes: event!.durationMinutes,
+    };
   });
 }
 
@@ -109,8 +115,8 @@ async function loadDays(tx: Tx, tripId: string): Promise<Day[]> {
     columns: { id: true, position: true },
     with: {
       events: {
-        orderBy: [asc(events.createdAt), asc(events.id)],
-        columns: { id: true, dayId: true, title: true },
+        orderBy: [asc(events.startMinute), asc(events.createdAt), asc(events.id)],
+        columns: { id: true, dayId: true, title: true, startMinute: true, durationMinutes: true },
       },
     },
   });

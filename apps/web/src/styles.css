@@ -1,0 +1,106 @@
+/* Minimal layout for the time axis. Colors follow the design tokens in docs/design/source/hf.css;
+   the full visual design is applied in later steps. */
+:root {
+  --bg: #f2f6fc;
+  --surface: #ffffff;
+  --border: #dfe6f2;
+  --text: #16223b;
+  --muted: #5b6a86;
+  --pri: #2373f4;
+  --pri-tint: #e7f0ff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1526;
+    --surface: #141d33;
+    --border: #25304d;
+    --text: #e8edf8;
+    --muted: #95a3c0;
+    --pri: #578ef5;
+    --pri-tint: #1b2a4d;
+  }
+}
+
+body {
+  margin: 1rem;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.days-grid {
+  display: grid;
+  column-gap: 0.5rem;
+  align-items: start;
+  overflow-x: auto;
+}
+
+.day-head h3 {
+  margin: 0.25rem 0;
+}
+
+.event-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0.5rem 0;
+}
+
+.event-form input[type="number"] {
+  width: 4.5rem;
+}
+
+.hour-labels,
+.day-timeline {
+  position: relative;
+}
+
+.hour-labels {
+  width: 3rem;
+}
+
+.hour-labels span {
+  position: absolute;
+  right: 0.25rem;
+  transform: translateY(-50%);
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.day-timeline {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.hour-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--border);
+}
+
+.event-card {
+  position: absolute;
+  box-sizing: border-box;
+  padding: 0.125rem 0.375rem;
+  overflow: hidden;
+  background: var(--pri-tint);
+  border: 1px solid var(--pri);
+  border-radius: 4px;
+  font-size: 0.8125rem;
+  line-height: 1.25;
+}
+
+.event-card strong,
+.event-card span {
+  display: block;
+}
+
+.event-card span {
+  color: var(--muted);
+  font-size: 0.75rem;
+}

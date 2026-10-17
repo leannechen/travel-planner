@@ -1,11 +1,12 @@
-import { moveBy, type Day, type Trip } from "@travel-planner/shared";
-import { Fragment, useState } from "react";
+import { axisRange, moveBy, type CreateEventInput, type Day, type Trip } from "@travel-planner/shared";
+import { useState } from "react";
 import { deleteDay, insertDay, reorderDays } from "./api";
-import { TitleForm } from "./TitleForm";
+import { DayTimeline, HourLabels } from "./DayTimeline";
+import { EventForm } from "./EventForm";
 
 type Props = {
   trip: Trip;
-  onAddEvent: (tripId: string, dayId: string, title: string) => Promise<void>;
+  onAddEvent: (tripId: string, dayId: string, input: CreateEventInput) => Promise<void>;
   onDaysChange: (tripId: string, days: Day[]) => void;
 };
 
@@ -29,6 +30,8 @@ export function TripCard({ trip, onAddEvent, onDaysChange }: Props) {
 
   const dayIds = trip.days.map((d) => d.id);
   const lastPosition = trip.days.length;
+  // One range for every Day, so the Days line up side by side.
+  const range = axisRange(trip.days.flatMap((d) => d.events));
 
   function insertButton(position: number) {
     return (
@@ -38,15 +41,30 @@ export function TripCard({ trip, onAddEvent, onDaysChange }: Props) {
     );
   }
 
+  // Grid: hour labels, then for each Day a narrow column for its Insert button and a Day column.
+  const columns = `auto ${trip.days.map(() => "auto minmax(14rem, 1fr)").join(" ")} auto`;
+
   return (
     <article>
       <h2>{trip.title}</h2>
       {error && <p role="alert">{error}</p>}
-      <div style={{ display: "flex", gap: "1rem", alignItems: "flex-start", overflowX: "auto" }}>
-        {trip.days.map((day) => (
-          <Fragment key={day.id}>
-            <div>{insertButton(day.position)}</div>
-            <section aria-label={`Day ${day.position}`} style={{ minWidth: "16rem" }}>
+      <div className="days-grid" style={{ gridTemplateColumns: columns }}>
+        <div className="axis-cell" style={{ gridColumn: 1, gridRow: 2 }}>
+          <HourLabels range={range} />
+        </div>
+        {trip.days.map((day, index) => {
+          const insertColumn = 2 + index * 2;
+          const dayColumn = insertColumn + 1;
+          return [
+            <div key={`insert-${day.id}`} style={{ gridColumn: insertColumn, gridRow: 1 }}>
+              {insertButton(day.position)}
+            </div>,
+            <section
+              key={`head-${day.id}`}
+              className="day-head"
+              aria-label={`Day ${day.position}`}
+              style={{ gridColumn: dayColumn, gridRow: 1 }}
+            >
               <h3>Day {day.position}</h3>
               <div>
                 <button
@@ -72,21 +90,14 @@ export function TripCard({ trip, onAddEvent, onDaysChange }: Props) {
                   Delete Day
                 </button>
               </div>
-              <ul>
-                {day.events.map((event) => (
-                  <li key={event.id}>{event.title}</li>
-                ))}
-              </ul>
-              <TitleForm
-                label="Event title"
-                submitLabel="Add event"
-                disabled={busy}
-                onSubmit={(title) => onAddEvent(trip.id, day.id, title)}
-              />
-            </section>
-          </Fragment>
-        ))}
-        <div>{insertButton(lastPosition + 1)}</div>
+              <EventForm disabled={busy} onSubmit={(input) => onAddEvent(trip.id, day.id, input)} />
+            </section>,
+            <div key={`axis-${day.id}`} style={{ gridColumn: dayColumn, gridRow: 2 }}>
+              <DayTimeline events={day.events} range={range} />
+            </div>,
+          ];
+        })}
+        <div style={{ gridColumn: 2 + lastPosition * 2, gridRow: 1 }}>{insertButton(lastPosition + 1)}</div>
       </div>
     </article>
   );

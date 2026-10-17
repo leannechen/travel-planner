@@ -15,6 +15,13 @@
       "when": 1792246199658,
       "tag": "0001_cuddly_frank_castle",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792248835372,
+      "tag": "0002_military_mac_gargan",
+      "breakpoints": true
     }
   ]
 }

@@ -341,3 +341,52 @@ describe("adding an Event while its Day is deleted", () => {
     }
   });
 });
+
+describe("Event times", () => {
+  async function addEvent(tripId: string, dayId: string, body: unknown) {
+    return post(`/api/trips/${tripId}/days/${dayId}/events`, body);
+  }
+
+  it("stores the start time and duration", async () => {
+    const { trip } = await createTrip("Kyoto");
+
+    const res = await addEvent(trip.id, trip.days[0]!.id, { title: "Dinner", startMinute: 1110, durationMinutes: 90 });
+
+    expect(res.status).toBe(201);
+    expect(eventSchema.parse(await res.json())).toMatchObject({ startMinute: 1110, durationMinutes: 90 });
+  });
+
+  it("defaults to 09:00 for 60 minutes when no time is given", async () => {
+    const { trip } = await createTrip("Kyoto");
+    const res = await addEvent(trip.id, trip.days[0]!.id, { title: "Walk" });
+    expect(eventSchema.parse(await res.json())).toMatchObject({ startMinute: 540, durationMinutes: 60 });
+  });
+
+  it("rejects times outside the allowed range", async () => {
+    const { trip } = await createTrip("Kyoto");
+    const dayId = trip.days[0]!.id;
+
+    for (const bad of [
+      { startMinute: -1 },
+      { startMinute: 1440 },
+      { startMinute: 90.5 },
+      { durationMinutes: 0 },
+      { durationMinutes: 1441 },
+      { durationMinutes: "60" },
+    ]) {
+      expect((await addEvent(trip.id, dayId, { title: "Bad", ...bad })).status).toBe(400);
+    }
+  });
+
+  it("lists a Day's Events by start time", async () => {
+    const { trip } = await createTrip("Kyoto");
+    const dayId = trip.days[0]!.id;
+    await addEvent(trip.id, dayId, { title: "Dinner", startMinute: 1110 });
+    await addEvent(trip.id, dayId, { title: "Breakfast", startMinute: 480 });
+    await addEvent(trip.id, dayId, { title: "Lunch", startMinute: 720 });
+
+    const listed = z.array(tripSchema).parse(await (await fetch(`${app.baseUrl}/api/trips`)).json());
+
+    expect(listed[0]!.days[0]!.events.map((e) => e.title)).toEqual(["Breakfast", "Lunch", "Dinner"]);
+  });
+});

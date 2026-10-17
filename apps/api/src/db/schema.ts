@@ -1,5 +1,5 @@
-import { relations } from "drizzle-orm";
-import { integer, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { relations, sql } from "drizzle-orm";
+import { check, integer, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: uuid().primaryKey().defaultRandom(),
@@ -27,14 +27,25 @@ export const days = pgTable(
   (t) => [unique("days_trip_position_unique").on(t.tripId, t.position)],
 );
 
-export const events = pgTable("events", {
-  id: uuid().primaryKey().defaultRandom(),
-  dayId: uuid()
-    .notNull()
-    .references(() => days.id, { onDelete: "cascade" }),
-  title: text().notNull(),
-  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
-});
+// startMinute and durationMinutes: minutes from 00:00 of the Day, and length. The defaults
+// (09:00, 60 minutes) are what Events created before the time model were given.
+export const events = pgTable(
+  "events",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    dayId: uuid()
+      .notNull()
+      .references(() => days.id, { onDelete: "cascade" }),
+    title: text().notNull(),
+    startMinute: integer().notNull().default(540),
+    durationMinutes: integer().notNull().default(60),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check("events_start_minute_range", sql`${t.startMinute} between 0 and 1439`),
+    check("events_duration_range", sql`${t.durationMinutes} between 1 and 1440`),
+  ],
+);
 
 export const tripsRelations = relations(trips, ({ many }) => ({ days: many(days) }));
 export const daysRelations = relations(days, ({ one, many }) => ({

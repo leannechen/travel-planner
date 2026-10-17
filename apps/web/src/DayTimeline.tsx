@@ -105,13 +105,14 @@ export function DayTimeline({
 }: Props) {
   const placements = new Map(layoutDay(events).map((p) => [p.id, p]));
   const timelineRef = useRef<HTMLUListElement>(null);
-  // The click that ends a drag or a resize must not create an Event.
+  // The click that ends a drag or a resize must not create an Event or select one: dragging
+  // never opens the edit panel.
   const swallowClick = useRef(false);
   const [resizing, setResizing] = useState<({ id: string } & EventTimes) | undefined>();
 
   function finishGesture() {
     swallowClick.current = true;
-    setTimeout(() => (swallowClick.current = false), 0);
+    setTimeout(() => (swallowClick.current = false), 50);
   }
 
   // Only clicks on the empty axis create; clicks on an Event card select it instead.
@@ -160,17 +161,12 @@ export function DayTimeline({
     target.addEventListener("pointercancel", onCancel);
     // The handle can be removed mid-gesture (the selection changed); then no pointerup arrives.
     target.addEventListener("lostpointercapture", onCancel);
-    onSelectEvent(event.id);
   }
 
   return (
     <DragDropProvider
       sensors={sensors}
       plugins={(defaults) => [...defaults.filter((p) => p !== Accessibility), accessibility(events)]}
-      onDragStart={(drag) => {
-        const id = drag.operation.source?.id;
-        if (typeof id === "string") onSelectEvent(id);
-      }}
       onDragEnd={(drag) => {
         finishGesture();
         const id = drag.operation.source?.id;
@@ -204,7 +200,9 @@ export function DayTimeline({
               selected={event.id === selectedEventId}
               resizing={resizing?.id === event.id}
               timelineRef={timelineRef}
-              onSelect={() => onSelectEvent(event.id)}
+              onSelect={() => {
+                if (!swallowClick.current) onSelectEvent(event.id);
+              }}
               onResizeStart={(edge, e) => startResize(event, edge, e)}
             />
           );

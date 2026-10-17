@@ -107,6 +107,8 @@ body {
 
 .event-card {
   padding: 0;
+  /* The resize handles sit on the card's edges; the button inside clips the text. */
+  overflow: visible;
 }
 
 .event-card > button {
@@ -187,4 +189,55 @@ main.has-panel {
   gap: 0.25rem;
   font-size: 0.8125rem;
   color: var(--muted);
+}
+
+.event-card > button {
+  touch-action: none;
+  cursor: grab;
+}
+
+.event-card.dragging {
+  z-index: 2;
+  opacity: 0.85;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.event-card.dragging > button {
+  cursor: grabbing;
+}
+
+.resize-handle {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 8px;
+  cursor: ns-resize;
+  touch-action: none;
+}
+
+.resize-handle::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  width: 24px;
+  height: 4px;
+  margin-left: -12px;
+  border-radius: 2px;
+  background: var(--pri);
+}
+
+.resize-handle.top {
+  top: -4px;
+}
+
+.resize-handle.top::after {
+  top: 2px;
+}
+
+.resize-handle.bottom {
+  bottom: -4px;
+}
+
+.resize-handle.bottom::after {
+  bottom: 2px;
 }

@@ -1,7 +1,7 @@
 import { axisRange, DEFAULT_START_MINUTE, moveBy, type Day, type Trip } from "@travel-planner/shared";
 import { useState } from "react";
 import { deleteDay, insertDay, reorderDays } from "./api";
-import { DayTimeline, HourLabels } from "./DayTimeline";
+import { DayTimeline, HourLabels, type EventTimes } from "./DayTimeline";
 
 type Props = {
   trip: Trip;
@@ -11,9 +11,10 @@ type Props = {
   draft?: { dayId: string; startMinute: number; durationMinutes: number };
   onSelectEvent: (eventId: string) => void;
   onCreateAt: (dayId: string, startMinute: number) => void;
+  onChangeTimes: (eventId: string, times: EventTimes) => void;
 };
 
-export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectEvent, onCreateAt }: Props) {
+export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectEvent, onCreateAt, onChangeTimes }: Props) {
   const [error, setError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
 
@@ -104,6 +105,7 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
                 selectedEventId={selectedEventId}
                 draft={draft?.dayId === day.id ? draft : undefined}
                 onSelectEvent={onSelectEvent}
+                onChangeTimes={onChangeTimes}
                 onCreateAt={(startMinute) => onCreateAt(day.id, startMinute)}
               />
             </div>,

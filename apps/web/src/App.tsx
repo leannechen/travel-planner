@@ -65,6 +65,32 @@ export function App() {
     return event;
   }
 
+  // Dragging or resizing: show the new time at once, and put it back if saving fails.
+  async function handleChangeTimes(
+    tripId: string,
+    eventId: string,
+    times: { startMinute: number; durationMinutes: number },
+  ) {
+    const previous = trips
+      ?.find((t) => t.id === tripId)
+      ?.days.flatMap((d) => d.events)
+      .find((e) => e.id === eventId);
+    if (!previous) return;
+
+    setError(undefined);
+    setTripDays(tripId, (days) => upsertEvent(days, { ...previous, ...times }));
+    // Reopen the panel so it shows the new time.
+    select({ tripId, eventId });
+    try {
+      const event = await updateEvent(tripId, eventId, times);
+      setTripDays(tripId, (days) => upsertEvent(days, event));
+    } catch (err) {
+      setTripDays(tripId, (days) => upsertEvent(days, previous));
+      select({ tripId, eventId });
+      setError(err instanceof Error ? err.message : "Could not save the new time");
+    }
+  }
+
   const selectedTrip = selection && trips?.find((t) => t.id === selection.tripId);
   const selectedEvent =
     selectedTrip && selection && "eventId" in selection
@@ -85,6 +111,7 @@ export function App() {
             onDaysChange={handleDaysChange}
             selectedEventId={mine && "eventId" in mine ? mine.eventId : undefined}
             draft={mine && "draft" in mine ? mine.draft : undefined}
+            onChangeTimes={(eventId, times) => handleChangeTimes(trip.id, eventId, times)}
             onSelectEvent={(eventId) => {
               // Clicking the Event that is already open must not reset the panel.
               if (!(mine && "eventId" in mine && mine.eventId === eventId)) select({ tripId: trip.id, eventId });

@@ -2,7 +2,7 @@
 
 Product rules are in [`PRD.md`](./PRD.md); vocabulary in [`CONTEXT.md`](../CONTEXT.md); decisions in [`docs/adr/`](./adr/). This file orders the work and tracks status. It changes often; the PRD should not.
 
-**Current step: 4 (create and edit on the axis).** Steps 0 to 3 are done. The final design is in [`docs/design/`](./design/); a few designer fixes are pending and do not block step 0.
+**Current step: 5 (drag and resize).** Steps 0 to 4 are done. The final design is in [`docs/design/`](./design/); a few designer fixes are pending and do not block step 0.
 
 ## Working agreement
 
@@ -31,7 +31,7 @@ Each step lists what it needs from earlier steps and when it is done.
 ### Schedule
 
 - [x] **3. Time model.** Events get a start time and duration and are drawn on the time axis; overlapping Events share width (pure layout logic with tests). The axis shows 08:00 to 22:00 and widens to cover Events; an Event running past midnight is cut off there. *Needs:* 2.
-- [ ] **4. Create and edit on the axis.** Click a time to create an Event there; edit title, time and duration in the edit panel. *Needs:* 3.
+- [x] **4. Create and edit on the axis.** Click a time (rounded down to 15 minutes) to create an Event there; edit title, Day, start time and duration in the side edit panel, which autosaves a field when it is left. A new Event is saved once it has a title. Each Day also has an "Add event" button for keyboard users. Deleting an Event waits for step 9. *Needs:* 3.
 - [ ] **5. Drag and resize (desktop).** Move and resize Events within a Day with snapping; nothing else moves. *Needs:* 4. (ADR 0001)
 - [ ] **6. Kinds and Lodging.** Four kinds with distinct looks; Lodging spans nights and shows as a banner on each Day; inserting or deleting a Day adjusts a Lodging's nights (PRD §3.2), and reordering Days leaves it alone. Transport arrival on a later day shows "+1". *Needs:* 4.
 - [ ] **7. Description and contacts.** Markdown Description, phone and email, with preview. *Needs:* 4.

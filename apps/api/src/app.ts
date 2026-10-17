@@ -3,15 +3,17 @@ import {
   createEventInputSchema,
   createTripInputSchema,
   reorderDaysInputSchema,
+  updateEventInputSchema,
 } from "@travel-planner/shared";
 import type { HealthResponse } from "@travel-planner/shared";
 import express from "express";
 import { z, ZodError } from "zod";
 import type { Db } from "./db/client";
 import { DEV_USER_ID } from "./dev-user";
-import { addEvent, createTrip, deleteDay, insertDay, listTrips, reorderDays } from "./trips";
+import { addEvent, createTrip, deleteDay, insertDay, listTrips, reorderDays, updateEvent } from "./trips";
 
 const tripParamsSchema = z.object({ tripId: z.uuid() });
+const eventIdParamsSchema = z.object({ tripId: z.uuid(), eventId: z.uuid() });
 const dayParamsSchema = z.object({ tripId: z.uuid(), dayId: z.uuid() });
 
 export function createApp(db: Db) {
@@ -41,6 +43,21 @@ export function createApp(db: Db) {
       return;
     }
     res.status(201).json(event);
+  });
+
+  app.patch("/api/trips/:tripId/events/:eventId", async (req, res) => {
+    const { tripId, eventId } = eventIdParamsSchema.parse(req.params);
+    const input = updateEventInputSchema.parse(req.body);
+    const result = await updateEvent(db, DEV_USER_ID, tripId, eventId, input);
+    if (!result) {
+      res.status(404).json({ error: "Event not found" });
+      return;
+    }
+    if (result === "invalid-day") {
+      res.status(400).json({ error: "The Day is not in this Trip" });
+      return;
+    }
+    res.json(result);
   });
 
   app.post("/api/trips/:tripId/days", async (req, res) => {

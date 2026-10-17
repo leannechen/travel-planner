@@ -4,10 +4,11 @@ import {
   tripSchema,
   type CreateEventInput,
   type CreateTripInput,
+  type UpdateEventInput,
 } from "@travel-planner/shared";
 import { z } from "zod";
 
-type Method = "GET" | "POST" | "PUT" | "DELETE";
+type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 async function request<T>(
   path: string,
@@ -44,3 +45,6 @@ export const reorderDays = (tripId: string, dayIds: string[]) =>
 
 export const deleteDay = (tripId: string, dayId: string) =>
   request(`/api/trips/${tripId}/days/${dayId}`, daysSchema, undefined, "DELETE");
+
+export const updateEvent = (tripId: string, eventId: string, input: UpdateEventInput) =>
+  request(`/api/trips/${tripId}/events/${eventId}`, eventSchema, input, "PATCH");

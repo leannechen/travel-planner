@@ -1,7 +1,7 @@
 import { daySchema, eventSchema, healthResponseSchema, tripSchema } from "@travel-planner/shared";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
-import { trips, users, days } from "./db/schema";
+import { trips, users, days, events } from "./db/schema";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { startTestApp } from "../test/test-app";
 
@@ -129,7 +129,7 @@ describe("events", () => {
 
 const daysSchema = z.array(daySchema);
 
-function send(method: "PUT" | "DELETE", path: string, body?: unknown) {
+function send(method: "PUT" | "DELETE" | "PATCH", path: string, body?: unknown) {
   return fetch(`${app.baseUrl}${path}`, {
     method,
     headers: { "content-type": "application/json" },
@@ -403,5 +403,103 @@ describe("Event times", () => {
     const listed = z.array(tripSchema).parse(await (await fetch(`${app.baseUrl}/api/trips`)).json());
 
     expect(listed[0]!.days[0]!.events.map((e) => e.title)).toEqual(["Breakfast", "Lunch", "Dinner"]);
+  });
+});
+
+describe("updating an Event", () => {
+  async function eventIn(tripId: string, dayId: string, body: Record<string, unknown> = {}) {
+    const res = await post(`/api/trips/${tripId}/days/${dayId}/events`, { title: "Original", ...body });
+    return eventSchema.parse(await res.json());
+  }
+
+  it("changes only the fields that are sent", async () => {
+    const { trip } = await createTrip("Kyoto");
+    const event = await eventIn(trip.id, trip.days[0]!.id, { startMinute: 600, durationMinutes: 45 });
+
+    const res = await send("PATCH", `/api/trips/${trip.id}/events/${event.id}`, { title: "  Renamed  " });
+
+    expect(res.status).toBe(200);
+    expect(eventSchema.parse(await res.json())).toEqual({ ...event, title: "Renamed" });
+  });
+
+  it("changes the time and duration", async () => {
+    const { trip } = await createTrip("Kyoto");
+    const event = await eventIn(trip.id, trip.days[0]!.id);
+
+    const res = await send("PATCH", `/api/trips/${trip.id}/events/${event.id}`, {
+      startMinute: 1110,
+      durationMinutes: 120,
+    });
+
+    expect(eventSchema.parse(await res.json())).toMatchObject({ startMinute: 1110, durationMinutes: 120 });
+  });
+
+  it("moves an Event to another Day of the Trip", async () => {
+    const { trip, ids } = await tripWithDays(2);
+    const event = await eventIn(trip.id, ids[0]!);
+
+    const res = await send("PATCH", `/api/trips/${trip.id}/events/${event.id}`, { dayId: ids[1] });
+    const listed = z.array(tripSchema).parse(await (await fetch(`${app.baseUrl}/api/trips`)).json());
+
+    expect(eventSchema.parse(await res.json()).dayId).toBe(ids[1]);
+    expect(listed[0]!.days.map((d) => d.events.length)).toEqual([0, 1]);
+  });
+
+  it("refuses a Day of another Trip and leaves the Event where it was", async () => {
+    const { trip } = await createTrip("Kyoto");
+    const { trip: other } = await createTrip("Osaka");
+    const event = await eventIn(trip.id, trip.days[0]!.id);
+
+    const res = await send("PATCH", `/api/trips/${trip.id}/events/${event.id}`, { dayId: other.days[0]!.id });
+    const listed = z.array(tripSchema).parse(await (await fetch(`${app.baseUrl}/api/trips`)).json());
+
+    expect(res.status).toBe(400);
+    expect(listed.find((t) => t.id === trip.id)!.days[0]!.events).toHaveLength(1);
+  });
+
+  it("rejects an empty change, a blank title and out-of-range times", async () => {
+    const { trip } = await createTrip("Kyoto");
+    const event = await eventIn(trip.id, trip.days[0]!.id);
+    const path = `/api/trips/${trip.id}/events/${event.id}`;
+
+    for (const bad of [{}, { title: "  " }, { startMinute: 1440 }, { durationMinutes: 0 }, { dayId: "nope" }]) {
+      expect((await send("PATCH", path, bad)).status).toBe(400);
+    }
+  });
+
+  it("returns 404 for an unknown Event, an Event under another Trip and someone else's Event", async () => {
+    const { trip } = await createTrip("Kyoto");
+    const { trip: other } = await createTrip("Osaka");
+    const event = await eventIn(trip.id, trip.days[0]!.id);
+    const unknown = "11111111-1111-4111-8111-111111111111";
+
+    expect((await send("PATCH", `/api/trips/${trip.id}/events/${unknown}`, { title: "x" })).status).toBe(404);
+    expect((await send("PATCH", `/api/trips/${other.id}/events/${event.id}`, { title: "x" })).status).toBe(404);
+
+    const [stranger] = await app.db.insert(users).values({}).returning();
+    const [theirTrip] = await app.db.insert(trips).values({ ownerId: stranger!.id, title: "Theirs" }).returning();
+    const [theirDay] = await app.db.insert(days).values({ tripId: theirTrip!.id, position: 1 }).returning();
+    const [theirEvent] = await app.db.insert(events).values({ dayId: theirDay!.id, title: "Theirs" }).returning();
+    expect((await send("PATCH", `/api/trips/${theirTrip!.id}/events/${theirEvent!.id}`, { title: "x" })).status).toBe(404);
+  });
+
+  it("never moves an Event into a Day that is being deleted", async () => {
+    // Repeated because the race depends on timing.
+    for (let i = 0; i < 10; i++) {
+      const { trip, ids } = await tripWithDays(2);
+      const event = await eventIn(trip.id, ids[0]!);
+
+      const [move, del] = await Promise.all([
+        send("PATCH", `/api/trips/${trip.id}/events/${event.id}`, { dayId: ids[1] }),
+        send("DELETE", `/api/trips/${trip.id}/days/${ids[1]}`),
+      ]);
+
+      const listed = z.array(tripSchema).parse(await (await fetch(`${app.baseUrl}/api/trips`)).json());
+      const stillThere = listed.find((t) => t.id === trip.id)!.days.flatMap((d) => d.events);
+      // The Event is never lost: either the move won (and the delete was refused) or the delete won.
+      expect(stillThere.map((e) => e.id)).toEqual([event.id]);
+      if (move.status === 200) expect(del.status).toBe(409);
+      else expect([400, 404]).toContain(move.status);
+    }
   });
 });

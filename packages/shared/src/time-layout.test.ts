@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { axisRange, formatMinute, layoutDay, parseTime } from "./time-layout";
+import { axisRange, formatMinute, layoutDay, minuteAtOffset, parseTime } from "./time-layout";
 
 const ev = (id: string, start: number, duration: number) => ({
   id,
@@ -115,5 +115,36 @@ describe("time text", () => {
     expect(parseTime("9am")).toBeUndefined();
     expect(parseTime("24:00")).toBeUndefined();
     expect(parseTime("12:60")).toBeUndefined();
+  });
+});
+
+describe("minuteAtOffset", () => {
+  const range = { startMinute: h(8), endMinute: h(22) };
+  const PX = 64;
+
+  it("maps the top of the axis to the first minute", () => {
+    expect(minuteAtOffset(0, range, PX)).toBe(h(8));
+  });
+
+  it("maps one hour of pixels to one hour", () => {
+    expect(minuteAtOffset(PX, range, PX)).toBe(h(9));
+    expect(minuteAtOffset(PX * 7.5, range, PX)).toBe(h(15, 30));
+  });
+
+  it("rounds down to the snap step", () => {
+    // 40px is 37.5 minutes after 08:00, so 08:30 with 15-minute steps.
+    expect(minuteAtOffset(40, range, PX)).toBe(h(8, 30));
+    expect(minuteAtOffset(15, range, PX)).toBe(h(8)); // 14 minutes
+    expect(minuteAtOffset(16, range, PX)).toBe(h(8, 15)); // 15 minutes
+  });
+
+  it("starts from the widened range", () => {
+    expect(minuteAtOffset(PX, { startMinute: h(6), endMinute: h(22) }, PX)).toBe(h(7));
+  });
+
+  it("stays inside the axis", () => {
+    expect(minuteAtOffset(-50, range, PX)).toBe(h(8));
+    expect(minuteAtOffset(10_000, range, PX)).toBe(h(21, 45));
+    expect(minuteAtOffset(10_000, { startMinute: h(8), endMinute: h(24) }, PX)).toBe(h(23, 45));
   });
 });

@@ -52,8 +52,22 @@ export type CreateEventInput = z.infer<typeof createEventInputSchema>;
 export const createDayInputSchema = z.object({ position: z.number().int().positive() });
 export const reorderDaysInputSchema = z.object({ dayIds: z.array(z.uuid()) });
 
+export const updateEventInputSchema = z
+  .object({
+    title: title.optional(),
+    dayId: z.uuid().optional(),
+    startMinute: startMinute.optional(),
+    durationMinutes: durationMinutes.optional(),
+  })
+  .refine((input) => Object.values(input).some((v) => v !== undefined), {
+    message: "Provide at least one field to change",
+  });
+
+export type UpdateEventInput = z.infer<typeof updateEventInputSchema>;
+
 export type CreateDayInput = z.infer<typeof createDayInputSchema>;
 export type ReorderDaysInput = z.infer<typeof reorderDaysInputSchema>;
 
 export * from "./day-order";
+export * from "./event-list";
 export * from "./time-layout";

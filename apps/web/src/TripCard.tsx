@@ -1,16 +1,19 @@
-import { axisRange, moveBy, type CreateEventInput, type Day, type Trip } from "@travel-planner/shared";
+import { axisRange, DEFAULT_START_MINUTE, moveBy, type Day, type Trip } from "@travel-planner/shared";
 import { useState } from "react";
 import { deleteDay, insertDay, reorderDays } from "./api";
 import { DayTimeline, HourLabels } from "./DayTimeline";
-import { EventForm } from "./EventForm";
 
 type Props = {
   trip: Trip;
-  onAddEvent: (tripId: string, dayId: string, input: CreateEventInput) => Promise<void>;
   onDaysChange: (tripId: string, days: Day[]) => void;
+  selectedEventId?: string;
+  // A new Event being set up in the panel.
+  draft?: { dayId: string; startMinute: number; durationMinutes: number };
+  onSelectEvent: (eventId: string) => void;
+  onCreateAt: (dayId: string, startMinute: number) => void;
 };
 
-export function TripCard({ trip, onAddEvent, onDaysChange }: Props) {
+export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectEvent, onCreateAt }: Props) {
   const [error, setError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
 
@@ -90,10 +93,19 @@ export function TripCard({ trip, onAddEvent, onDaysChange }: Props) {
                   Delete Day
                 </button>
               </div>
-              <EventForm disabled={busy} onSubmit={(input) => onAddEvent(trip.id, day.id, input)} />
+              <button type="button" onClick={() => onCreateAt(day.id, DEFAULT_START_MINUTE)}>
+                Add event
+              </button>
             </section>,
             <div key={`axis-${day.id}`} style={{ gridColumn: dayColumn, gridRow: 2 }}>
-              <DayTimeline events={day.events} range={range} />
+              <DayTimeline
+                events={day.events}
+                range={range}
+                selectedEventId={selectedEventId}
+                draft={draft?.dayId === day.id ? draft : undefined}
+                onSelectEvent={onSelectEvent}
+                onCreateAt={(startMinute) => onCreateAt(day.id, startMinute)}
+              />
             </div>,
           ];
         })}

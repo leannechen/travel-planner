@@ -7,6 +7,7 @@ import {
   type Day,
   type Event,
   type Trip,
+  type UpdateEventInput,
 } from "@travel-planner/shared";
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import type { Db } from "./db/client";
@@ -70,6 +71,50 @@ export async function addEvent(
     if (!day) return undefined;
 
     const [event] = await tx.insert(events).values({ dayId, title: input.title, startMinute: input.startMinute, durationMinutes: input.durationMinutes }).returning();
+    return {
+      id: event!.id,
+      dayId: event!.dayId,
+      title: event!.title,
+      startMinute: event!.startMinute,
+      durationMinutes: event!.durationMinutes,
+    };
+  });
+}
+
+// Changes the given fields of an Event; `dayId` moves it to another Day of the same Trip.
+// Returns undefined when the Event is not in a Trip owned by this user, and "invalid-day" when
+// the target Day is not in the Trip. Takes the same shared Trip lock as addEvent.
+export async function updateEvent(
+  db: Db,
+  ownerId: string,
+  tripId: string,
+  eventId: string,
+  input: UpdateEventInput,
+): Promise<Event | undefined | "invalid-day"> {
+  return db.transaction(async (tx) => {
+    const [trip] = await tx
+      .select({ id: trips.id })
+      .from(trips)
+      .where(and(eq(trips.id, tripId), eq(trips.ownerId, ownerId)))
+      .for("share");
+    if (!trip) return undefined;
+
+    const [current] = await tx
+      .select({ id: events.id })
+      .from(events)
+      .innerJoin(days, eq(events.dayId, days.id))
+      .where(and(eq(events.id, eventId), eq(days.tripId, tripId)));
+    if (!current) return undefined;
+
+    if (input.dayId) {
+      const [target] = await tx
+        .select({ id: days.id })
+        .from(days)
+        .where(and(eq(days.id, input.dayId), eq(days.tripId, tripId)));
+      if (!target) return "invalid-day";
+    }
+
+    const [event] = await tx.update(events).set(input).where(eq(events.id, eventId)).returning();
     return {
       id: event!.id,
       dayId: event!.dayId,

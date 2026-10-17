@@ -1,12 +1,23 @@
-import type { CreateEventInput, Day, Trip } from "@travel-planner/shared";
+import { DEFAULT_DURATION_MINUTES, upsertEvent } from "@travel-planner/shared";
+import type { CreateEventInput, Day, Trip, UpdateEventInput } from "@travel-planner/shared";
 import { useEffect, useState } from "react";
-import { addEvent, createTrip, listTrips } from "./api";
+import { addEvent, createTrip, listTrips, updateEvent } from "./api";
+import { EventPanel } from "./EventPanel";
 import { TitleForm } from "./TitleForm";
 import { TripCard } from "./TripCard";
+
+type Draft = { dayId: string; startMinute: number; durationMinutes: number };
+
+// What the Event panel shows: an existing Event, or a new Event that is not saved yet.
+type Selection = { tripId: string; eventId: string } | { tripId: string; draft: Draft };
 
 export function App() {
   const [trips, setTrips] = useState<Trip[] | undefined>();
   const [error, setError] = useState<string | undefined>();
+  const [selection, setSelection] = useState<Selection | undefined>();
+  // Changes when the user picks something else, so the panel starts fresh. It stays the same when
+  // a new Event is saved, so the panel keeps its fields and focus.
+  const [panelKey, setPanelKey] = useState(0);
 
   useEffect(() => {
     listTrips().then(setTrips, (e: Error) => setError(e.message));
@@ -17,37 +28,79 @@ export function App() {
     setTrips((current) => [trip, ...(current ?? [])]);
   }
 
-  async function handleAddEvent(tripId: string, dayId: string, input: CreateEventInput) {
-    const event = await addEvent(tripId, dayId, input);
+  function setTripDays(tripId: string, change: (days: Day[]) => Day[]) {
     setTrips((current) =>
-      current?.map((trip) =>
-        trip.id !== tripId
-          ? trip
-          : {
-              ...trip,
-              days: trip.days.map((day) =>
-                day.id === dayId
-                  ? { ...day, events: [...day.events, event].sort((a, b) => a.startMinute - b.startMinute) }
-                  : day,
-              ),
-            },
-      ),
+      current?.map((trip) => (trip.id === tripId ? { ...trip, days: change(trip.days) } : trip)),
     );
   }
 
   function handleDaysChange(tripId: string, newDays: Day[]) {
-    setTrips((current) => current?.map((trip) => (trip.id === tripId ? { ...trip, days: newDays } : trip)));
+    setTripDays(tripId, () => newDays);
   }
 
+  function select(next: Selection | undefined) {
+    setSelection(next);
+    setPanelKey((k) => k + 1);
+  }
+
+  async function handleCreateEvent(tripId: string, input: CreateEventInput, dayId: string) {
+    const event = await addEvent(tripId, dayId, input);
+    setTripDays(tripId, (days) => upsertEvent(days, event));
+    setSelection({ tripId, eventId: event.id });
+    return event;
+  }
+
+  async function handleUpdateEvent(tripId: string, eventId: string, input: UpdateEventInput) {
+    const event = await updateEvent(tripId, eventId, input);
+    setTripDays(tripId, (days) => upsertEvent(days, event));
+    return event;
+  }
+
+  const selectedTrip = selection && trips?.find((t) => t.id === selection.tripId);
+  const selectedEvent =
+    selectedTrip && selection && "eventId" in selection
+      ? selectedTrip.days.flatMap((d) => d.events).find((e) => e.id === selection.eventId)
+      : undefined;
+
   return (
-    <main>
+    <main className={selectedTrip ? "has-panel" : undefined}>
       <h1>Travel Planner</h1>
       <TitleForm label="Trip title" submitLabel="Create trip" onSubmit={handleCreateTrip} />
       {error && <p role="alert">{error}</p>}
-      {trips?.map((trip) => (
-        <TripCard key={trip.id} trip={trip} onAddEvent={handleAddEvent} onDaysChange={handleDaysChange} />
-      ))}
+      {trips?.map((trip) => {
+        const mine = selection?.tripId === trip.id ? selection : undefined;
+        return (
+          <TripCard
+            key={trip.id}
+            trip={trip}
+            onDaysChange={handleDaysChange}
+            selectedEventId={mine && "eventId" in mine ? mine.eventId : undefined}
+            draft={mine && "draft" in mine ? mine.draft : undefined}
+            onSelectEvent={(eventId) => select({ tripId: trip.id, eventId })}
+            onCreateAt={(dayId, startMinute) =>
+              select({
+                tripId: trip.id,
+                draft: { dayId, startMinute, durationMinutes: DEFAULT_DURATION_MINUTES },
+              })
+            }
+          />
+        );
+      })}
       {trips?.length === 0 && <p>No trips yet.</p>}
+      {selectedTrip && selection && (selectedEvent || "draft" in selection) && (
+        <EventPanel
+          key={panelKey}
+          days={selectedTrip.days}
+          event={selectedEvent}
+          newEvent={"draft" in selection ? selection.draft : undefined}
+          onCreate={(input, dayId) => handleCreateEvent(selectedTrip.id, input, dayId)}
+          onUpdate={(eventId, input) => handleUpdateEvent(selectedTrip.id, eventId, input)}
+          onDraftChange={(draft) =>
+            setSelection((s) => (s && "draft" in s ? { ...s, draft } : s))
+          }
+          onClose={() => select(undefined)}
+        />
+      )}
     </main>
   );
 }

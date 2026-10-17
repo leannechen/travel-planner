@@ -75,3 +75,19 @@ export function parseTime(text: string): number | undefined {
   const minutes = Number(match[2]);
   return hours < 24 && minutes < 60 ? hours * 60 + minutes : undefined;
 }
+
+export const SNAP_MINUTES = 15;
+
+// The time under a click at `offsetPx` from the top of the axis, rounded down to the snap step
+// and kept inside the axis.
+export function minuteAtOffset(
+  offsetPx: number,
+  range: { startMinute: number; endMinute: number },
+  pxPerHour: number,
+  snap: number = SNAP_MINUTES,
+): number {
+  const raw = range.startMinute + (offsetPx / pxPerHour) * 60;
+  const snapped = Math.floor(raw / snap) * snap;
+  const last = Math.min(range.endMinute, MINUTES_PER_DAY) - snap;
+  return Math.min(Math.max(snapped, range.startMinute), last);
+}

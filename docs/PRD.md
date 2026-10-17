@@ -169,12 +169,12 @@ When a Trip has dates and an Event with opening hours is placed in a Day, a warn
 - Preferences are part of the free text (for example "likes hot springs, relaxed pace"); there are no structured fields in v1.
 - Generated Events use real Google Maps places and are scheduled with times. The user edits the result; they may discard it and generate again.
 - AI is limited to creating new Trips and does not read existing Trip content.
-- Only logged-in users can generate a Trip with AI; usage is limited per user per day. Guests cannot use AI: on the landing page the prompt field shows an example and cannot be edited, and the button asks them to log in. The sample Trip is pre-built and does not call AI.
+- Only logged-in users can generate a Trip with AI; usage is limited per user per day. Guests cannot use AI, and the landing page has no prompt field. Logged-in users start generation from the New Trip action in their Trip list. The sample Trip is pre-built and does not call AI.
 
 ## 8. Accounts, sharing and collaboration
 
 - **Login**: email or Google.
-- **Guest use**: a visitor can open the sample Trip (but cannot use AI generation) and edit it in an anonymous browser session without logging in. On login or sign-up, the guest's Trips are added to the account (existing Trips are kept, nothing is overwritten). Clearing browser data before logging in loses guest data, and the save prompt says so.
+- **Guest use**: a visitor can open the sample Trip (but cannot use AI generation) and edit it in an anonymous browser session without logging in. While a guest is not logged in, the workspace shows a "Log in to save your progress" button (wording to be confirmed). On login or sign-up, the guest's Trips are added to the account (existing Trips are kept, nothing is overwritten). Clearing browser data before logging in loses guest data, and the save prompt says so.
 - **Roles** (ADR 0003):
 
 | Action | Owner | Editor | Viewer |

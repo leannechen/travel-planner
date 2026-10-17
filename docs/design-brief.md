@@ -16,7 +16,7 @@ Trip, Day, Event (kinds: Attraction, Meal, Lodging, Transport event), Leg (trave
 
 ## Screens to design
 
-1. **Landing / first visit**: one clear call to action that opens a sample Trip with Events already spread across Days.
+1. **Landing / first visit**: one clear call to action that opens a sample Trip with Events already spread across Days. No AI prompt field here. While editing as a guest, the top bar shows a "Log in to save your progress" button.
 2. **Trip workspace, desktop**: Backlog and Archive panels on the left (collapsible); Days as side-by-side columns, each with a time axis; a Todos panel; a top bar with Trip title, Schedule/Map switch, Notes, Share, Export, language and collaborators.
 3. **Trip workspace, phone**: one Day at a time with a day switcher; Backlog, Archive and Todos as bottom drawers.
 4. **Event block and Leg**: four visually distinct kinds (use icon as well as color); Lodging as a thin banner at the top of each Day it covers; overlapping Events side by side; Leg shown between two Events with travel-mode icon and duration; warning states for too-short gaps and for opening-hours conflicts.

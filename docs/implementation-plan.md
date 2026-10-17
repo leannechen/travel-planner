@@ -2,7 +2,7 @@
 
 Product rules are in [`PRD.md`](./PRD.md); vocabulary in [`CONTEXT.md`](../CONTEXT.md); decisions in [`docs/adr/`](./adr/). This file orders the work and tracks status. It changes often; the PRD should not.
 
-**Current step: 0 (not started). Blocked until the UI designs are delivered.** Implementation begins once screens exist for the schedule view, the edit panel and the holding areas; later steps need the remaining screens listed in the design spec before they start.
+**Current step: 0 (not started).** The final design is in [`docs/design/`](./design/); a few designer fixes are pending and do not block step 0.
 
 ## Working agreement
 
@@ -62,8 +62,8 @@ Each step lists what it needs from earlier steps and when it is done.
 
 ### Onboarding, AI and export
 
-- [ ] **22. Sample Trip.** Landing page and an editable copy for a guest. *Needs:* 18.
-- [ ] **23. AI generation.** Prompt to a new Trip with real places and times, daily limit. *Needs:* 14, 15, 18.
+- [ ] **22. Sample Trip.** Landing page with only "Open a sample Trip" and log in, an editable copy for a guest, and a "Log in to save your progress" button. *Needs:* 18.
+- [ ] **23. AI generation.** Prompt (from the New Trip action, logged-in users only) to a new Trip with real places and times, daily limit. *Needs:* 14, 15, 18.
 - [ ] **24. Export.** Document, backup with import, and whole-Trip image. *Needs:* 15.
 
 ### Trips

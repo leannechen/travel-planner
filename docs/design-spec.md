@@ -14,7 +14,8 @@ Reference material in `docs/reference/`: `excalidraw-design-draft.png` (Day layo
 
 ### 2.1 Landing and first visit
 - One clear call to action: open a sample Trip. It creates an editable copy with Events already spread across Days, with no login.
-- Secondary actions: generate a Trip from a prompt, log in.
+- Secondary action: log in. There is no prompt field for AI generation on the landing page; logged-in users generate from the New Trip action in their Trip list.
+- In a guest's workspace the top bar shows a "Log in to save your progress" button (wording to be confirmed) until they log in.
 
 ### 2.2 Trip workspace (desktop)
 Layout, left to right:

@@ -24,7 +24,7 @@ body{margin:0}
 .mm .seg button,.mm .seg span{height:32px}
 .bd{position:absolute;width:520px;height:420px;background:rgba(20,24,30,.5);border-radius:var(--r-lg);display:flex;align-items:center;justify-content:center}
 .bd .dlg{width:440px}
-.sidew{position:absolute;left:2380px;top:492px;width:520px}
+.sidew{position:absolute;left:2380px;top:48px;width:520px}
 .ph-app{width:390px;height:844px}
 .ph-top{height:52px;flex:none;display:flex;align-items:center;padding:0 4px 0 12px;gap:2px;background:var(--surface);border-bottom:1px solid var(--border)}
 .ph-top .title{flex:1;padding:0 6px;height:44px}
@@ -211,13 +211,9 @@ body{margin:0}
 </nav>
 
 </div></section>
-<div class="cap" style="left:2380px;top:20px">After tapping “Log in to save your progress”</div>
-<div class="bd" style="left:2380px;top:48px"><section class="dlg" role="dialog" aria-modal="true"><button class="ib" style="position:absolute;right:10px;top:10px" aria-label="Close"><svg class="i" style="width:16px;height:16px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button><h2>Log in to save your progress</h2>
-<p style="font-size:14px;margin:0 0 12px;color:var(--text)">Your Trip is kept in this browser only. Log in to keep it in your account and open it on any device.</p>
-<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button class="btn foc">Cancel</button><button class="btn pri">Continue to log in</button></div></section></div>
 <aside class="mc sidew"><h4>Design notes</h4>
-<div>While a guest is not logged in, the top bar shows one primary button, “Log in to save your progress”, where the collaborator avatars would be. On phone it is a slim banner under the top bar and also the first row of the “…” menu.</div>
-<div>Clicking either opens the login flow. The dialog only explains why to log in; it carries no data-loss warning, because the person is already on the login path. The login screens themselves are not drawn here.</div>
+<div>While a guest is not logged in, the top bar shows one primary button, “Log in to save your progress”, where the account avatar would be. On phone it is a slim banner under the top bar and also the first row of the “…” menu.</div>
+<div>The button and the banner go straight to the hosted login page, with no dialog in between. The login screens themselves are not drawn here.</div>
 <div>Share, Export, Language and Theme sit at the bottom of the left sidebar on desktop (same as logged-in users), and are rows in the “…” menu on phone. They are the same for guests and logged-in users.</div>
 <div>The menu’s first row is guest-only. Logged-in users see Export…, Trip settings…, Language and Theme.</div></aside>
 </div>

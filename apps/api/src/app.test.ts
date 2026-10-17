@@ -250,7 +250,31 @@ describe("reordering Days", () => {
     ]);
 
     expect(responses.map((r) => r.status)).toEqual([200, 200, 200]);
-    expect((await positionsOf(trip.id)).map((d) => d.position)).toEqual([1, 2, 3, 4]);
+    const final = await positionsOf(trip.id);
+    expect(final.map((d) => d.position)).toEqual([1, 2, 3, 4]);
+    // The result is one of the submitted orders as a whole, not a mix of them.
+    const submitted = [
+      [...ids].reverse(),
+      [ids[1], ids[2], ids[3], ids[0]],
+      [ids[3], ids[0], ids[1], ids[2]],
+    ];
+    expect(submitted).toContainEqual(final.map((d) => d.id));
+  });
+
+  it("keeps positions 1..N when Days are inserted and deleted at the same time", async () => {
+    const { trip, ids } = await tripWithDays(4);
+
+    const responses = await Promise.all([
+      post(`/api/trips/${trip.id}/days`, { position: 1 }),
+      send("DELETE", `/api/trips/${trip.id}/days/${ids[1]}`),
+      send("DELETE", `/api/trips/${trip.id}/days/${ids[2]}`),
+    ]);
+
+    expect(responses.map((r) => r.status)).toEqual([201, 200, 200]);
+    const final = await positionsOf(trip.id);
+    expect(final.map((d) => d.position)).toEqual([1, 2, 3]);
+    expect(final.map((d) => d.id)).toContain(ids[0]);
+    expect(final.map((d) => d.id)).toContain(ids[3]);
   });
 });
 
@@ -289,5 +313,31 @@ describe("deleting a Day", () => {
     const res = await send("DELETE", `/api/trips/${other.id}/days/${ids[0]}`);
 
     expect(res.status).toBe(404);
+  });
+});
+
+describe("adding an Event while its Day is deleted", () => {
+  it("never reports an Event as created and then loses it", async () => {
+    // Repeated because the race depends on timing.
+    for (let i = 0; i < 10; i++) {
+      const { trip, ids } = await tripWithDays(2);
+      const [add, del] = await Promise.all([
+        post(`/api/trips/${trip.id}/days/${ids[1]}/events`, { title: "Race" }),
+        send("DELETE", `/api/trips/${trip.id}/days/${ids[1]}`),
+      ]);
+
+      const remaining = daysSchema.parse(
+        (await (await fetch(`${app.baseUrl}/api/trips`)).json()).find((t: { id: string }) => t.id === trip.id)
+          .days,
+      );
+      if (add.status === 201) {
+        // The Event exists, so the Day must still exist and the delete must have been refused.
+        expect(del.status).toBe(409);
+        expect(remaining.flatMap((d) => d.events.map((e) => e.title))).toContain("Race");
+      } else {
+        expect(add.status).toBe(404);
+        expect(del.status).toBe(200);
+      }
+    }
   });
 });

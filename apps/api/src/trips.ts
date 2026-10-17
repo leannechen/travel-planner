@@ -45,6 +45,8 @@ export async function createTrip(db: Db, ownerId: string, input: CreateTripInput
 }
 
 // Returns undefined when the Day is not in a Trip owned by this user.
+// Takes a shared lock on the Trip row, so it cannot interleave with a Day change (which holds the
+// exclusive lock); otherwise an Event added while its Day is being deleted would be cascaded away.
 export async function addEvent(
   db: Db,
   ownerId: string,
@@ -52,15 +54,24 @@ export async function addEvent(
   dayId: string,
   input: CreateEventInput,
 ): Promise<Event | undefined> {
-  const [day] = await db
-    .select({ id: days.id })
-    .from(days)
-    .innerJoin(trips, eq(days.tripId, trips.id))
-    .where(and(eq(days.id, dayId), eq(trips.id, tripId), eq(trips.ownerId, ownerId)));
-  if (!day) return undefined;
+  return db.transaction(async (tx) => {
+    const [trip] = await tx
+      .select({ id: trips.id })
+      .from(trips)
+      .where(and(eq(trips.id, tripId), eq(trips.ownerId, ownerId)))
+      .for("share");
+    if (!trip) return undefined;
 
-  const [event] = await db.insert(events).values({ dayId, title: input.title }).returning();
-  return { id: event!.id, dayId: event!.dayId, title: event!.title };
+    // A separate statement: it must see the Days as they are after the lock was granted.
+    const [day] = await tx
+      .select({ id: days.id })
+      .from(days)
+      .where(and(eq(days.id, dayId), eq(days.tripId, tripId)));
+    if (!day) return undefined;
+
+    const [event] = await tx.insert(events).values({ dayId, title: input.title }).returning();
+    return { id: event!.id, dayId: event!.dayId, title: event!.title };
+  });
 }
 
 type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];

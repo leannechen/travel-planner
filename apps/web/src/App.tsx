@@ -43,8 +43,8 @@ export function App() {
       <TitleForm label="Trip title" submitLabel="Create trip" onSubmit={handleCreateTrip} />
       {error && <p role="alert">{error}</p>}
       {trips?.map((trip) => (
-          <TripCard key={trip.id} trip={trip} onAddEvent={handleAddEvent} onDaysChange={handleDaysChange} />
-        ))}
+        <TripCard key={trip.id} trip={trip} onAddEvent={handleAddEvent} onDaysChange={handleDaysChange} />
+      ))}
       {trips?.length === 0 && <p>No trips yet.</p>}
     </main>
   );

@@ -1,5 +1,5 @@
 import { moveBy, type Day, type Trip } from "@travel-planner/shared";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { deleteDay, insertDay, reorderDays } from "./api";
 import { TitleForm } from "./TitleForm";
 
@@ -44,44 +44,47 @@ export function TripCard({ trip, onAddEvent, onDaysChange }: Props) {
       {error && <p role="alert">{error}</p>}
       <div style={{ display: "flex", gap: "1rem", alignItems: "flex-start", overflowX: "auto" }}>
         {trip.days.map((day) => (
-          <section key={day.id} aria-label={`Day ${day.position}`} style={{ minWidth: "16rem" }}>
-            <h3>Day {day.position}</h3>
-            <div>
-              <button
-                type="button"
-                disabled={busy || day.position === 1}
-                onClick={() => changeDays(() => reorderDays(trip.id, moveBy(dayIds, day.id, -1)))}
-              >
-                Move earlier
-              </button>
-              <button
-                type="button"
-                disabled={busy || day.position === lastPosition}
-                onClick={() => changeDays(() => reorderDays(trip.id, moveBy(dayIds, day.id, 1)))}
-              >
-                Move later
-              </button>
-              <button
-                type="button"
-                disabled={busy || day.events.length > 0 || lastPosition === 1}
-                title={day.events.length > 0 ? "Only an empty Day can be deleted" : undefined}
-                onClick={() => changeDays(() => deleteDay(trip.id, day.id))}
-              >
-                Delete Day
-              </button>
-            </div>
-            <ul>
-              {day.events.map((event) => (
-                <li key={event.id}>{event.title}</li>
-              ))}
-            </ul>
-            <TitleForm
-              label="Event title"
-              submitLabel="Add event"
-              onSubmit={(title) => onAddEvent(trip.id, day.id, title)}
-            />
+          <Fragment key={day.id}>
             <div>{insertButton(day.position)}</div>
-          </section>
+            <section aria-label={`Day ${day.position}`} style={{ minWidth: "16rem" }}>
+              <h3>Day {day.position}</h3>
+              <div>
+                <button
+                  type="button"
+                  disabled={busy || day.position === 1}
+                  onClick={() => changeDays(() => reorderDays(trip.id, moveBy(dayIds, day.id, -1)))}
+                >
+                  Move earlier
+                </button>
+                <button
+                  type="button"
+                  disabled={busy || day.position === lastPosition}
+                  onClick={() => changeDays(() => reorderDays(trip.id, moveBy(dayIds, day.id, 1)))}
+                >
+                  Move later
+                </button>
+                <button
+                  type="button"
+                  disabled={busy || day.events.length > 0 || lastPosition === 1}
+                  title={day.events.length > 0 ? "Only an empty Day can be deleted" : undefined}
+                  onClick={() => changeDays(() => deleteDay(trip.id, day.id))}
+                >
+                  Delete Day
+                </button>
+              </div>
+              <ul>
+                {day.events.map((event) => (
+                  <li key={event.id}>{event.title}</li>
+                ))}
+              </ul>
+              <TitleForm
+                label="Event title"
+                submitLabel="Add event"
+                disabled={busy}
+                onSubmit={(title) => onAddEvent(trip.id, day.id, title)}
+              />
+            </section>
+          </Fragment>
         ))}
         <div>{insertButton(lastPosition + 1)}</div>
       </div>

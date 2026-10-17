@@ -4,9 +4,10 @@ type Props = {
   label: string;
   submitLabel: string;
   onSubmit: (title: string) => Promise<void>;
+  disabled?: boolean;
 };
 
-export function TitleForm({ label, submitLabel, onSubmit }: Props) {
+export function TitleForm({ label, submitLabel, onSubmit, disabled = false }: Props) {
   const [title, setTitle] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | undefined>();
@@ -14,7 +15,7 @@ export function TitleForm({ label, submitLabel, onSubmit }: Props) {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const trimmed = title.trim();
-    if (!trimmed || pending) return;
+    if (!trimmed || pending || disabled) return;
 
     setPending(true);
     setError(undefined);
@@ -31,7 +32,7 @@ export function TitleForm({ label, submitLabel, onSubmit }: Props) {
   return (
     <form onSubmit={handleSubmit}>
       <input aria-label={label} placeholder={label} value={title} onChange={(e) => setTitle(e.target.value)} />
-      <button type="submit" disabled={pending}>
+      <button type="submit" disabled={pending || disabled}>
         {submitLabel}
       </button>
       {error && <span role="alert"> {error}</span>}

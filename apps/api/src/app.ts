@@ -12,7 +12,7 @@ import { DEV_USER_ID } from "./dev-user";
 import { addEvent, createTrip, deleteDay, insertDay, listTrips, reorderDays } from "./trips";
 
 const tripParamsSchema = z.object({ tripId: z.uuid() });
-const eventParamsSchema = z.object({ tripId: z.uuid(), dayId: z.uuid() });
+const dayParamsSchema = z.object({ tripId: z.uuid(), dayId: z.uuid() });
 
 export function createApp(db: Db) {
   const app = express();
@@ -33,7 +33,7 @@ export function createApp(db: Db) {
   });
 
   app.post("/api/trips/:tripId/days/:dayId/events", async (req, res) => {
-    const { tripId, dayId } = eventParamsSchema.parse(req.params);
+    const { tripId, dayId } = dayParamsSchema.parse(req.params);
     const input = createEventInputSchema.parse(req.body);
     const event = await addEvent(db, DEV_USER_ID, tripId, dayId, input);
     if (!event) {
@@ -74,7 +74,7 @@ export function createApp(db: Db) {
   });
 
   app.delete("/api/trips/:tripId/days/:dayId", async (req, res) => {
-    const { tripId, dayId } = eventParamsSchema.parse(req.params);
+    const { tripId, dayId } = dayParamsSchema.parse(req.params);
     const result = await deleteDay(db, DEV_USER_ID, tripId, dayId);
     if (!result) {
       res.status(404).json({ error: "Day not found" });

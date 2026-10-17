@@ -18,7 +18,7 @@ Reference material in `docs/reference/`: `excalidraw-design-draft.png` (Day layo
 - In a guest's workspace the top bar shows a "Log in to save your progress" button (wording to be confirmed) until they log in.
 
 ### 2.1a Sign-in and sign-up
-- Login prompt dialog inside the app, with a reason line per entry point and the guest-data note.
+- No prompt before login: entry points go directly to the Auth0 page. The guest save button carries the note about losing data when browser data is cleared.
 - Themed Auth0 hosted page (login and sign-up tabs, Google button, error state); only branding can be customized.
 - After login: guest Trip added, Trip list, and failure states.
 - Account menu in the top right (logged-in and logged-out versions), logout result, session-expired banner, and the invited-Editor landing page.

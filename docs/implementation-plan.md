@@ -55,7 +55,7 @@ Each step lists what it needs from earlier steps and when it is done.
 
 ### Accounts and collaboration
 
-- [ ] **18. Sign-in.** Auth0 login, API token validation, `User` record, ownership; login prompt and account menu, guest session and merge on login, session-expiry banner. *Needs:* 1. (ADR 0006)
+- [ ] **18. Sign-in.** Auth0 login, API token validation, `User` record, ownership; account menu, guest session and merge on login, session-expiry banner. *Needs:* 1. (ADR 0006)
 - [ ] **19. Viewer link.** Read-only share link that can be turned off; Viewers do not see Todos, Notes or the Archive. *Needs:* 18.
 - [ ] **20. Editors.** Invite by email, invitation landing page for logged-out invitees, roles and permissions per PRD §8. *Needs:* 19.
 - [ ] **21. Live collaboration.** WebSocket updates, last write wins per Event, highlight of others' changes. *Needs:* 20. (ADR 0003)

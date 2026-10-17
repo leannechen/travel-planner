@@ -173,11 +173,11 @@ When a Trip has dates and an Event with opening hours is placed in a Day, a warn
 
 ## 8. Accounts, sharing and collaboration
 
-- **Login**: email or Google, on a login page hosted by Auth0 (ADR 0006). One page serves both login and sign-up. Our app shows a prompt before redirecting, with a reason that depends on where the user came from (Landing page, the guest save button, Share, Export, New Trip).
+- **Login**: email or Google, on a login page hosted by Auth0 (ADR 0006). One page serves both login and sign-up. Every entry point (the Landing page link, the guest save button, Share, Export, New Trip) goes straight to that page, with no extra prompt in between.
 - **After login**: a user with guest Trips sees a confirmation that they were added to the account and lands in the Trip; a user without lands on the Trip list. If login fails or is cancelled, the user returns to where they were with a dismissible message.
 - **Account menu**: top right, shows the user's email, "My Trips" and "Log out". There is no profile or preferences screen. Logging out returns to the Landing page.
 - **Session expiry**: if the session expires while editing, a banner asks the user to log in again; the Trip stays on screen read-only until then, and unsaved edits are not discarded silently.
-- **Guest use**: a visitor can open the sample Trip (but cannot use AI generation) and edit it in an anonymous browser session without logging in. While a guest is not logged in, the workspace shows a "Log in to save your progress" button (wording to be confirmed). On login or sign-up, the guest's Trips are added to the account (existing Trips are kept, nothing is overwritten). Clearing browser data before logging in loses guest data, and the save prompt says so.
+- **Guest use**: a visitor can open the sample Trip (but cannot use AI generation) and edit it in an anonymous browser session without logging in. While a guest is not logged in, the workspace shows a "Log in to save your progress" button (wording to be confirmed). On login or sign-up, the guest's Trips are added to the account (existing Trips are kept, nothing is overwritten). Clearing browser data before logging in loses guest data; the guest save button explains this in its tooltip and, on phone, in the banner text.
 - **Roles** (ADR 0003):
 
 | Action | Owner | Editor | Viewer |

@@ -378,6 +378,21 @@ describe("Event times", () => {
     }
   });
 
+  it("accepts the edge values, including an Event that runs past midnight", async () => {
+    const { trip } = await createTrip("Kyoto");
+    const dayId = trip.days[0]!.id;
+
+    for (const times of [
+      { startMinute: 0, durationMinutes: 1 },
+      { startMinute: 1439, durationMinutes: 1440 },
+      { startMinute: 1380, durationMinutes: 240 },
+    ]) {
+      const res = await addEvent(trip.id, dayId, { title: "Edge", ...times });
+      expect(res.status).toBe(201);
+      expect(eventSchema.parse(await res.json())).toMatchObject(times);
+    }
+  });
+
   it("lists a Day's Events by start time", async () => {
     const { trip } = await createTrip("Kyoto");
     const dayId = trip.days[0]!.id;

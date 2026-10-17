@@ -6,9 +6,12 @@ import {
 } from "@travel-planner/shared";
 
 export const PX_PER_HOUR = 64;
-const MIN_EVENT_HEIGHT = 22;
 
 type Range = { startMinute: number; endMinute: number };
+
+// The real end, even when it is past midnight and the card is cut off there.
+const formatEnd = (end: number) =>
+  end > MINUTES_PER_DAY ? `${formatMinute(end - MINUTES_PER_DAY)} +1` : formatMinute(end);
 
 const toPx = (minutes: number) => (minutes / 60) * PX_PER_HOUR;
 
@@ -39,22 +42,22 @@ export function DayTimeline({ events, range }: { events: Event[]; range: Range }
       ))}
       {events.map((event) => {
         const placement = placements.get(event.id)!;
-        const end = Math.min(event.startMinute + event.durationMinutes, MINUTES_PER_DAY);
-        const height = Math.max(toPx(end - event.startMinute), MIN_EVENT_HEIGHT);
+        const realEnd = event.startMinute + event.durationMinutes;
+        const drawnHeight = toPx(Math.min(realEnd, MINUTES_PER_DAY) - event.startMinute);
         return (
           <li
             key={event.id}
             className="event-card"
             style={{
               top: toPx(event.startMinute - range.startMinute),
-              height: height - 2,
+              height: drawnHeight - 2,
               left: `${(placement.column / placement.columnCount) * 100}%`,
               width: `${100 / placement.columnCount}%`,
             }}
           >
             <strong>{event.title}</strong>
             <span>
-              {formatMinute(event.startMinute)} – {formatMinute(end)}
+              {formatMinute(event.startMinute)} – {formatEnd(realEnd)}
             </span>
           </li>
         );

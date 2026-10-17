@@ -2,6 +2,7 @@ import {
   DEFAULT_DURATION_MINUTES,
   DEFAULT_START_MINUTE,
   formatMinute,
+  MAX_DURATION_MINUTES,
   parseTime,
   type CreateEventInput,
 } from "@travel-planner/shared";
@@ -27,8 +28,13 @@ export function EventForm({ onSubmit, disabled = false }: Props) {
 
     const startMinute = parseTime(start);
     const durationMinutes = Number(duration);
-    if (startMinute === undefined || !Number.isInteger(durationMinutes) || durationMinutes < 1) {
-      setError("Enter a start time and a duration in whole minutes");
+    if (
+      startMinute === undefined ||
+      !Number.isInteger(durationMinutes) ||
+      durationMinutes < 1 ||
+      durationMinutes > MAX_DURATION_MINUTES
+    ) {
+      setError(`Enter a start time and a duration of 1 to ${MAX_DURATION_MINUTES} whole minutes`);
       return;
     }
 
@@ -57,8 +63,7 @@ export function EventForm({ onSubmit, disabled = false }: Props) {
         aria-label="Duration in minutes"
         type="number"
         min={1}
-        max={1440}
-        step={5}
+        max={MAX_DURATION_MINUTES}
         value={duration}
         onChange={(e) => setDuration(e.target.value)}
       />

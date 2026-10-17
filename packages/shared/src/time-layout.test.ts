@@ -86,7 +86,7 @@ describe("axisRange", () => {
 
   it("grows to whole hours that cover a late Event", () => {
     expect(axisRange([ev("a", h(21), 150)]).endMinute).toBe(h(24));
-    expect(axisRange([ev("a", h(22), 30)]).endMinute).toBe(h(22, 0) + 60);
+    expect(axisRange([ev("a", h(22), 30)]).endMinute).toBe(h(23));
   });
 
   it("stops at midnight when an Event runs past it", () => {

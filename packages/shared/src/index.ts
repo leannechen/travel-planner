@@ -34,3 +34,11 @@ export type Day = z.infer<typeof daySchema>;
 export type Trip = z.infer<typeof tripSchema>;
 export type CreateTripInput = z.infer<typeof createTripInputSchema>;
 export type CreateEventInput = z.infer<typeof createEventInputSchema>;
+
+export const createDayInputSchema = z.object({ position: z.number().int().positive() });
+export const reorderDaysInputSchema = z.object({ dayIds: z.array(z.uuid()) });
+
+export type CreateDayInput = z.infer<typeof createDayInputSchema>;
+export type ReorderDaysInput = z.infer<typeof reorderDaysInputSchema>;
+
+export * from "./day-order";

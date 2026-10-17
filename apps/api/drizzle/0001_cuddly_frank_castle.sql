@@ -1,0 +1,1 @@
+ALTER TABLE "days" ADD CONSTRAINT "days_trip_position_unique" UNIQUE("tripId","position");

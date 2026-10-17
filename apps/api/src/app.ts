@@ -1,11 +1,17 @@
-import { createEventInputSchema, createTripInputSchema } from "@travel-planner/shared";
+import {
+  createDayInputSchema,
+  createEventInputSchema,
+  createTripInputSchema,
+  reorderDaysInputSchema,
+} from "@travel-planner/shared";
 import type { HealthResponse } from "@travel-planner/shared";
 import express from "express";
 import { z, ZodError } from "zod";
 import type { Db } from "./db/client";
 import { DEV_USER_ID } from "./dev-user";
-import { addEvent, createTrip, listTrips } from "./trips";
+import { addEvent, createTrip, deleteDay, insertDay, listTrips, reorderDays } from "./trips";
 
+const tripParamsSchema = z.object({ tripId: z.uuid() });
 const eventParamsSchema = z.object({ tripId: z.uuid(), dayId: z.uuid() });
 
 export function createApp(db: Db) {
@@ -35,6 +41,54 @@ export function createApp(db: Db) {
       return;
     }
     res.status(201).json(event);
+  });
+
+  app.post("/api/trips/:tripId/days", async (req, res) => {
+    const { tripId } = tripParamsSchema.parse(req.params);
+    const { position } = createDayInputSchema.parse(req.body);
+    const result = await insertDay(db, DEV_USER_ID, tripId, position);
+    if (!result) {
+      res.status(404).json({ error: "Trip not found" });
+      return;
+    }
+    if (result === "invalid-position") {
+      res.status(400).json({ error: "Position is past the end of the Trip" });
+      return;
+    }
+    res.status(201).json(result);
+  });
+
+  app.put("/api/trips/:tripId/days/order", async (req, res) => {
+    const { tripId } = tripParamsSchema.parse(req.params);
+    const { dayIds } = reorderDaysInputSchema.parse(req.body);
+    const result = await reorderDays(db, DEV_USER_ID, tripId, dayIds);
+    if (!result) {
+      res.status(404).json({ error: "Trip not found" });
+      return;
+    }
+    if (result === "invalid-order") {
+      res.status(400).json({ error: "dayIds must list every Day of the Trip exactly once" });
+      return;
+    }
+    res.json(result);
+  });
+
+  app.delete("/api/trips/:tripId/days/:dayId", async (req, res) => {
+    const { tripId, dayId } = eventParamsSchema.parse(req.params);
+    const result = await deleteDay(db, DEV_USER_ID, tripId, dayId);
+    if (!result) {
+      res.status(404).json({ error: "Day not found" });
+      return;
+    }
+    if (result === "not-empty") {
+      res.status(409).json({ error: "Only an empty Day can be deleted" });
+      return;
+    }
+    if (result === "last-day") {
+      res.status(409).json({ error: "A Trip must keep at least one Day" });
+      return;
+    }
+    res.json(result);
   });
 
   app.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {

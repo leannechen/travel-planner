@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { integer, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: uuid().primaryKey().defaultRandom(),
@@ -15,13 +15,17 @@ export const trips = pgTable("trips", {
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });
 
-export const days = pgTable("days", {
-  id: uuid().primaryKey().defaultRandom(),
-  tripId: uuid()
-    .notNull()
-    .references(() => trips.id, { onDelete: "cascade" }),
-  position: integer().notNull(),
-});
+export const days = pgTable(
+  "days",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    tripId: uuid()
+      .notNull()
+      .references(() => trips.id, { onDelete: "cascade" }),
+    position: integer().notNull(),
+  },
+  (t) => [unique("days_trip_position_unique").on(t.tripId, t.position)],
+);
 
 export const events = pgTable("events", {
   id: uuid().primaryKey().defaultRandom(),

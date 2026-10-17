@@ -8,6 +8,13 @@
       "when": 1792245098506,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792246199658,
+      "tag": "0001_cuddly_frank_castle",
+      "breakpoints": true
     }
   ]
 }

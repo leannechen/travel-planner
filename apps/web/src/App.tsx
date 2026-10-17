@@ -1,4 +1,4 @@
-import type { Trip } from "@travel-planner/shared";
+import type { Day, Trip } from "@travel-planner/shared";
 import { useEffect, useState } from "react";
 import { addEvent, createTrip, listTrips } from "./api";
 import { TitleForm } from "./TitleForm";
@@ -33,12 +33,18 @@ export function App() {
     );
   }
 
+  function handleDaysChange(tripId: string, newDays: Day[]) {
+    setTrips((current) => current?.map((trip) => (trip.id === tripId ? { ...trip, days: newDays } : trip)));
+  }
+
   return (
     <main>
       <h1>Travel Planner</h1>
       <TitleForm label="Trip title" submitLabel="Create trip" onSubmit={handleCreateTrip} />
       {error && <p role="alert">{error}</p>}
-      {trips?.map((trip) => <TripCard key={trip.id} trip={trip} onAddEvent={handleAddEvent} />)}
+      {trips?.map((trip) => (
+          <TripCard key={trip.id} trip={trip} onAddEvent={handleAddEvent} onDaysChange={handleDaysChange} />
+        ))}
       {trips?.length === 0 && <p>No trips yet.</p>}
     </main>
   );

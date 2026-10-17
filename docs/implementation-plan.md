@@ -43,7 +43,7 @@ Each step lists what it needs from earlier steps and when it is done.
 ### Experience
 
 - [ ] **11. Keyboard operation.** Selection model, single-key and modifier shortcuts, tooltips with shortcuts, `?` cheat sheet. *Needs:* 9, 10.
-- [ ] **12. Interface language and theme.** English and Traditional Chinese, and light and dark themes, each with a switch in the top right; terms from the design spec mapping. *Needs:* 11.
+- [ ] **12. Interface language and theme.** English and Traditional Chinese, and light and dark themes, each with a switch at the bottom of the left sidebar ("..." menu on phone); terms from the design spec mapping. *Needs:* 11.
 - [ ] **13. Phone layout.** One Day at a time, bottom drawers for Backlog, Archive and Todos, field-based moves across areas. *Needs:* 9.
 
 ### Places and travel

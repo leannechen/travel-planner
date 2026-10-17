@@ -28,7 +28,7 @@ Layout, left to right:
 - **Backlog** panel and **Archive** panel (collapsible).
 - **Days**: columns side by side, each with a header (drag handle for reordering, Day number, optional date, menu with move, insert and delete), a time axis, and Event blocks. Horizontal scroll when many Days.
 - **Todos** panel (Trip Todos, with Event Todos grouped under their Event).
-- A top bar: Trip title, view switch (Schedule / Map), Notes, Share, Export, language and theme switches (top right), collaborators.
+- A top bar: Trip title, view switch (Schedule / Map), Notes, collaborators and the account spot (top right). Share, Export, the language switch and the theme switch sit at the bottom of the left sidebar.
 - A floating **Notes panel**, opened from anywhere with a keyboard shortcut: a field for a new Note on top (focused on open), then pinned Notes, then the rest by most recent edit. Markdown is edited in place.
 
 ### 2.3 Trip workspace (phone)
@@ -43,7 +43,7 @@ Layout, left to right:
 ### 2.5 Share, Export and Settings dialogs
 - Share: link on/off, copy link, invite Editors by email, list and remove Editors.
 - Export: three options (document, backup, image) with a short description each.
-- Trip settings: title, dates, default travel mode, delete Trip. Language is not here; it is a top-right switch.
+- Trip settings: title, dates, default travel mode, delete Trip. Language is not here; it is a switch at the bottom of the left sidebar.
 
 ## 3. Components
 
@@ -88,7 +88,7 @@ Layout, left to right:
 
 - Shortcuts follow PRD §13. Show the shortcut in each control's tooltip and provide a cheat sheet on `?`. Single-key shortcuts must not fire while a text field is focused.
 - The Description editor is a Markdown editor with preview; the same applies to Notes.
-- Interface language switch in the top bar and in settings. Text must tolerate length differences between English and Traditional Chinese.
+- Interface language switch at the bottom of the left sidebar (the "..." menu on phone). Text must tolerate length differences between English and Traditional Chinese.
 
 | English | Traditional Chinese |
 |---|---|
@@ -124,5 +124,5 @@ Layout, left to right:
 The final design is in [`docs/design/`](./design/) (`README.md` lists all 32 screens). Where it differs from this document, the design wins, except for the points listed in the PRD.
 
 - Tokens: `docs/design/source/hf.css`. Kind colors: Attraction blue, Transport green, Meal orange, Lodging purple, each with an icon. Fonts: Inter, Nunito, Noto Sans TC. 4-pt spacing. Time snapping: 15 minutes. Light and dark themes.
-- The language and theme switches sit in the top right.
+- The language and theme switches sit at the bottom of the left sidebar with Share and Export (the "..." menu on phone); on Landing and invitation pages they are in the top right.
 - Placeholder photos come from Unsplash; author attribution is added at the end of the project (plan step 26).

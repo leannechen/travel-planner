@@ -234,7 +234,7 @@ The product uses the terms in `CONTEXT.md`. In the Traditional Chinese interface
 
 - The default interface language is English; the user can switch to Traditional Chinese.
 - The switch applies to interface text. AI generation uses the current interface language. Fixed labels in exports (such as "Day 1" and date formats) follow the interface language. Text the user typed is never translated.
-- The language switch and the theme switch (light or dark) sit in the top right of the screen; there is no separate preferences screen. The theme follows the system setting by default and the user's choice overrides it.
+- The language switch and the theme switch (light or dark) sit at the bottom of the left sidebar on desktop, together with Share and Export, and in the "..." menu on phone; on pages without the sidebar (Landing, invitation) they sit in the top right; there is no separate preferences screen. The theme follows the system setting by default and the user's choice overrides it.
 - Logged-in users keep the setting on their account; guests keep it in the browser. A Viewer sees the interface in the language of their own browser, defaulting to English.
 
 ## 15. Open items deferred to the design spec

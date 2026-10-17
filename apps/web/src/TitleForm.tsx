@@ -8,19 +8,33 @@ type Props = {
 
 export function TitleForm({ label, submitLabel, onSubmit }: Props) {
   const [title, setTitle] = useState("");
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | undefined>();
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const trimmed = title.trim();
-    if (!trimmed) return;
-    await onSubmit(trimmed);
-    setTitle("");
+    if (!trimmed || pending) return;
+
+    setPending(true);
+    setError(undefined);
+    try {
+      await onSubmit(trimmed);
+      setTitle("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setPending(false);
+    }
   }
 
   return (
     <form onSubmit={handleSubmit}>
       <input aria-label={label} placeholder={label} value={title} onChange={(e) => setTitle(e.target.value)} />
-      <button type="submit">{submitLabel}</button>
+      <button type="submit" disabled={pending}>
+        {submitLabel}
+      </button>
+      {error && <span role="alert"> {error}</span>}
     </form>
   );
 }

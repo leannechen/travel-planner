@@ -6,7 +6,7 @@ import { days, events, trips } from "./db/schema";
 export async function listTrips(db: Db, ownerId: string): Promise<Trip[]> {
   return db.query.trips.findMany({
     where: eq(trips.ownerId, ownerId),
-    orderBy: desc(trips.createdAt),
+    orderBy: [desc(trips.createdAt), desc(trips.id)],
     columns: { id: true, title: true },
     with: {
       days: {
@@ -14,7 +14,7 @@ export async function listTrips(db: Db, ownerId: string): Promise<Trip[]> {
         columns: { id: true, position: true },
         with: {
           events: {
-            orderBy: asc(events.createdAt),
+            orderBy: [asc(events.createdAt), asc(events.id)],
             columns: { id: true, dayId: true, title: true },
           },
         },

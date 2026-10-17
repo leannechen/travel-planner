@@ -18,6 +18,7 @@ export async function startTestApp() {
 
   return {
     baseUrl,
+    db,
     async reset() {
       await db.execute(sql`truncate table events, days, trips, users cascade`);
       await ensureDevUser(db);

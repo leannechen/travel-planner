@@ -1,5 +1,6 @@
 import { eventSchema, healthResponseSchema, tripSchema } from "@travel-planner/shared";
 import { z } from "zod";
+import { trips, users, days } from "./db/schema";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { startTestApp } from "../test/test-app";
 
@@ -87,5 +88,40 @@ describe("events", () => {
     const { trip } = await createTrip("Kyoto");
     const res = await post(`/api/trips/${trip.id}/days/${trip.days[0]!.id}/events`, { title: "" });
     expect(res.status).toBe(400);
+  });
+
+  it("returns 404 for a real Day posted under another Trip", async () => {
+    const { trip: tripA } = await createTrip("Kyoto");
+    const { trip: tripB } = await createTrip("Osaka");
+
+    const res = await post(`/api/trips/${tripB.id}/days/${tripA.days[0]!.id}/events`, { title: "Mixed up" });
+
+    expect(res.status).toBe(404);
+  });
+
+  it("returns 404 for a Day in someone else's Trip and does not list that Trip", async () => {
+    const [other] = await app.db.insert(users).values({}).returning();
+    const [theirTrip] = await app.db
+      .insert(trips)
+      .values({ ownerId: other!.id, title: "Not yours" })
+      .returning();
+    const [theirDay] = await app.db.insert(days).values({ tripId: theirTrip!.id, position: 1 }).returning();
+
+    const res = await post(`/api/trips/${theirTrip!.id}/days/${theirDay!.id}/events`, { title: "Intruder" });
+    const listed = z.array(tripSchema).parse(await (await fetch(`${app.baseUrl}/api/trips`)).json());
+
+    expect(res.status).toBe(404);
+    expect(listed).toEqual([]);
+  });
+
+  it("trims the title and returns Events in creation order", async () => {
+    const { trip } = await createTrip("Kyoto");
+    const path = `/api/trips/${trip.id}/days/${trip.days[0]!.id}/events`;
+    await post(path, { title: "  First  " });
+    await post(path, { title: "Second" });
+
+    const listed = z.array(tripSchema).parse(await (await fetch(`${app.baseUrl}/api/trips`)).json());
+
+    expect(listed[0]!.days[0]!.events.map((e) => e.title)).toEqual(["First", "Second"]);
   });
 });

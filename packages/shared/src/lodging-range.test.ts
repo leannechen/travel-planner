@@ -4,19 +4,24 @@ import { lodgingAfterDelete, lodgingAfterInsert, lodgingBanner, lodgingFits } fr
 // Three nights from Day 2: nights on Days 2 to 4, check-out on Day 5.
 const stay = { checkInPosition: 2, nights: 3 };
 
-describe("lodgingAfterInsert (a new Day lands at position p)", () => {
+describe("lodgingAfterInsert (a new Day lands at position p; the Trip has 5 Days, so the check-out Day exists)", () => {
   it("shifts the stay when the Day lands before or at the check-in Day", () => {
-    expect(lodgingAfterInsert(stay, 1)).toEqual({ checkInPosition: 3, nights: 3 });
-    expect(lodgingAfterInsert(stay, 2)).toEqual({ checkInPosition: 3, nights: 3 });
+    expect(lodgingAfterInsert(stay, 1, 5)).toEqual({ checkInPosition: 3, nights: 3 });
+    expect(lodgingAfterInsert(stay, 2, 5)).toEqual({ checkInPosition: 3, nights: 3 });
   });
 
   it("adds a night when the Day lands between check-in and check-out, including just before the check-out Day", () => {
-    expect(lodgingAfterInsert(stay, 3)).toEqual({ checkInPosition: 2, nights: 4 });
-    expect(lodgingAfterInsert(stay, 5)).toEqual({ checkInPosition: 2, nights: 4 });
+    expect(lodgingAfterInsert(stay, 3, 5)).toEqual({ checkInPosition: 2, nights: 4 });
+    expect(lodgingAfterInsert(stay, 5, 5)).toEqual({ checkInPosition: 2, nights: 4 });
   });
 
   it("changes nothing when the Day lands after the check-out Day", () => {
-    expect(lodgingAfterInsert(stay, 6)).toEqual(stay);
+    expect(lodgingAfterInsert(stay, 6, 5)).toEqual(stay);
+  });
+
+  it("makes a Day added after the last Day the check-out Day when there was none", () => {
+    // Nights on Days 2 to 4 in a 4-Day Trip: Day 5 is added and becomes the check-out Day.
+    expect(lodgingAfterInsert(stay, 5, 4)).toEqual(stay);
   });
 });
 

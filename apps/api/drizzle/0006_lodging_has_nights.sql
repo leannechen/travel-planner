@@ -1,0 +1,1 @@
+ALTER TABLE "events" ADD CONSTRAINT "events_lodging_has_nights" CHECK ("events"."kind" <> 'lodging' or "events"."nights" is not null);

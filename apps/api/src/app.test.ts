@@ -626,6 +626,13 @@ describe("Lodging", () => {
       expect(await lodgingOf(trip.id)).toMatchObject({ position: 2, nights: 5 });
     });
 
+    it("makes a Day added at the end the check-out Day when the stay had none", async () => {
+      const { trip, ids } = await tripWithDays(3);
+      await stay(trip.id, ids[0]!, 3); // nights on Days 1 to 3, check-out after the Trip
+      await insert(trip.id, 4);
+      expect(await lodgingOf(trip.id)).toMatchObject({ position: 1, nights: 3 });
+    });
+
     it("changes nothing when inserting after the check-out Day", async () => {
       const { trip } = await setup();
       await insert(trip.id, 6);

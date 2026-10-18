@@ -53,6 +53,7 @@ export const events = pgTable(
   },
   (t) => [
     check("events_start_minute_range", sql`${t.startMinute} between 0 and 1439`),
+    check("events_lodging_has_nights", sql`${t.kind} <> 'lodging' or ${t.nights} is not null`),
     check("events_nights_range", sql`${t.nights} is null or ${t.nights} between 1 and 365`),
     check("events_check_in_range", sql`${t.checkInMinute} is null or ${t.checkInMinute} between 0 and 1439`),
     check("events_check_out_range", sql`${t.checkOutMinute} is null or ${t.checkOutMinute} between 0 and 1439`),

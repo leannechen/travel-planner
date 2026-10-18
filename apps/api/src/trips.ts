@@ -130,7 +130,9 @@ export async function updateEvent(
       .select({ id: events.id, kind: events.kind, nights: events.nights, dayId: events.dayId })
       .from(events)
       .innerJoin(days, eq(events.dayId, days.id))
-      .where(and(eq(events.id, eventId), eq(days.tripId, tripId)));
+      .where(and(eq(events.id, eventId), eq(days.tripId, tripId)))
+      // So two updates of one Event run one after another, each checking the latest values.
+      .for("update", { of: events });
     if (!current) return undefined;
 
     if (input.dayId) {
@@ -244,7 +246,7 @@ export async function insertDay(
       .returning({ id: days.id });
     const order = insertAt(ids, day!.id, position);
     await applyDayOrder(tx, tripId, order);
-    await placeStays(tx, order, stays.map(({ id, stay }) => ({ id, stay: lodgingAfterInsert(stay, position) })));
+    await placeStays(tx, order, stays.map(({ id, stay }) => ({ id, stay: lodgingAfterInsert(stay, position, ids.length) })));
     return loadDays(tx, tripId);
   });
 }

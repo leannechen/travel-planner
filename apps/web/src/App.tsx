@@ -6,7 +6,7 @@ import { EventPanel } from "./EventPanel";
 import { TitleForm } from "./TitleForm";
 import { TripCard } from "./TripCard";
 
-type Draft = { dayId: string; startMinute: number; durationMinutes: number };
+type Draft = { dayId: string; startMinute: number; durationMinutes: number; kind?: Event["kind"] };
 
 // What the Event panel shows: an existing Event, or a new Event that is not saved yet.
 type Selection = { tripId: string; eventId: string } | { tripId: string; draft: Draft };

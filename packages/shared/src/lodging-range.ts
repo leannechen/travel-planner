@@ -3,10 +3,13 @@
 
 export type Stay = { checkInPosition: number; nights: number };
 
-// A new Day lands at position p; the Days from p on move one later.
-export function lodgingAfterInsert(stay: Stay, p: number): Stay {
+// A new Day lands at position p in a Trip that has `dayCount` Days; the Days from p on move one
+// later. A Day landing just before an existing check-out Day is inside the stay. One added after the
+// last Day becomes the check-out Day instead (the usual way to add a departure Day).
+export function lodgingAfterInsert(stay: Stay, p: number, dayCount: number): Stay {
+  const checkOut = stay.checkInPosition + stay.nights;
   if (p <= stay.checkInPosition) return { ...stay, checkInPosition: stay.checkInPosition + 1 };
-  if (p <= stay.checkInPosition + stay.nights) return { ...stay, nights: stay.nights + 1 };
+  if (p < checkOut || (p === checkOut && checkOut <= dayCount)) return { ...stay, nights: stay.nights + 1 };
   return stay;
 }
 

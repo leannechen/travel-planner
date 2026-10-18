@@ -45,7 +45,7 @@ type Props = {
   onCreate: (input: CreateEventInput, dayId: string) => Promise<Event>;
   onUpdate: (eventId: string, input: UpdateEventInput) => Promise<Event>;
   // Reports the values being typed for a new Event, so the placeholder follows them.
-  onDraftChange: (draft: { dayId: string; startMinute: number; durationMinutes: number }) => void;
+  onDraftChange: (draft: { dayId: string; startMinute: number; durationMinutes: number; kind: Event["kind"] }) => void;
   onClose: () => void;
 };
 
@@ -103,7 +103,7 @@ export function EventPanel({ days, event, newEvent, onCreate, onUpdate, onDraftC
       const startMinute = parseTime(merged.start);
       const durationMinutes = fieldsDuration(merged);
       if (startMinute !== undefined && durationMinutes !== undefined) {
-        onDraftChange({ dayId: merged.dayId, startMinute, durationMinutes });
+        onDraftChange({ dayId: merged.dayId, startMinute, durationMinutes, kind: merged.kind });
       }
     }
   }

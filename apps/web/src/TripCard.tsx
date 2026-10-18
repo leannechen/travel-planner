@@ -1,4 +1,4 @@
-import { axisRange, DEFAULT_START_MINUTE, moveBy, type Day, type Trip } from "@travel-planner/shared";
+import { axisRange, DEFAULT_START_MINUTE, moveBy, type Day, type Event, type Trip } from "@travel-planner/shared";
 import { useState } from "react";
 import { deleteDay, insertDay, reorderDays } from "./api";
 import { LodgingBanners, staysOf } from "./LodgingBanners";
@@ -9,7 +9,7 @@ type Props = {
   onDaysChange: (tripId: string, days: Day[]) => void;
   selectedEventId?: string;
   // A new Event being set up in the panel.
-  draft?: { dayId: string; startMinute: number; durationMinutes: number };
+  draft?: { dayId: string; startMinute: number; durationMinutes: number; kind?: Event["kind"] };
   onSelectEvent: (eventId: string) => void;
   onCreateAt: (dayId: string, startMinute: number) => void;
   onChangeTimes: (eventId: string, times: EventTimes) => void;
@@ -115,7 +115,8 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
                 events={onAxis(day)}
                 range={range}
                 selectedEventId={selectedEventId}
-                draft={draft?.dayId === day.id ? draft : undefined}
+                // A Lodging is never drawn on the axis, so its draft has no placeholder there.
+                draft={draft?.dayId === day.id && draft.kind !== "lodging" ? draft : undefined}
                 onSelectEvent={onSelectEvent}
                 onChangeTimes={onChangeTimes}
                 onCreateAt={(startMinute) => onCreateAt(day.id, startMinute)}

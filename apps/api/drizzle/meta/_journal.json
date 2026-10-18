@@ -43,6 +43,13 @@
       "when": 1792315473840,
       "tag": "0005_lodging",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792315758133,
+      "tag": "0006_lodging_has_nights",
+      "breakpoints": true
     }
   ]
 }

@@ -227,7 +227,10 @@ export function EventPanel({
       // A move to the Archive the user declined leaves the Event where it was; show that.
       const result = saved.current;
       if (plan.kind === "update" && plan.patch.area && result && result.holding !== plan.patch.area) {
+        // Declined, so nothing was saved: forget what was sent and show the place it still has.
+        lastSent.current = undefined;
         change({ dayId: placeOf(result) });
+        setStatus({ kind: "idle" });
       }
     } catch (err) {
       setStatus({ kind: "error", message: err instanceof Error ? err.message : "Something went wrong" });

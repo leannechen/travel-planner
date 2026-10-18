@@ -454,18 +454,20 @@ async function restoreInTransaction(
     const placed = input.placements.map((p) => p.eventId);
     const own = placed.length
       ? await tx
-          .select({ id: events.id, holding: events.holding })
+          .select({ id: events.id, holding: events.holding, tripId: events.tripId })
           .from(events)
-          .where(and(eq(events.tripId, tripId), inArray(events.id, placed)))
+          .where(inArray(events.id, placed))
       : [];
     const dayKnown = (id: string) => order.includes(id);
-    if (new Set(placed).size !== placed.length || own.length !== placed.length || !input.placements.every((p) => dayKnown(p.dayId))) {
+    // An Event of another Trip is refused; one deleted since (PRD §5 allows it) is simply skipped.
+    if (new Set(placed).size !== placed.length || own.some((e) => e.tripId !== tripId) || !input.placements.every((p) => dayKnown(p.dayId))) {
       return "invalid";
     }
 
     // An Event archived since the deletion stays archived.
     const archived = new Set(own.filter((e) => e.holding === "archive").map((e) => e.id));
-    const placements = input.placements.filter((p) => !archived.has(p.eventId));
+    const present = new Set(own.map((e) => e.id));
+    const placements = input.placements.filter((p) => present.has(p.eventId) && !archived.has(p.eventId));
 
     await tx.insert(days).values({ id: input.dayId, tripId, position: ids.length + 1 });
     await applyDayOrder(tx, tripId, order);
@@ -507,7 +509,9 @@ export async function addTodo(
       const [event] = await tx
         .select({ holding: events.holding })
         .from(events)
-        .where(and(eq(events.id, input.eventId), eq(events.tripId, tripId)));
+        .where(and(eq(events.id, input.eventId), eq(events.tripId, tripId)))
+        // Waits for an archiving that is in progress, then sees the Event as archived.
+        .for("share");
       if (!event) return undefined;
       if (event.holding === "archive") return "archived";
     }
@@ -596,6 +600,23 @@ export async function restoreEvent(
     (event.holding !== "archive" || restored.length === 0);
   if (!consistent) return (await ownsTrip(db, ownerId, tripId)) ? "invalid" : undefined;
 
+  try {
+    return await restoreEventInTransaction(db, ownerId, tripId, input);
+  } catch (err) {
+    // Two restores of the same snapshot at once: the second hits the primary key.
+    const code = (err as { code?: string; cause?: { code?: string } }).code ?? (err as { cause?: { code?: string } }).cause?.code;
+    if (code === "23505") return "exists";
+    throw err;
+  }
+}
+
+async function restoreEventInTransaction(
+  db: Db,
+  ownerId: string,
+  tripId: string,
+  input: DeletedEvent,
+): Promise<Event | undefined | "invalid" | "exists"> {
+  const { event, todos: restored } = input;
   return db.transaction(async (tx) => {
     // The shared lock keeps the Day from being deleted while the Event is put back on it.
     const [trip] = await tx

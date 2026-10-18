@@ -32,7 +32,7 @@ import { ConfirmDialog } from "./ConfirmDialog";
 import { EventPanel } from "./EventPanel";
 import { Toast } from "./Toast";
 import { TitleForm } from "./TitleForm";
-import { TripCard, type EventMove } from "./TripCard";
+import { TripCard, type EventMove, type Toasted } from "./TripCard";
 
 // `dayId` is a Day id, or "backlog" or "archive" for an Event outside any Day.
 type Draft = { dayId: string; startMinute: number; durationMinutes: number; kind?: Event["kind"] };
@@ -69,8 +69,6 @@ type Removal = {
   summary: TodoDeletionSummary;
   resolve: (confirmed: boolean) => void;
 };
-
-type Toasted = { id: number; message: string; undo?: () => void };
 
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
 
@@ -121,7 +119,9 @@ export function App() {
   // Asks before archiving or deleting an Event that has Todos, which go with it (PRD §5). Answers
   // true at once when there is nothing to ask. The answer "do not remind me again" is remembered.
   function confirmRemoval(trip: Trip, event: Event, action: Removal["action"]): Promise<boolean> {
-    const summary = summarizeTodoDeletion(trip.todos, event.id, meId ?? "");
+    const counted = summarizeTodoDeletion(trip.todos, event.id, meId ?? "");
+    // Until we know who the user is, no Todo can be called someone else's.
+    const summary = meId ? counted : { ...counted, byOthers: 0 };
     if (!needsTodoConfirmation(summary, readSkipReminder())) return Promise.resolve(true);
     return new Promise((resolve) => setRemoval({ action, title: event.title, summary, resolve }));
   }
@@ -195,6 +195,8 @@ export function App() {
     const trip = tripsRef.current?.find((t) => t.id === tripId);
     if (!trip || !(await confirmRemoval(trip, event, "delete"))) return;
     setSaveError(undefined);
+    // Older saves of this Event still in flight must not put it back on the board.
+    beginSave(event.id);
     let deleted: DeletedEvent;
     try {
       deleted = await deleteEvent(tripId, event.id);
@@ -204,14 +206,7 @@ export function App() {
     }
     setTripAreas(tripId, (areas) => removeEvent(areas, event.id));
     setTripTodos(tripId, (todos) => dropEventTodos(todos, event.id));
-    setSelection((s) => {
-      if (s && "eventId" in s && s.eventId === event.id) {
-        panelKeyRef.current += 1;
-        setPanelKey(panelKeyRef.current);
-        return undefined;
-      }
-      return s;
-    });
+    if (selection && "eventId" in selection && selection.eventId === event.id) select(undefined);
     setToast({ id: Date.now(), message: `"${event.title}" deleted`, undo: () => undoDeleteEvent(tripId, deleted) });
   }
 
@@ -323,6 +318,7 @@ export function App() {
             selectedEventId={mine && "eventId" in mine ? mine.eventId : undefined}
             draft={mine && "draft" in mine ? mine.draft : undefined}
             onMove={(eventId, move) => handleMove(trip.id, eventId, move)}
+            onToast={setToast}
             onAddTodo={(text, eventId) => handleAddTodo(trip.id, text, eventId)}
             onToggleTodo={(todo) => handleToggleTodo(trip.id, todo)}
             onDeleteTodo={(todo) => handleDeleteTodo(trip.id, todo)}

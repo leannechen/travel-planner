@@ -17,14 +17,13 @@ import {
   type Todo,
   type Trip,
 } from "@travel-planner/shared";
-import { useCallback, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { deleteDay, insertDay, reorderDays, restoreDay } from "./api";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { accessibility, DayTimeline, HourLabels, PX_PER_HOUR, sensors, type EventTimes } from "./DayTimeline";
 import { endGesture } from "./gesture";
 import { HoldingAreas } from "./HoldingAreas";
 import { LodgingBanners, staysOf } from "./LodgingBanners";
-import { Toast } from "./Toast";
 import { TodosPanel } from "./TodosPanel";
 
 // What a move changes: the time, and/or the place (a Day id in `dayId`, or a holding area).
@@ -40,6 +39,8 @@ type Props = {
   onCreateAt: (dayId: string, startMinute: number) => void;
   onAddToBacklog: () => void;
   onMove: (eventId: string, move: EventMove) => void;
+  // The page shows one toast at a time; a new one replaces the old.
+  onToast: (toast: Toasted | undefined) => void;
   onAddTodo: (text: string, eventId: string | null) => Promise<void>;
   onToggleTodo: (todo: Todo) => void;
   onDeleteTodo: (todo: Todo) => void;
@@ -47,7 +48,7 @@ type Props = {
 
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
 
-type Toasted = { id: number; message: string; undo?: () => void };
+export type Toasted = { id: number; message: string; undo?: () => void };
 
 // Where the pointer is, as a drop target: a Day's axis (its id) or a holding area. The Event being
 // dragged is skipped, as it is under the pointer itself; beside an axis (above, below) the Day's
@@ -66,13 +67,13 @@ function dropTargetAt(root: HTMLElement, x: number, y: number, draggedId: string
   return undefined;
 }
 
-export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectEvent, onCreateAt, onAddToBacklog, onMove, onAddTodo, onToggleTodo, onDeleteTodo }: Props) {
+export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectEvent, onCreateAt, onAddToBacklog, onMove, onToast, onAddTodo, onToggleTodo, onDeleteTodo }: Props) {
   const root = useRef<HTMLElement>(null);
   const [error, setError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
   // The Day waiting for the user to confirm its deletion.
   const [pendingDelete, setPendingDelete] = useState<{ day: Day; plan: DayDeletionPlan } | undefined>();
-  const [toast, setToast] = useState<Toasted | undefined>();
+  const setToast = onToast;
   // The area or Day a dragged Event is over.
   const [dropTarget, setDropTarget] = useState<string | undefined>();
 
@@ -141,8 +142,6 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
       setBusy(false);
     }
   }
-
-  const dismissToast = useCallback(() => setToast(undefined), []);
 
   const dayIds = trip.days.map((d) => d.id);
   const lastPosition = trip.days.length;
@@ -307,7 +306,6 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
           </ul>
         </ConfirmDialog>
       )}
-      {toast && <Toast key={toast.id} message={toast.message} actionLabel={toast.undo ? "Undo" : undefined} onAction={toast.undo} onDismiss={dismissToast} />}
     </article>
   );
 }

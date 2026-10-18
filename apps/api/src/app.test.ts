@@ -1057,6 +1057,16 @@ describe("Todos", () => {
     expect((await addTodo(theirs!.id, "Mine now")).res.status).toBe(404);
   });
 
+  it("does not touch a Todo through another Trip", async () => {
+    const { trip } = await createTrip("Kyoto");
+    const { trip: other } = await createTrip("Osaka");
+    const { body } = await addTodo(trip.id, "Mine");
+    const path = `/api/trips/${other.id}/todos/${body.id}`;
+    expect((await send("PATCH", path, { done: true })).status).toBe(404);
+    expect((await send("DELETE", path)).status).toBe(404);
+    expect((await listedTrip(trip.id)).todos).toHaveLength(1);
+  });
+
   it("ticks, renames and deletes a Todo", async () => {
     const { trip } = await createTrip("Kyoto");
     const { body } = await addTodo(trip.id, "Buy ICOCA");
@@ -1221,6 +1231,24 @@ describe("Todos", () => {
       expect(res.status).toBe(409);
     });
 
+    it("refuses Todos for an archived Event", async () => {
+      const { trip } = await createTrip("Kyoto");
+      const event = await eventOn(trip.id, trip.days[0]!.id);
+      const snapshot = await deleted(trip.id, event.id);
+      const todo = { id: "33333333-3333-4333-8333-333333333333", eventId: event.id, text: "x", done: false, createdBy: ME };
+      const res = await restore(trip.id, { event: { ...snapshot.event, dayId: null, holding: "archive" }, todos: [todo] });
+      expect(res.status).toBe(400);
+    });
+
+    it("keeps the order of several Todos", async () => {
+      const { trip } = await createTrip("Kyoto");
+      const event = await eventOn(trip.id, trip.days[0]!.id);
+      for (const text of ["one", "two", "three"]) await addTodo(trip.id, text, event.id);
+      const snapshot = await deleted(trip.id, event.id);
+      await restore(trip.id, snapshot);
+      expect((await listedTrip(trip.id)).todos.map((t) => t.text)).toEqual(["one", "two", "three"]);
+    });
+
     it("refuses Todos that belong to another Event", async () => {
       const { trip } = await createTrip("Kyoto");
       const event = await eventOn(trip.id, trip.days[0]!.id);
@@ -1238,5 +1266,26 @@ describe("Todos", () => {
       const [theirs] = await app.db.insert(trips).values({ ownerId: other!.id, title: "Theirs" }).returning();
       expect((await restore(theirs!.id, snapshot)).status).toBe(404);
     });
+  });
+});
+
+describe("restoring a Day after one of its moved Events was deleted", () => {
+  it("restores the Day and the remaining Events", async () => {
+    const { trip, ids } = await tripWithDays(2);
+    const mk = async (title: string) =>
+      eventSchema.parse(await (await post(`/api/trips/${trip.id}/days/${ids[1]}/events`, { title })).json());
+    const gion = await mk("Gion");
+    const nara = await mk("Nara");
+    await send("DELETE", `/api/trips/${trip.id}/days/${ids[1]}`);
+    await send("DELETE", `/api/trips/${trip.id}/events/${gion.id}`);
+
+    const res = await post(`/api/trips/${trip.id}/days/restore`, {
+      dayId: ids[1],
+      position: 2,
+      placements: [gion, nara].map((e) => ({ eventId: e.id, dayId: ids[1], nights: null })),
+    });
+
+    expect(res.status).toBe(201);
+    expect(dayDeletionSchema.parse(await res.json()).days[1]!.events.map((e) => e.id)).toEqual([nara.id]);
   });
 });

@@ -1,6 +1,7 @@
 // Pure rules for changing an Event's time by dragging on the axis. Only the dragged Event changes
 // (ADR 0001). Times are minutes from 00:00; `bounds` is the axis range being shown.
 
+import { MAX_DURATION_MINUTES } from "./index";
 import { SNAP_MINUTES } from "./time-layout";
 
 export const MIN_DURATION_MINUTES = 15;
@@ -36,7 +37,7 @@ export function moveEvent(event: Times, delta: number, bounds: Bounds): Times {
 export function resizeBottom(event: Times, delta: number, bounds: Bounds): Times {
   if (delta === 0) return event;
   const end = event.startMinute + event.durationMinutes;
-  const newEnd = clamp(snapToGrid(end + delta), event.startMinute + MIN_DURATION_MINUTES, Math.max(bounds.endMinute, end));
+  const newEnd = clamp(snapToGrid(end + delta), event.startMinute + MIN_DURATION_MINUTES, Math.min(Math.max(bounds.endMinute, end), event.startMinute + MAX_DURATION_MINUTES));
   return { startMinute: event.startMinute, durationMinutes: newEnd - event.startMinute };
 }
 
@@ -46,7 +47,7 @@ export function resizeTop(event: Times, delta: number, bounds: Bounds): Times {
   const end = event.startMinute + event.durationMinutes;
   const newStart = clamp(
     snapToGrid(event.startMinute + delta),
-    Math.min(bounds.startMinute, event.startMinute),
+    Math.max(Math.min(bounds.startMinute, event.startMinute), end - MAX_DURATION_MINUTES),
     end - MIN_DURATION_MINUTES,
   );
   return { startMinute: newStart, durationMinutes: end - newStart };

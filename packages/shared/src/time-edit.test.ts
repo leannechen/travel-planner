@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { MAX_DURATION_MINUTES } from "./index";
 import { MIN_DURATION_MINUTES, moveEvent, pxToMinutes, resizeBottom, resizeTop, snapToGrid } from "./time-edit";
 
 const h = (hours: number, minutes = 0) => hours * 60 + minutes;
@@ -133,5 +134,19 @@ describe("snapping to the grid", () => {
   it("resizes the top of an Event that runs past the axis without pushing its end", () => {
     const longEvent = { startMinute: h(21), durationMinutes: 180 };
     expect(resizeTop(longEvent, -60, bounds)).toEqual({ startMinute: h(20), durationMinutes: 240 });
+  });
+});
+
+describe("the longest duration", () => {
+  const fullDay = { startMinute: 0, endMinute: 1440 };
+
+  it("stops the bottom edge one minute short of a whole day", () => {
+    const result = resizeBottom({ startMinute: 0, durationMinutes: 60 }, 2000, fullDay);
+    expect(result.durationMinutes).toBeLessThanOrEqual(MAX_DURATION_MINUTES);
+  });
+
+  it("stops the top edge so the Event is not longer than the limit", () => {
+    const result = resizeTop({ startMinute: h(23), durationMinutes: 60 }, -2000, fullDay);
+    expect(result.durationMinutes).toBeLessThanOrEqual(MAX_DURATION_MINUTES);
   });
 });

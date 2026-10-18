@@ -6,6 +6,7 @@ import {
   MAX_DURATION_MINUTES,
   parseTime,
   TRANSPORT_LABELS,
+  typedDuration,
   planEventSave,
   type EventFields,
   type CreateEventInput,
@@ -28,14 +29,11 @@ function timeFields(startMinute: number, durationMinutes: number) {
 }
 
 // The duration the typed fields stand for, or undefined while they are not valid.
-function typedDuration(fields: EventFields) {
+function fieldsDuration(fields: EventFields) {
+  if (fields.kind !== "transport") return typedDuration(fields.duration);
   const start = parseTime(fields.start);
-  if (fields.kind === "transport") {
-    const arrival = parseTime(fields.arrival);
-    return start === undefined || arrival === undefined ? undefined : durationBetween(start, arrival);
-  }
-  const minutes = Number(fields.duration);
-  return Number.isInteger(minutes) && minutes >= 1 ? minutes : undefined;
+  const arrival = parseTime(fields.arrival);
+  return start === undefined || arrival === undefined ? undefined : durationBetween(start, arrival);
 }
 
 type Props = {
@@ -91,7 +89,7 @@ export function EventPanel({ days, event, newEvent, onCreate, onUpdate, onDraftC
     setFields(merged);
     if (!saved.current) {
       const startMinute = parseTime(merged.start);
-      const durationMinutes = typedDuration(merged);
+      const durationMinutes = fieldsDuration(merged);
       if (startMinute !== undefined && durationMinutes !== undefined) {
         onDraftChange({ dayId: merged.dayId, startMinute, durationMinutes });
       }
@@ -104,7 +102,7 @@ export function EventPanel({ days, event, newEvent, onCreate, onUpdate, onDraftC
     const current = latest.current;
     // An invalid time field must not leave the hidden one stale: fall back to the saved Event.
     const start = parseTime(current.start) ?? saved.current?.startMinute;
-    const duration = typedDuration(current) ?? saved.current?.durationMinutes;
+    const duration = fieldsDuration(current) ?? saved.current?.durationMinutes;
     change({ kind, ...(start !== undefined && duration !== undefined ? timeFields(start, duration) : {}) });
     commit();
   }
@@ -150,8 +148,9 @@ export function EventPanel({ days, event, newEvent, onCreate, onUpdate, onDraftC
   }
 
   const start = parseTime(fields.start);
-  const shownDuration = typedDuration(fields);
+  const shownDuration = fieldsDuration(fields);
   const arrivesNextDay =
+    fields.kind === "transport" &&
     start !== undefined && shownDuration !== undefined && arrivalOf(start, shownDuration).dayOffset > 0;
 
   return (

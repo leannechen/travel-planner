@@ -53,7 +53,8 @@ export function planEventSave(fields: EventFields, saved: Event | undefined): Sa
   return Object.keys(patch).length === 0 ? { kind: "nothing" } : { kind: "update", patch };
 }
 
-function typedDuration(text: string): number | undefined {
+// The minutes typed in the Duration field, or undefined while they are not a valid duration.
+export function typedDuration(text: string): number | undefined {
   const minutes = Number(text);
   const valid = text.trim() !== "" && Number.isInteger(minutes) && minutes >= 1 && minutes <= MAX_DURATION_MINUTES;
   return valid ? minutes : undefined;

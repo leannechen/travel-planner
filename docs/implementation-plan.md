@@ -78,6 +78,10 @@ Each step lists what it needs from earlier steps and when it is done.
 - [ ] **26. Photo attribution.** Add author attribution for the placeholder photos, once all features are done.
 - [ ] **27. Deploy.** Docker image on fly.io, production Postgres, environment configuration. *Needs:* 18.
 
+## Known issues (not scheduled)
+
+- **Drag shows the old time.** While an Event is dragged (for example from Day 1 09:00 towards Day 2 10:00), the card keeps its old time until it is dropped, which can suggest the target is wrong. Show the time of the current drop position on the card during the drag. Best done together with a browser check of dragging, which the automated browser could not do in step 8.
+
 ## Next phase (not scheduled)
 
 Offline read-only access; adding Events from the Map View.

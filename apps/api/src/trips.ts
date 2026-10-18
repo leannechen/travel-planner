@@ -13,6 +13,7 @@ import {
   type CreateEventInput,
   type CreateNoteInput,
   type Note,
+  type RestoreNoteInput,
   type UpdateNoteInput,
   type CreateTodoInput,
   type CreateTripInput,
@@ -706,4 +707,22 @@ export async function deleteNote(db: Db, ownerId: string, tripId: string, noteId
     .where(and(eq(notes.id, noteId), eq(notes.tripId, tripId)))
     .returning({ id: notes.id });
   return rows.length > 0 ? true : undefined;
+}
+
+// Undoes deleteNote: the Note comes back with its old id, pin and edit time. Returns "exists" when
+// a Note with that id is there already.
+export async function restoreNote(
+  db: Db,
+  ownerId: string,
+  tripId: string,
+  input: RestoreNoteInput,
+): Promise<Note | undefined | "exists"> {
+  if (!(await ownsTrip(db, ownerId, tripId))) return undefined;
+  const { note } = input;
+  const [row] = await db
+    .insert(notes)
+    .values({ id: note.id, tripId, body: note.body, pinned: note.pinned, updatedAt: new Date(note.updatedAt) })
+    .onConflictDoNothing()
+    .returning();
+  return row ? toNote(row) : "exists";
 }

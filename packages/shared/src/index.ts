@@ -216,12 +216,19 @@ export type DeletedEvent = z.infer<typeof deletedEventSchema>;
 export const meSchema = z.object({ id: z.uuid() });
 export type Me = z.infer<typeof meSchema>;
 
-// A new Note needs some text; an existing one may be cleared.
-export const createNoteInputSchema = z.object({ body: z.string().max(MAX_NOTE_LENGTH).refine((v) => v.trim() !== "", "A Note needs some text") });
+// A Note always has some text: a new one is not saved until something is typed, and a Note
+// that is emptied is deleted (PRD §5.1).
+const noteBody = z.string().max(MAX_NOTE_LENGTH).refine((v) => v.trim() !== "", "A Note needs some text");
+export const createNoteInputSchema = z.object({ body: noteBody });
 export const updateNoteInputSchema = z
-  .object({ body: z.string().max(MAX_NOTE_LENGTH).optional(), pinned: z.boolean().optional() })
+  .object({ body: noteBody.optional(), pinned: z.boolean().optional() })
   .refine((input) => input.body !== undefined || input.pinned !== undefined, {
     message: "Provide at least one field to change",
   });
 export type CreateNoteInput = z.infer<typeof createNoteInputSchema>;
 export type UpdateNoteInput = z.infer<typeof updateNoteInputSchema>;
+
+// Putting a deleted Note back (undo): the Note as it was, with its id and edit time, so its place
+// in the list is kept.
+export const restoreNoteInputSchema = z.object({ note: noteSchema.extend({ body: noteBody }) });
+export type RestoreNoteInput = z.infer<typeof restoreNoteInputSchema>;

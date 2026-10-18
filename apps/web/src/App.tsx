@@ -5,6 +5,7 @@ import {
   dropEventTodos,
   isHoldingArea,
   needsTodoConfirmation,
+  noteTitle,
   removeEvent,
   summarizeTodoDeletion,
   upsertEvent,
@@ -28,6 +29,7 @@ import {
   getMe,
   listTrips,
   restoreEvent,
+  restoreNote,
   updateEvent,
   updateNote,
   updateTodo,
@@ -266,11 +268,24 @@ export function App() {
       setTripNotes(tripId, (notes) => notes.map((n) => (n.id === note.id ? note : n)));
     });
 
-  const handleDeleteNote = (tripId: string, noteId: string) =>
+  // Deleting a Note needs no confirmation; the toast offers Undo for a few seconds.
+  const handleDeleteNote = (tripId: string, note: Note) =>
     failing(async () => {
-      await deleteNote(tripId, noteId);
-      setTripNotes(tripId, (notes) => notes.filter((n) => n.id !== noteId));
+      await deleteNote(tripId, note.id);
+      setTripNotes(tripId, (notes) => notes.filter((n) => n.id !== note.id));
+      setToast({ id: Date.now(), message: `Note “${noteTitle(note.body)}” deleted`, undo: () => undoDeleteNote(tripId, note) });
     });
+
+  async function undoDeleteNote(tripId: string, note: Note) {
+    setToast(undefined);
+    setSaveError(undefined);
+    try {
+      const restored = await restoreNote(tripId, note);
+      setTripNotes(tripId, (notes) => [restored, ...notes.filter((n) => n.id !== restored.id)]);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Could not undo the deletion");
+    }
+  }
 
   function toggleNotes(tripId: string) {
     lastNotesTripId.current = tripId;
@@ -428,7 +443,8 @@ export function App() {
           notes={trips.find((t) => t.id === notesTripId)!.notes}
           onAdd={(body) => handleAddNote(notesTripId, body)}
           onUpdate={(noteId, input) => handleUpdateNote(notesTripId, noteId, input)}
-          onDelete={(noteId) => handleDeleteNote(notesTripId, noteId)}
+          onDelete={(note) => handleDeleteNote(notesTripId, note)}
+          tripId={notesTripId}
           onClose={() => setNotesTripId(undefined)}
           closeRef={closeNotes}
         />

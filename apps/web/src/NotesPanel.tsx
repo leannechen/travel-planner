@@ -1,13 +1,12 @@
-import { clampPosition, editedAgo, noteDisplay, orderNotes, type Note, type Point } from "@travel-planner/shared";
-import { Pin, PinOff, Trash2, X } from "lucide-react";
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
-import { ConfirmDialog } from "./ConfirmDialog";
-
-// The editor is large, so it is loaded when the panel first opens, not with the page.
-const MarkdownEditor = lazy(() => import("./MarkdownEditor").then((m) => ({ default: m.MarkdownEditor })));
+import { clampPosition, noteTitle, orderNotes, type Note, type Point } from "@travel-planner/shared";
+import { GripHorizontal, List, Pin, Plus, Trash2, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 const POSITION_KEY = "travel-planner.notes-position";
+// What was open when the panel was closed, for the rest of the browser session (PRD §5.1).
+const SESSION_KEY = "travel-planner.notes-session";
 const WIDTH = 360;
+const AUTOSAVE_MS = 800;
 
 function readPosition(): Point | undefined {
   try {
@@ -26,45 +25,69 @@ function savePosition(position: Point) {
   }
 }
 
+type Where = { tripId: string; view: "new" | "list" | "note"; noteId?: string };
+
+function readSession(): Where | undefined {
+  try {
+    return JSON.parse(sessionStorage.getItem(SESSION_KEY) ?? "null") as Where | undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeSession(where: Where) {
+  try {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(where));
+  } catch {
+    // Without storage the panel starts a new Note each time.
+  }
+}
+
+// The first open of a session starts a new Note; later ones return to what was open.
+function startingPoint(tripId: string, notes: Note[]): Where {
+  const last = readSession();
+  if (!last) return { tripId, view: "new" };
+  if (last.tripId !== tripId) return { tripId, view: "list" };
+  if (last.view === "note" && !notes.some((n) => n.id === last.noteId)) return { tripId, view: "list" };
+  return last;
+}
+
 type Props = {
+  tripId: string;
   notes: Note[];
   onAdd: (body: string) => Promise<Note>;
   onUpdate: (noteId: string, input: { body?: string; pinned?: boolean }) => Promise<void>;
-  onDelete: (noteId: string) => Promise<void>;
+  // Deletes a Note and offers Undo; the page shows the toast.
+  onDelete: (note: Note) => Promise<void>;
   onClose: () => void;
   // Filled with the panel's own close, which saves first; the shortcut and the Notes button use it.
   closeRef: { current: (() => void) | undefined };
 };
 
-// The Trip's Notes in a floating panel: a field for a new Note on top, then pinned Notes, then the
-// rest by most recent edit. The header can be dragged; the position is remembered. Text is saved
-// when a field is left, or when the panel is closed.
-export function NotesPanel({ notes, onAdd, onUpdate, onDelete, onClose, closeRef }: Props) {
+// The Trip's Notes in a floating panel with three states: a new Note, the list, one open Note.
+// The text is plain Markdown as typed. It is saved shortly after typing stops, and when the user
+// leaves the field, the Note or the panel.
+export function NotesPanel({ tripId, notes, onAdd, onUpdate, onDelete, onClose, closeRef }: Props) {
   const panel = useRef<HTMLElement>(null);
   const [position, setPosition] = useState<Point>(() => readPosition() ?? { x: Math.max(0, window.innerWidth - WIDTH - 16), y: 72 });
-  const [editingId, setEditingId] = useState<string | undefined>();
-  const [deleting, setDeleting] = useState<Note | undefined>();
-  // The text of the new-Note field and of the Note being edited, as last typed.
-  const draft = useRef("");
-  const edited = useRef<{ id: string; body: string } | undefined>(undefined);
-  // Changes after a Note is created, which empties the new-Note field.
-  const [draftKey, setDraftKey] = useState(0);
-  // The save of the new-Note field that is running, so a second flush waits for it.
-  const draftFlush = useRef<Promise<boolean> | undefined>(undefined);
-  // The text last sent for each Note, so leaving a field twice does not send it twice.
-  const sentBodies = useRef(new Map<string, string>());
-  // While a Note is being edited the list keeps the order the user saw: saving it would move it to
-  // the top, and moving the focused Note's element in the page drops its caret.
-  const frozenOrder = useRef<string[] | undefined>(undefined);
-  const ordered = orderNotes(notes);
-  const keepSeen = (list: Note[]) => {
-    const seen = frozenOrder.current;
-    if (!seen) return list;
-    const rank = (n: Note) => seen.indexOf(n.id);
-    return [...list].sort((a, b) => rank(a) - rank(b));
-  };
-  const pinned = keepSeen(ordered.pinned);
-  const recent = keepSeen(ordered.recent);
+
+  const [where] = useState(() => startingPoint(tripId, notes));
+  const [view, setView] = useState<"edit" | "list">(where.view === "list" ? "list" : "edit");
+  // The Note in the field: none while it is new and not saved yet.
+  const [currentId, setCurrentId] = useState<string | undefined>(where.view === "note" ? where.noteId : undefined);
+  const [text, setText] = useState(() => (where.view === "note" ? (notes.find((n) => n.id === where.noteId)?.body ?? "") : ""));
+  // Changes when another Note (or a new one) is put in the field, so the field starts fresh.
+  const [fieldKey, setFieldKey] = useState(0);
+  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+
+  // The same values readable from saves that run later.
+  const textRef = useRef(text);
+  const idRef = useRef(currentId);
+  const sentRef = useRef(text);
+  const queue = useRef<Promise<boolean>>(Promise.resolve(true));
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const notesRef = useRef(notes);
+  notesRef.current = notes;
 
   const size = () => {
     const box = panel.current?.getBoundingClientRect();
@@ -72,81 +95,99 @@ export function NotesPanel({ notes, onAdd, onUpdate, onDelete, onClose, closeRef
   };
   const viewport = () => ({ width: window.innerWidth, height: window.innerHeight });
 
-  // Keeps the panel in view when the window gets smaller.
+  // Keeps the panel in view when the window gets smaller, and when the panel grows.
   useEffect(() => {
-    const onResize = () => setPosition((p) => clampPosition(p, size(), viewport()));
-    onResize();
-    window.addEventListener("resize", onResize);
-    // The panel also grows by itself (more Notes, a Note opened for editing).
-    const observer = new ResizeObserver(onResize);
+    const keepInView = () => setPosition((p) => clampPosition(p, size(), viewport()));
+    keepInView();
+    window.addEventListener("resize", keepInView);
+    const observer = new ResizeObserver(keepInView);
     if (panel.current) observer.observe(panel.current);
     return () => {
-      window.removeEventListener("resize", onResize);
+      window.removeEventListener("resize", keepInView);
       observer.disconnect();
     };
   }, []);
 
-  // Saves the new-Note field: creates the Note, and if more was typed while that was running,
-  // updates the Note just created, until the field and the Note agree. Then the field is emptied.
-  // Answers whether everything was saved.
-  function flushDraft(): Promise<boolean> {
-    if (draftFlush.current) return draftFlush.current;
-    const run = (async () => {
+  useEffect(() => {
+    writeSession({ tripId, view: view === "list" ? "list" : currentId ? "note" : "new", noteId: currentId });
+  }, [tripId, view, currentId]);
+
+  useEffect(() => () => clearTimeout(timer.current), []);
+
+  // Saves the field: creates the Note on the first text, then updates it. Saves run one after
+  // another. When the user is leaving a Note whose text is gone, the Note is deleted instead
+  // (an empty Note never stays in the list). Answers whether it worked.
+  function save(leaving: boolean): Promise<boolean> {
+    clearTimeout(timer.current);
+    queue.current = queue.current.then(async () => {
+      const body = textRef.current;
+      const id = idRef.current;
+      if (body === sentRef.current) return true;
+      if (body.trim() === "") {
+        if (!id || !leaving) return true;
+        const note = notesRef.current.find((n) => n.id === id);
+        try {
+          if (note) await onDelete(note);
+        } catch {
+          setStatus("error");
+          return false;
+        }
+        idRef.current = undefined;
+        sentRef.current = "";
+        setCurrentId(undefined);
+        return true;
+      }
+      setStatus("saving");
       try {
-        let id: string | undefined;
-        let sent = "";
-        while (draft.current.trim() !== "" && draft.current !== sent) {
-          const body = draft.current;
-          if (id) await onUpdate(id, { body });
-          else id = (await onAdd(body)).id;
-          sent = body;
-        }
         if (id) {
-          draft.current = "";
-          setDraftKey((k) => k + 1);
+          await onUpdate(id, { body });
+        } else {
+          const note = await onAdd(body);
+          idRef.current = note.id;
+          setCurrentId(note.id);
         }
+        sentRef.current = body;
+        setStatus("saved");
         return true;
       } catch {
-        // The caller shows the error; the text stays in the field.
+        // The page shows the error; the text stays in the field.
+        setStatus("error");
         return false;
-      } finally {
-        draftFlush.current = undefined;
       }
-    })();
-    draftFlush.current = run;
-    return run;
+    });
+    return queue.current;
   }
 
-  async function flushEdit(): Promise<boolean> {
-    const current = edited.current;
-    const original = current && notes.find((n) => n.id === current.id);
-    if (!current || !original) return true;
-    if (current.body === (sentBodies.current.get(current.id) ?? original.body)) return true;
-    sentBodies.current.set(current.id, current.body);
-    try {
-      await onUpdate(current.id, { body: current.body });
-      return true;
-    } catch {
-      // The caller shows the error; the text stays in the editor.
-      sentBodies.current.delete(current.id);
-      return false;
-    }
+  function type(value: string) {
+    textRef.current = value;
+    setText(value);
+    setStatus("idle");
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => void save(false), AUTOSAVE_MS);
+  }
+
+  // Puts a Note, or a new empty one, in the field. The old text is saved first.
+  async function openField(note?: Note) {
+    if (!(await save(true))) return;
+    textRef.current = note?.body ?? "";
+    sentRef.current = note?.body ?? "";
+    idRef.current = note?.id;
+    setText(textRef.current);
+    setCurrentId(note?.id);
+    setStatus("idle");
+    setFieldKey((k) => k + 1);
+    setView("edit");
+  }
+
+  async function showList() {
+    if (await save(true)) setView("list");
   }
 
   // Saves what is typed, then closes. When a save fails the panel stays open with the text.
   async function close() {
-    const saved = await Promise.all([flushDraft(), flushEdit()]);
-    if (saved.every(Boolean)) onClose();
+    if (await save(true)) onClose();
   }
   closeRef.current = () => void close();
-
-  function startEditing(note: Note) {
-    if (editingId === note.id) return;
-    void flushEdit();
-    frozenOrder.current ??= [...pinned, ...recent].map((n) => n.id);
-    edited.current = { id: note.id, body: note.body };
-    setEditingId(note.id);
-  }
 
   function dragStart(e: React.PointerEvent<HTMLElement>) {
     if ((e.target as HTMLElement).closest("button")) return;
@@ -169,44 +210,8 @@ export function NotesPanel({ notes, onAdd, onUpdate, onDelete, onClose, closeRef
     handle.addEventListener("pointercancel", end);
   }
 
-  function card(note: Note) {
-    const editing = editingId === note.id;
-    const { title, preview } = noteDisplay(note.body);
-    return (
-      <li key={note.id} className={editing ? "note editing" : "note"}>
-        {editing ? (
-          <Suspense fallback={<div className="md-editor-loading">Loading editor…</div>}>
-            <MarkdownEditor
-              label="Note"
-              value={note.body}
-              autoFocus
-              onChange={(body) => (edited.current = { id: note.id, body })}
-              onBlur={() => void flushEdit()}
-            />
-          </Suspense>
-        ) : (
-          <button type="button" className="note-main" onClick={() => startEditing(note)}>
-            <strong>{title}</strong>
-            {preview && <span>{preview}</span>}
-            <span className="hint">{editedAgo(note.updatedAt, new Date())}</span>
-          </button>
-        )}
-        <div className="note-actions">
-          <button
-            type="button"
-            aria-label={note.pinned ? "Unpin Note" : "Pin Note"}
-            title={note.pinned ? "Unpin" : "Pin"}
-            onClick={() => void onUpdate(note.id, { pinned: !note.pinned }).catch(() => undefined)}
-          >
-            {note.pinned ? <PinOff size={14} aria-hidden="true" /> : <Pin size={14} aria-hidden="true" />}
-          </button>
-          <button type="button" aria-label="Delete Note" title="Delete" onClick={() => setDeleting(note)}>
-            <Trash2 size={14} aria-hidden="true" />
-          </button>
-        </div>
-      </li>
-    );
-  }
+  const { pinned, recent } = orderNotes(notes);
+  const emptyNew = view === "edit" && !currentId && text.trim() === "";
 
   return (
     <section
@@ -215,63 +220,75 @@ export function NotesPanel({ notes, onAdd, onUpdate, onDelete, onClose, closeRef
       aria-label="Notes"
       style={{ left: position.x, top: position.y }}
       onKeyDown={(e) => {
-        if (e.key === "Escape" && !deleting) void close();
+        if (e.key === "Escape") void close();
       }}
     >
       <header onPointerDown={dragStart}>
-        <h3>
-          Notes <span className="count">{notes.length}</span>
-        </h3>
-        <button type="button" aria-label="Close Notes" onClick={() => void close()}>
-          <X size={14} aria-hidden="true" />
+        <div className="notes-toolbar">
+          <button type="button" aria-label="New Note" title="New Note" disabled={emptyNew} onClick={() => void openField()}>
+            <Plus size={16} aria-hidden="true" />
+          </button>
+          <button type="button" aria-label="All Notes" title="All Notes" disabled={view === "list"} onClick={() => void showList()}>
+            <List size={16} aria-hidden="true" />
+          </button>
+        </div>
+        <GripHorizontal className="notes-grip" size={16} aria-hidden="true" />
+        <button type="button" aria-label="Close Notes" title="Close (Esc)" onClick={() => void close()}>
+          <X size={16} aria-hidden="true" />
         </button>
       </header>
-      <div className="notes-body">
-        <div className="note-new">
-          <Suspense fallback={<div className="md-editor-loading">Loading editor…</div>}>
-            <MarkdownEditor
-              key={draftKey}
-              label="New Note"
-              value=""
-              // Only when the panel opens: a field emptied after a save must not take the focus.
-              autoFocus={draftKey === 0}
-              onChange={(body) => (draft.current = body)}
-              onBlur={() => void flushDraft()}
-            />
-          </Suspense>
-          <span className="hint">Write a Note… Markdown works. Notes save automatically.</span>
+
+      {view === "edit" ? (
+        <div className="notes-body">
+          <textarea
+            key={fieldKey}
+            aria-label={currentId ? "Note" : "New Note"}
+            placeholder={"Write a Note… Markdown works.\nNotes save automatically."}
+            autoFocus
+            value={text}
+            maxLength={20000}
+            onChange={(e) => type(e.target.value)}
+            onBlur={() => void save(true)}
+          />
+          <p className="notes-status" role="status">
+            {status === "saved" && "✓ Saved"}
+            {status === "saving" && "Saving…"}
+          </p>
         </div>
-        {notes.length === 0 && <p className="holding-empty">No Notes yet. Type above to add the first one.</p>}
-        {pinned.length > 0 && (
-          <>
-            <h4>Pinned</h4>
-            <ul>{pinned.map(card)}</ul>
-          </>
-        )}
-        {recent.length > 0 && (
-          <>
-            {pinned.length > 0 && <h4>Recent</h4>}
-            <ul>{recent.map(card)}</ul>
-          </>
-        )}
-      </div>
-      {deleting && (
-        <ConfirmDialog
-          title="Delete this Note?"
-          confirmLabel="Delete Note"
-          onConfirm={() => {
-            const note = deleting;
-            setDeleting(undefined);
-            if (editingId === note.id) {
-              edited.current = undefined;
-              setEditingId(undefined);
-            }
-            void onDelete(note.id).catch(() => undefined);
-          }}
-          onCancel={() => setDeleting(undefined)}
-        >
-          <p>“{noteDisplay(deleting.body).title}” will be deleted. This cannot be undone.</p>
-        </ConfirmDialog>
+      ) : (
+        <div className="notes-body">
+          {notes.length === 0 ? (
+            <p className="holding-empty">No Notes yet. Use + to write the first one.</p>
+          ) : (
+            <ul className="notes-list">
+              {[...pinned, ...recent].map((note) => (
+                <li key={note.id}>
+                  <button type="button" className="note-title" onClick={() => void openField(note)}>
+                    {noteTitle(note.body)}
+                  </button>
+                  <button
+                    type="button"
+                    className={note.pinned ? "pin pinned" : "pin"}
+                    aria-label={note.pinned ? "Unpin Note" : "Pin Note"}
+                    aria-pressed={note.pinned}
+                    title={note.pinned ? "Unpin" : "Pin"}
+                    onClick={() => void onUpdate(note.id, { pinned: !note.pinned }).catch(() => undefined)}
+                  >
+                    <Pin size={14} aria-hidden="true" fill={note.pinned ? "currentColor" : "none"} />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Delete Note"
+                    title="Delete"
+                    onClick={() => void onDelete(note).catch(() => undefined)}
+                  >
+                    <Trash2 size={14} aria-hidden="true" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
     </section>
   );

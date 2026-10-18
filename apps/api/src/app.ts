@@ -5,6 +5,7 @@ import {
   createTodoInputSchema,
   createTripInputSchema,
   deletedEventSchema,
+  restoreNoteInputSchema,
   holdingAreaSchema,
   reorderDaysInputSchema,
   restoreDayInputSchema,
@@ -32,6 +33,7 @@ import {
   reorderDays,
   restoreDay,
   restoreEvent,
+  restoreNote,
   updateEvent,
   updateNote,
   updateTodo,
@@ -188,6 +190,21 @@ export function createApp(db: Db) {
     const result = await addNote(db, DEV_USER_ID, tripId, input);
     if (!result) {
       res.status(404).json({ error: "Trip not found" });
+      return;
+    }
+    res.status(201).json(result);
+  });
+
+  app.post("/api/trips/:tripId/notes/restore", async (req, res) => {
+    const { tripId } = tripParamsSchema.parse(req.params);
+    const input = restoreNoteInputSchema.parse(req.body);
+    const result = await restoreNote(db, DEV_USER_ID, tripId, input);
+    if (!result) {
+      res.status(404).json({ error: "Trip not found" });
+      return;
+    }
+    if (result === "exists") {
+      res.status(409).json({ error: "That Note already exists" });
       return;
     }
     res.status(201).json(result);

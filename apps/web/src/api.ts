@@ -12,6 +12,7 @@ import {
   type DeletedEvent,
   type HoldingArea,
   type RestoreDayInput,
+  type Note,
   type UpdateEventInput,
   type UpdateNoteInput,
   type UpdateTodoInput,
@@ -101,3 +102,5 @@ export async function deleteNote(tripId: string, noteId: string): Promise<void> 
     throw new Error(detail?.error ?? `Request failed: ${res.status}`);
   }
 }
+
+export const restoreNote = (tripId: string, note: Note) => request(`/api/trips/${tripId}/notes/restore`, noteSchema, { note });

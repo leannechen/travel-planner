@@ -1343,11 +1343,11 @@ describe("Notes", () => {
     expect((await send("PATCH", `/api/trips/${trip.id}/notes/${a.id}`, { pinned: false })).status).toBe(200);
   });
 
-  it("lets an existing Note be cleared, and refuses an empty change", async () => {
+  it("refuses to empty a Note, and an empty change", async () => {
     const { trip } = await createTrip("Kyoto");
     const a = noteSchema.parse((await addNote(trip.id, "first")).json);
     const path = `/api/trips/${trip.id}/notes/${a.id}`;
-    expect(noteSchema.parse(await (await send("PATCH", path, { body: "" })).json()).body).toBe("");
+    expect((await send("PATCH", path, { body: "  " })).status).toBe(400);
     expect((await send("PATCH", path, {})).status).toBe(400);
   });
 
@@ -1358,6 +1358,35 @@ describe("Notes", () => {
     expect((await send("DELETE", path)).status).toBe(204);
     expect(await listedNotes(trip.id)).toEqual([]);
     expect((await send("DELETE", path)).status).toBe(404);
+  });
+
+  describe("restoring a deleted Note (undo)", () => {
+    const restore = (tripId: string, note: unknown) => post(`/api/trips/${tripId}/notes/restore`, { note });
+
+    it("puts the Note back with its id, pin and edit time, so its place in the list is kept", async () => {
+      const { trip } = await createTrip("Kyoto");
+      const a = noteSchema.parse((await addNote(trip.id, "first")).json);
+      await addNote(trip.id, "second");
+      const pinned = noteSchema.parse(await (await send("PATCH", `/api/trips/${trip.id}/notes/${a.id}`, { pinned: true })).json());
+      await send("DELETE", `/api/trips/${trip.id}/notes/${a.id}`);
+
+      const res = await restore(trip.id, pinned);
+
+      expect(res.status).toBe(201);
+      expect(noteSchema.parse(await res.json())).toEqual(pinned);
+      expect((await listedNotes(trip.id)).map((n) => n.id)).toContain(a.id);
+      expect((await listedNotes(trip.id)).find((n) => n.id === a.id)).toEqual(pinned);
+    });
+
+    it("refuses a Note that already exists, with an empty text, or in someone else's Trip", async () => {
+      const { trip } = await createTrip("Kyoto");
+      const a = noteSchema.parse((await addNote(trip.id, "first")).json);
+      expect((await restore(trip.id, a)).status).toBe(409);
+      expect((await restore(trip.id, { ...a, id: "55555555-5555-4555-8555-555555555555", body: " " })).status).toBe(400);
+      const [other] = await app.db.insert(users).values({}).returning();
+      const [theirs] = await app.db.insert(trips).values({ ownerId: other!.id, title: "Theirs" }).returning();
+      expect((await restore(theirs!.id, { ...a, id: "55555555-5555-4555-8555-555555555555" })).status).toBe(404);
+    });
   });
 
   it("does not reach a Note through another Trip", async () => {

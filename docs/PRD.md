@@ -150,7 +150,12 @@ When a Trip has dates and an Attraction or Meal with a location (so Google openi
 
 - A **Note** is a standalone Markdown entry in the Trip's notes list, for quick drafts (for example "Day 1–3 Kyoto, Day 4–5 Osaka"). It never links to an Event or a Day and nothing happens automatically when it changes.
 - The notes list belongs to a Trip. The Owner and Editors can read and write it; Viewers cannot see it.
-- Notes are shown in a floating panel that can be opened from any screen with a keyboard shortcut. Opening it focuses a field for a new Note. The list is ordered by most recently edited, and a Note can be pinned. There is no search in v1.
+- Notes are shown in a floating panel that can be opened from any screen with a keyboard shortcut. The panel shows one of three states at a time: a **new Note**, the **list** of Notes, or one **open Note**. Its toolbar has "+" (start a new Note), a list button and "×" (close; Esc does too); the button for the state the panel is already in is disabled.
+  - The field of a new or open Note shows the Markdown text as typed; it has no Write and Preview tabs and no live formatting (unlike an Event's Description).
+  - Notes autosave. An open Note shows "Saved". A new Note is not saved until something is typed, so an empty Note never appears in the list; a Note whose text is deleted is deleted when the user leaves it.
+  - The list shows pinned Notes first, then the rest by most recent edit. A row's title is the first line of the Note. Clicking a row opens the Note. A row has a pin button and a delete button; deleting a Note can be undone for a few seconds, as for Events. There is no search in v1.
+  - Closing and reopening the panel returns to what was open (a new Note, the list or a Note), kept for the browser session. Only the first open of a session starts a new Note, focused for typing.
+  - On desktop the panel floats, its header is the drag handle, and it stays within the window. On phone it is a full-width bottom sheet.
 - An Event's **Description** is a Markdown block holding that Event's details, like the body of a Trello card.
 - Markdown checkboxes inside a Description are formatting only; they are not Todos, do not appear in the Todo list, and do not affect what happens when the Event is archived.
 

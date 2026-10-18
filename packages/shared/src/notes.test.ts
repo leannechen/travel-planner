@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Note } from "./index";
-import { clampPosition, editedAgo, noteDisplay, orderNotes } from "./notes";
+import { clampPosition, noteTitle, orderNotes } from "./notes";
 
 const note = (id: string, updatedAt: string, pinned = false, body = id): Note => ({ id, body, pinned, updatedAt });
 
@@ -29,21 +29,19 @@ describe("orderNotes", () => {
   });
 });
 
-describe("noteDisplay", () => {
-  it("uses the first line as the title, without Markdown markers, and the next lines as the preview", () => {
-    expect(noteDisplay("# Ramen to try\n- Ichiran Kyoto\n- Menya Inoichi\n- Third")).toEqual({
-      title: "Ramen to try",
-      preview: "Ichiran Kyoto · Menya Inoichi",
-    });
+describe("noteTitle", () => {
+  it("is the first line, without Markdown markers", () => {
+    expect(noteTitle("# Ramen to try\n- Ichiran Kyoto")).toBe("Ramen to try");
+    expect(noteTitle("Kyoto 3 + Osaka 2\n1. Maples")).toBe("Kyoto 3 + Osaka 2");
   });
 
-  it("skips blank lines and strips list, quote and task markers", () => {
-    expect(noteDisplay("\n\n> **Pack** rail pass\n\n- [ ] voucher")).toEqual({ title: "Pack rail pass", preview: "voucher" });
+  it("skips blank lines and strips list, quote, task and emphasis markers", () => {
+    expect(noteTitle("\n\n> **Pack** rail pass\n- [ ] voucher")).toBe("Pack rail pass");
+    expect(noteTitle("1. Maples")).toBe("Maples");
   });
 
-  it("has no preview for a one-line Note and a placeholder title for an empty one", () => {
-    expect(noteDisplay("Cash for small shrines")).toEqual({ title: "Cash for small shrines", preview: "" });
-    expect(noteDisplay("  \n ")).toEqual({ title: "Empty note", preview: "" });
+  it("has a placeholder for a Note without text", () => {
+    expect(noteTitle("  \n ")).toBe("Empty note");
   });
 });
 
@@ -62,26 +60,5 @@ describe("clampPosition", () => {
 
   it("puts the top-left corner at the origin when the window is smaller than the panel", () => {
     expect(clampPosition({ x: 50, y: 50 }, size, { width: 200, height: 200 })).toEqual({ x: 0, y: 0 });
-  });
-});
-
-describe("editedAgo", () => {
-  const now = new Date("2026-05-10T12:00:00.000Z");
-  const ago = (ms: number) => new Date(now.getTime() - ms).toISOString();
-  const MIN = 60_000;
-  const HOUR = 60 * MIN;
-  const DAY = 24 * HOUR;
-
-  it("says how long ago a Note was edited", () => {
-    expect(editedAgo(ago(20_000), now)).toBe("Edited just now");
-    expect(editedAgo(ago(2 * MIN), now)).toBe("Edited 2 min ago");
-    expect(editedAgo(ago(3 * HOUR), now)).toBe("Edited 3 h ago");
-    expect(editedAgo(ago(30 * HOUR), now)).toBe("Edited yesterday");
-    expect(editedAgo(ago(3 * DAY), now)).toBe("Edited 3 days ago");
-    expect(editedAgo(ago(14 * DAY), now)).toBe("Edited 2 weeks ago");
-  });
-
-  it("treats a time slightly in the future (clock differences) as just now", () => {
-    expect(editedAgo(ago(-5000), now)).toBe("Edited just now");
   });
 });

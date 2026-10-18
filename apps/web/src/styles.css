@@ -1,5 +1,5 @@
 /* Minimal layout for the time axis. Colors follow the design tokens in docs/design/source/hf.css;
-   the full visual design is applied in later steps. */
+   the full visual design is applied in step 12b. */
 :root {
   --bg: #f2f6fc;
   --surface: #ffffff;

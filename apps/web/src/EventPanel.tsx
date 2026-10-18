@@ -5,6 +5,7 @@ import {
   formatMinute,
   MAX_DURATION_MINUTES,
   MAX_NIGHTS,
+  isHoldingArea,
   isWebUrl,
   parseTime,
   TRANSPORT_LABELS,
@@ -37,11 +38,15 @@ function timeFields(startMinute: number, durationMinutes: number) {
 
 // The duration the typed fields stand for, or undefined while they are not valid.
 function fieldsDuration(fields: EventFields) {
-  if (fields.kind !== "transport") return typedDuration(fields.duration);
+  // Outside a Day there is no departure to arrive from, so a Transport event has a duration too.
+  if (fields.kind !== "transport" || isHoldingArea(fields.dayId)) return typedDuration(fields.duration);
   const start = parseTime(fields.start);
   const arrival = parseTime(fields.arrival);
   return start === undefined || arrival === undefined ? undefined : durationBetween(start, arrival);
 }
+
+// Where an Event is: a Day id, or the name of its holding area.
+const placeOf = (event: { dayId: string | null; holding?: Event["holding"] }) => event.dayId ?? event.holding ?? "backlog";
 
 const hasContact = (event: { phone: string | null; email: string | null; website: string | null }) =>
   Boolean(event.phone || event.email || event.website);
@@ -50,8 +55,9 @@ type Props = {
   days: Day[];
   // The Event being edited, or the starting values of a new Event.
   event?: Event;
+  // `dayId` is a Day id, or "backlog" or "archive".
   newEvent?: { dayId: string; startMinute: number; durationMinutes: number };
-  onCreate: (input: CreateEventInput, dayId: string) => Promise<Event>;
+  onCreate: (input: CreateEventInput, place: string) => Promise<Event>;
   onUpdate: (eventId: string, input: UpdateEventInput) => Promise<Event>;
   // Reports the values being typed for a new Event, so the placeholder follows them.
   onDraftChange: (draft: { dayId: string; startMinute: number; durationMinutes: number; kind: Event["kind"] }) => void;
@@ -78,7 +84,7 @@ export function EventPanel({ days, event, newEvent, onCreate, onUpdate, onDraftC
   };
   const [fields, setFields] = useState<EventFields>({
     title: initial.title,
-    dayId: initial.dayId,
+    dayId: placeOf(initial),
     kind: initial.kind,
     transportLabel: initial.transportLabel ?? "",
     nights: String(initial.nights ?? 1),
@@ -101,20 +107,30 @@ export function EventPanel({ days, event, newEvent, onCreate, onUpdate, onDraftC
   // The fields as last typed; change() is the only writer, so a queued save never sees stale text.
   const latest = useRef(fields);
 
-  // What this panel last sent for the time, so its own saves are not mistaken for outside changes.
-  const lastSent = useRef<{ startMinute: number; durationMinutes: number } | undefined>(undefined);
+  // What this panel last sent for the time and place, so its own saves are not mistaken for
+  // outside changes.
+  const lastSent = useRef<{ startMinute: number; durationMinutes: number; place: string } | undefined>(undefined);
 
-  // The time can change from outside while the panel is open (drag or resize on the axis); the
-  // effect reacts to the Event's time only.
+  // The time and place can change from outside while the panel is open (drag or resize on the
+  // axis, a drag to another area); the effect reacts to those only.
+  const place = event ? placeOf(event) : undefined;
   useEffect(() => {
     const current = saved.current;
-    if (!event || !current) return;
-    if (event.startMinute === current.startMinute && event.durationMinutes === current.durationMinutes) return;
+    if (!event || !current || place === undefined) return;
+    const same = (a: { startMinute: number; durationMinutes: number }, p: string) =>
+      event.startMinute === a.startMinute && event.durationMinutes === a.durationMinutes && place === p;
+    if (same(current, placeOf(current))) return;
     const sent = lastSent.current;
-    if (sent && event.startMinute === sent.startMinute && event.durationMinutes === sent.durationMinutes) return;
-    saved.current = { ...current, startMinute: event.startMinute, durationMinutes: event.durationMinutes };
-    change(timeFields(event.startMinute, event.durationMinutes));
-  }, [event?.startMinute, event?.durationMinutes]);
+    if (sent && same(sent, sent.place)) return;
+    saved.current = {
+      ...current,
+      startMinute: event.startMinute,
+      durationMinutes: event.durationMinutes,
+      dayId: event.dayId,
+      holding: event.holding,
+    };
+    change({ dayId: place, ...timeFields(event.startMinute, event.durationMinutes) });
+  }, [event?.startMinute, event?.durationMinutes, place]);
 
   function change(next: Partial<EventFields>) {
     const merged = { ...latest.current, ...next };
@@ -145,6 +161,17 @@ export function EventPanel({ days, event, newEvent, onCreate, onUpdate, onDraftC
     commit();
   }
 
+  // Moving between a Day and a holding area keeps the same duration: a Transport event is shown by
+  // its arrival on a Day and by its duration outside, so the hidden field is recalculated.
+  function changePlace(place: string) {
+    const current = latest.current;
+    const start = parseTime(current.start) ?? saved.current?.startMinute;
+    const duration = fieldsDuration(current) ?? saved.current?.durationMinutes;
+    change({ dayId: place });
+    if (start !== undefined && duration !== undefined) change(timeFields(start, duration));
+    commit();
+  }
+
   function commit() {
     queue.current = queue.current.then(save);
   }
@@ -166,6 +193,7 @@ export function EventPanel({ days, event, newEvent, onCreate, onUpdate, onDraftC
       lastSent.current = {
         startMinute: plan.patch.startMinute ?? current.startMinute,
         durationMinutes: plan.patch.durationMinutes ?? current.durationMinutes,
+        place: plan.patch.area ?? plan.patch.dayId ?? placeOf(current),
       };
     }
     setStatus({ kind: "saving" });
@@ -187,8 +215,9 @@ export function EventPanel({ days, event, newEvent, onCreate, onUpdate, onDraftC
 
   const start = parseTime(fields.start);
   const shownDuration = fieldsDuration(fields);
+  const held = isHoldingArea(fields.dayId);
   const arrivesNextDay =
-    fields.kind === "transport" &&
+    fields.kind === "transport" && !held &&
     start !== undefined && shownDuration !== undefined && arrivalOf(start, shownDuration).dayOffset > 0;
 
   return (
@@ -240,18 +269,14 @@ export function EventPanel({ days, event, newEvent, onCreate, onUpdate, onDraftC
         </label>
         <label>
           {fields.kind === "lodging" ? "Check-in Day" : "Day"}
-          <select
-            value={fields.dayId}
-            onChange={(e) => {
-              change({ dayId: e.target.value });
-              commit();
-            }}
-          >
+          <select value={fields.dayId} onChange={(e) => changePlace(e.target.value)}>
             {days.map((d) => (
               <option key={d.id} value={d.id}>
                 Day {d.position}
               </option>
             ))}
+            <option value="backlog">Backlog (not scheduled)</option>
+            <option value="archive">Archive</option>
           </select>
         </label>
         {fields.kind === "lodging" ? (
@@ -288,45 +313,28 @@ export function EventPanel({ days, event, newEvent, onCreate, onUpdate, onDraftC
           </>
         ) : (
           <>
-            <label>
-              {fields.kind === "transport" ? "Departure" : "Start"}
-              <input
-                type="time"
-                value={fields.start}
-                onChange={(e) => change({ start: e.target.value })}
-                onBlur={commit}
-              />
-            </label>
-            {fields.kind === "transport" ? (
-              <>
-                <label>
-                  Arrival
-                  <input
-                    type="time"
-                    value={fields.arrival}
-                    onChange={(e) => change({ arrival: e.target.value })}
-                    onBlur={commit}
-                  />
-                  {arrivesNextDay && <span className="hint">+1 (next day)</span>}
-                </label>
-                <label>
-                  Transport type
-                  <select
-                    value={fields.transportLabel}
-                    onChange={(e) => {
-                      change({ transportLabel: e.target.value });
-                      commit();
-                    }}
-                  >
-                    <option value="">None</option>
-                    {TRANSPORT_LABELS.map((label) => (
-                      <option key={label} value={label}>
-                        {TRANSPORT_LABEL_NAMES[label]}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </>
+            {!held && (
+              <label>
+                {fields.kind === "transport" ? "Departure" : "Start"}
+                <input
+                  type="time"
+                  value={fields.start}
+                  onChange={(e) => change({ start: e.target.value })}
+                  onBlur={commit}
+                />
+              </label>
+            )}
+            {fields.kind === "transport" && !held ? (
+              <label>
+                Arrival
+                <input
+                  type="time"
+                  value={fields.arrival}
+                  onChange={(e) => change({ arrival: e.target.value })}
+                  onBlur={commit}
+                />
+                {arrivesNextDay && <span className="hint">+1 (next day)</span>}
+              </label>
             ) : (
               <label>
                 Duration (minutes)
@@ -338,6 +346,25 @@ export function EventPanel({ days, event, newEvent, onCreate, onUpdate, onDraftC
                   onChange={(e) => change({ duration: e.target.value })}
                   onBlur={commit}
                 />
+              </label>
+            )}
+            {fields.kind === "transport" && (
+              <label>
+                Transport type
+                <select
+                  value={fields.transportLabel}
+                  onChange={(e) => {
+                    change({ transportLabel: e.target.value });
+                    commit();
+                  }}
+                >
+                  <option value="">None</option>
+                  {TRANSPORT_LABELS.map((label) => (
+                    <option key={label} value={label}>
+                      {TRANSPORT_LABEL_NAMES[label]}
+                    </option>
+                  ))}
+                </select>
               </label>
             )}
           </>

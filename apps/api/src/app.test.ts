@@ -1,4 +1,4 @@
-import { daySchema, eventSchema, healthResponseSchema, tripSchema } from "@travel-planner/shared";
+import { daySchema, dayDeletionSchema, eventSchema, healthResponseSchema, tripSchema } from "@travel-planner/shared";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { trips, users, days, events } from "./db/schema";
@@ -283,21 +283,37 @@ describe("deleting a Day", () => {
     const { trip, ids } = await tripWithDays(3);
 
     const res = await send("DELETE", `/api/trips/${trip.id}/days/${ids[1]}`);
-    const result = daysSchema.parse(await res.json());
+    const result = dayDeletionSchema.parse(await res.json());
 
     expect(res.status).toBe(200);
-    expect(result.map((d) => d.id)).toEqual([ids[0], ids[2]]);
-    expect(result.map((d) => d.position)).toEqual([1, 2]);
+    expect(result.days.map((d) => d.id)).toEqual([ids[0], ids[2]]);
+    expect(result.days.map((d) => d.position)).toEqual([1, 2]);
+    expect(result.backlog).toEqual([]);
   });
 
-  it("refuses to delete a Day that has Events", async () => {
+  it("moves the Events of a deleted Day to the Backlog, keeping their details", async () => {
     const { trip, ids } = await tripWithDays(2);
-    await post(`/api/trips/${trip.id}/days/${ids[0]}/events`, { title: "Gion" });
+    await post(`/api/trips/${trip.id}/days/${ids[0]}/events`, { title: "Gion", startMinute: 600, durationMinutes: 90 });
+    await post(`/api/trips/${trip.id}/days/${ids[0]}/events`, { title: "Tea", kind: "meal" });
 
     const res = await send("DELETE", `/api/trips/${trip.id}/days/${ids[0]}`);
+    const result = dayDeletionSchema.parse(await res.json());
 
-    expect(res.status).toBe(409);
-    expect(await positionsOf(trip.id)).toHaveLength(2);
+    expect(res.status).toBe(200);
+    expect(result.days.map((d) => d.id)).toEqual([ids[1]]);
+    expect(result.backlog.map((e) => e.title)).toEqual(["Gion", "Tea"]);
+    expect(result.backlog[0]).toMatchObject({ dayId: null, holding: "backlog", startMinute: 600, durationMinutes: 90 });
+    expect(await positionsOf(trip.id)).toEqual([{ id: ids[1], position: 1 }]);
+  });
+
+  it("puts the moved Events after those already in the Backlog", async () => {
+    const { trip, ids } = await tripWithDays(2);
+    await post(`/api/trips/${trip.id}/backlog/events`, { title: "Idea" });
+    await post(`/api/trips/${trip.id}/days/${ids[1]}/events`, { title: "Gion" });
+
+    const result = dayDeletionSchema.parse(await (await send("DELETE", `/api/trips/${trip.id}/days/${ids[1]}`)).json());
+
+    expect(result.backlog.map((e) => e.title)).toEqual(["Idea", "Gion"]);
   });
 
   it("refuses to delete the last Day", async () => {
@@ -326,17 +342,15 @@ describe("adding an Event while its Day is deleted", () => {
         send("DELETE", `/api/trips/${trip.id}/days/${ids[1]}`),
       ]);
 
-      const remaining = daysSchema.parse(
-        (await (await fetch(`${app.baseUrl}/api/trips`)).json()).find((t: { id: string }) => t.id === trip.id)
-          .days,
-      );
+      const [listed] = z.array(tripSchema).parse(await (await fetch(`${app.baseUrl}/api/trips`)).json()).filter((t) => t.id === trip.id);
+      const titles = [...listed!.days.flatMap((d) => d.events), ...listed!.backlog].map((e) => e.title);
+      expect(del.status).toBe(200);
       if (add.status === 201) {
-        // The Event exists, so the Day must still exist and the delete must have been refused.
-        expect(del.status).toBe(409);
-        expect(remaining.flatMap((d) => d.events.map((e) => e.title))).toContain("Race");
+        // The Event exists, so the delete came after it and moved it to the Backlog.
+        expect(listed!.backlog.map((e) => e.title)).toEqual(["Race"]);
       } else {
         expect(add.status).toBe(404);
-        expect(del.status).toBe(200);
+        expect(titles).toEqual([]);
       }
     }
   });
@@ -479,7 +493,7 @@ describe("updating an Event", () => {
     const [stranger] = await app.db.insert(users).values({}).returning();
     const [theirTrip] = await app.db.insert(trips).values({ ownerId: stranger!.id, title: "Theirs" }).returning();
     const [theirDay] = await app.db.insert(days).values({ tripId: theirTrip!.id, position: 1 }).returning();
-    const [theirEvent] = await app.db.insert(events).values({ dayId: theirDay!.id, title: "Theirs" }).returning();
+    const [theirEvent] = await app.db.insert(events).values({ tripId: theirTrip!.id, dayId: theirDay!.id, title: "Theirs" }).returning();
     expect((await send("PATCH", `/api/trips/${theirTrip!.id}/events/${theirEvent!.id}`, { title: "x" })).status).toBe(404);
   });
 
@@ -495,10 +509,13 @@ describe("updating an Event", () => {
       ]);
 
       const listed = z.array(tripSchema).parse(await (await fetch(`${app.baseUrl}/api/trips`)).json());
-      const stillThere = listed.find((t) => t.id === trip.id)!.days.flatMap((d) => d.events);
-      // The Event is never lost: either the move won (and the delete was refused) or the delete won.
+      const board = listed.find((t) => t.id === trip.id)!;
+      const stillThere = [...board.days.flatMap((d) => d.events), ...board.backlog];
+      // The Event is never lost: either the move won (and the delete then sent it to the Backlog)
+      // or the delete won (and the move was refused).
       expect(stillThere.map((e) => e.id)).toEqual([event.id]);
-      if (move.status === 200) expect(del.status).toBe(409);
+      expect(del.status).toBe(200);
+      if (move.status === 200) expect(board.backlog.map((e) => e.id)).toEqual([event.id]);
       else expect([400, 404]).toContain(move.status);
     }
   });
@@ -673,20 +690,23 @@ describe("Lodging", () => {
       expect(await lodgingOf(trip.id)).toMatchObject({ position: 2, nights: 3 });
     });
 
-    it("refuses to delete a Day that would leave a stay with no nights", async () => {
+    it("moves a stay left with no nights to the Backlog", async () => {
       const { trip, ids } = await tripWithDays(3);
-      await stay(trip.id, ids[1]!, 1);
+      await stay(trip.id, ids[1]!, 1, { checkInMinute: 900 });
       const res = await remove(trip.id, ids[1]!);
-      expect(res.status).toBe(409);
-      expect(await lodgingOf(trip.id)).toMatchObject({ position: 2, nights: 1 });
-      expect(await positionsOf(trip.id)).toHaveLength(3);
+      const result = dayDeletionSchema.parse(await res.json());
+      expect(res.status).toBe(200);
+      expect(result.backlog).toHaveLength(1);
+      expect(result.backlog[0]).toMatchObject({ kind: "lodging", nights: 1, checkInMinute: 900, dayId: null, holding: "backlog" });
+      expect(await positionsOf(trip.id)).toHaveLength(2);
     });
 
-    it("still refuses a Day that has another Event, but not one that only holds a check-in", async () => {
+    it("moves the other Events of the Day to the Backlog but keeps the stay that only has its check-in there", async () => {
       const { trip, ids } = await setup();
-      await post(`/api/trips/${trip.id}/days/${ids[2]!}/events`, { title: "Castle" });
-      expect((await remove(trip.id, ids[2]!)).status).toBe(409);
-      expect((await remove(trip.id, ids[1]!)).status).toBe(200); // only the stay's check-in
+      await post(`/api/trips/${trip.id}/days/${ids[1]!}/events`, { title: "Castle" });
+      const result = dayDeletionSchema.parse(await (await remove(trip.id, ids[1]!)).json());
+      expect(result.backlog.map((e) => e.title)).toEqual(["Castle"]);
+      expect(await lodgingOf(trip.id)).toMatchObject({ position: 2, nights: 2, dayId: ids[2] });
     });
   });
 
@@ -761,5 +781,176 @@ describe("Description and contacts", () => {
     expect(await patch({ kind: "transport" })).toMatchObject({ phone: "456", description: "Notes" });
     expect(await patch({ phone: "" })).toMatchObject({ phone: null });
     expect(await patch({ description: null })).toMatchObject({ description: null });
+  });
+});
+
+describe("Backlog and Archive", () => {
+  const patch = (tripId: string, eventId: string, body: unknown) => send("PATCH", `/api/trips/${tripId}/events/${eventId}`, body);
+
+  async function board(tripId: string) {
+    return z.array(tripSchema).parse(await (await fetch(`${app.baseUrl}/api/trips`)).json()).find((t) => t.id === tripId)!;
+  }
+
+  it("creates Events in the Backlog and in the Archive, and lists them in the order they arrived", async () => {
+    const { trip } = await createTrip("Kyoto");
+    const a = await post(`/api/trips/${trip.id}/backlog/events`, { title: "Philosopher's Path", durationMinutes: 90 });
+    await post(`/api/trips/${trip.id}/backlog/events`, { title: "Nara" });
+    await post(`/api/trips/${trip.id}/archive/events`, { title: "Too far" });
+
+    expect(a.status).toBe(201);
+    expect(eventSchema.parse(await a.json())).toMatchObject({ dayId: null, holding: "backlog", durationMinutes: 90 });
+    const listed = await board(trip.id);
+    expect(listed.backlog.map((e) => e.title)).toEqual(["Philosopher's Path", "Nara"]);
+    expect(listed.archive.map((e) => [e.title, e.holding])).toEqual([["Too far", "archive"]]);
+    expect(listed.days[0]!.events).toEqual([]);
+  });
+
+  it("needs nights for a Lodging in a holding area, but not a Day to fit them", async () => {
+    const { trip } = await createTrip("Kyoto");
+    const path = `/api/trips/${trip.id}/backlog/events`;
+    expect((await post(path, { title: "Ryokan", kind: "lodging" })).status).toBe(400);
+    expect((await post(path, { title: "Ryokan", kind: "lodging", nights: 5 })).status).toBe(201);
+  });
+
+  it("returns 404 for an unknown Trip, someone else's Trip, or an unknown area", async () => {
+    const { trip } = await createTrip("Kyoto");
+    expect((await post(`/api/trips/11111111-1111-4111-8111-111111111111/backlog/events`, { title: "x" })).status).toBe(404);
+    expect((await post(`/api/trips/${trip.id}/trash/events`, { title: "x" })).status).toBe(400);
+    const [other] = await app.db.insert(users).values({}).returning();
+    const [theirs] = await app.db.insert(trips).values({ ownerId: other!.id, title: "Theirs" }).returning();
+    expect((await post(`/api/trips/${theirs!.id}/backlog/events`, { title: "x" })).status).toBe(404);
+  });
+
+  it("moves an Event from a Day to the Backlog, then the Archive, then back onto a Day, keeping its start time", async () => {
+    const { trip, ids } = await tripWithDays(2);
+    const created = await post(`/api/trips/${trip.id}/days/${ids[0]}/events`, { title: "Gion", startMinute: 600 });
+    const event = eventSchema.parse(await created.json());
+
+    const toBacklog = eventSchema.parse(await (await patch(trip.id, event.id, { area: "backlog" })).json());
+    expect(toBacklog).toMatchObject({ dayId: null, holding: "backlog", startMinute: 600 });
+    const toArchive = eventSchema.parse(await (await patch(trip.id, event.id, { area: "archive" })).json());
+    expect(toArchive).toMatchObject({ dayId: null, holding: "archive" });
+    const back = eventSchema.parse(await (await patch(trip.id, event.id, { dayId: ids[1], startMinute: 660 })).json());
+    expect(back).toMatchObject({ dayId: ids[1], holding: null, startMinute: 660 });
+    const listed = await board(trip.id);
+    expect(listed.archive).toEqual([]);
+    expect(listed.days[1]!.events.map((e) => e.id)).toEqual([event.id]);
+  });
+
+  it("rejects a change that names both a Day and a holding area", async () => {
+    const { trip, ids } = await tripWithDays(1);
+    const event = eventSchema.parse(await (await post(`/api/trips/${trip.id}/days/${ids[0]}/events`, { title: "x" })).json());
+    expect((await patch(trip.id, event.id, { dayId: ids[0], area: "backlog" })).status).toBe(400);
+  });
+
+  it("edits an Event in a holding area without moving it", async () => {
+    const { trip } = await createTrip("Kyoto");
+    const event = eventSchema.parse(await (await post(`/api/trips/${trip.id}/archive/events`, { title: "Old" })).json());
+    const res = await patch(trip.id, event.id, { title: "New", durationMinutes: 30 });
+    expect(eventSchema.parse(await res.json())).toMatchObject({ title: "New", holding: "archive", dayId: null, durationMinutes: 30 });
+  });
+
+  it("checks that a Lodging fits when it is scheduled from a holding area", async () => {
+    const { trip, ids } = await tripWithDays(3);
+    const stay = eventSchema.parse(
+      await (await post(`/api/trips/${trip.id}/backlog/events`, { title: "Ryokan", kind: "lodging", nights: 3 })).json(),
+    );
+    expect((await patch(trip.id, stay.id, { dayId: ids[1] })).status).toBe(400); // Days 2 to 4
+    expect((await patch(trip.id, stay.id, { dayId: ids[0] })).status).toBe(200);
+    // And a Lodging on a Day can go to the Backlog whatever its nights.
+    expect((await patch(trip.id, stay.id, { area: "archive" })).status).toBe(200);
+  });
+
+  it("does not count a Lodging in a holding area when Days change", async () => {
+    const { trip, ids } = await tripWithDays(2);
+    await post(`/api/trips/${trip.id}/backlog/events`, { title: "Ryokan", kind: "lodging", nights: 1 });
+    expect((await send("DELETE", `/api/trips/${trip.id}/days/${ids[0]}`)).status).toBe(200);
+    expect((await post(`/api/trips/${trip.id}/days`, { position: 1 })).status).toBe(201);
+    expect((await board(trip.id)).backlog[0]).toMatchObject({ nights: 1, holding: "backlog" });
+  });
+
+  it("returns 404 when moving someone else's Event", async () => {
+    const [other] = await app.db.insert(users).values({}).returning();
+    const [theirs] = await app.db.insert(trips).values({ ownerId: other!.id, title: "Theirs" }).returning();
+    const [theirEvent] = await app.db
+      .insert(events)
+      .values({ tripId: theirs!.id, holding: "backlog", title: "Theirs" })
+      .returning();
+    expect((await patch(theirs!.id, theirEvent!.id, { area: "archive" })).status).toBe(404);
+  });
+});
+
+describe("restoring a deleted Day (undo)", () => {
+  const restore = (tripId: string, body: unknown) => post(`/api/trips/${tripId}/days/restore`, body);
+
+  async function deleteDay(tripId: string, dayId: string) {
+    return dayDeletionSchema.parse(await (await send("DELETE", `/api/trips/${tripId}/days/${dayId}`)).json());
+  }
+
+  it("puts the Day back at its position with its Events", async () => {
+    const { trip, ids } = await tripWithDays(3);
+    const gion = eventSchema.parse(await (await post(`/api/trips/${trip.id}/days/${ids[1]}/events`, { title: "Gion", startMinute: 600 })).json());
+    await deleteDay(trip.id, ids[1]!);
+
+    const res = await restore(trip.id, {
+      dayId: ids[1],
+      position: 2,
+      placements: [{ eventId: gion.id, dayId: ids[1], nights: null }],
+    });
+    const result = dayDeletionSchema.parse(await res.json());
+
+    expect(res.status).toBe(201);
+    expect(result.days.map((d) => d.id)).toEqual(ids);
+    expect(result.days.map((d) => d.position)).toEqual([1, 2, 3]);
+    expect(result.days[1]!.events).toMatchObject([{ id: gion.id, title: "Gion", startMinute: 600, holding: null }]);
+    expect(result.backlog).toEqual([]);
+  });
+
+  it("gives a stay its nights and check-in Day back", async () => {
+    const { trip, ids } = await tripWithDays(5);
+    const stay = eventSchema.parse(
+      await (await post(`/api/trips/${trip.id}/days/${ids[1]}/events`, { title: "Hotel", kind: "lodging", nights: 3 })).json(),
+    );
+    await deleteDay(trip.id, ids[1]!); // check-in Day goes: the stay moves to Day 3 with 2 nights
+
+    const result = dayDeletionSchema.parse(
+      await (await restore(trip.id, { dayId: ids[1], position: 2, placements: [{ eventId: stay.id, dayId: ids[1], nights: 3 }] })).json(),
+    );
+
+    expect(result.days[1]!.events).toMatchObject([{ id: stay.id, nights: 3 }]);
+    expect(result.days[2]!.events).toEqual([]);
+  });
+
+  it("brings back a stay that had gone to the Backlog", async () => {
+    const { trip, ids } = await tripWithDays(3);
+    const stay = eventSchema.parse(
+      await (await post(`/api/trips/${trip.id}/days/${ids[1]}/events`, { title: "Hotel", kind: "lodging", nights: 1 })).json(),
+    );
+    await deleteDay(trip.id, ids[1]!);
+    const result = dayDeletionSchema.parse(
+      await (await restore(trip.id, { dayId: ids[1], position: 2, placements: [{ eventId: stay.id, dayId: ids[1], nights: 1 }] })).json(),
+    );
+    expect(result.backlog).toEqual([]);
+    expect(result.days[1]!.events.map((e) => e.id)).toEqual([stay.id]);
+  });
+
+  it("refuses a Day id that exists, a bad position, a Day that is not restored, or an Event of another Trip", async () => {
+    const { trip, ids } = await tripWithDays(2);
+    const { trip: other } = await createTrip("Other");
+    const foreign = eventSchema.parse(await (await post(`/api/trips/${other.id}/backlog/events`, { title: "Theirs" })).json());
+    const fresh = "22222222-2222-4222-8222-222222222222";
+
+    expect((await restore(trip.id, { dayId: ids[0], position: 1, placements: [] })).status).toBe(409);
+    expect((await restore(trip.id, { dayId: fresh, position: 4, placements: [] })).status).toBe(400);
+    expect((await restore(trip.id, { dayId: fresh, position: 1, placements: [{ eventId: foreign.id, dayId: fresh, nights: null }] })).status).toBe(400);
+    expect((await restore(trip.id, { dayId: fresh, position: 1, placements: [{ eventId: foreign.id, dayId: ids[0], nights: null }] })).status).toBe(400);
+    expect(await positionsOf(trip.id)).toHaveLength(2);
+  });
+
+  it("returns 404 for someone else's Trip", async () => {
+    const [other] = await app.db.insert(users).values({}).returning();
+    const [theirs] = await app.db.insert(trips).values({ ownerId: other!.id, title: "Theirs" }).returning();
+    const res = await restore(theirs!.id, { dayId: "22222222-2222-4222-8222-222222222222", position: 1, placements: [] });
+    expect(res.status).toBe(404);
   });
 });

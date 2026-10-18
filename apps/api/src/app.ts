@@ -2,7 +2,9 @@ import {
   createDayInputSchema,
   createEventInputSchema,
   createTripInputSchema,
+  holdingAreaSchema,
   reorderDaysInputSchema,
+  restoreDayInputSchema,
   updateEventInputSchema,
 } from "@travel-planner/shared";
 import type { HealthResponse } from "@travel-planner/shared";
@@ -10,11 +12,12 @@ import express from "express";
 import { z, ZodError } from "zod";
 import type { Db } from "./db/client";
 import { DEV_USER_ID } from "./dev-user";
-import { addEvent, createTrip, deleteDay, insertDay, listTrips, reorderDays, updateEvent } from "./trips";
+import { addEvent, addHeldEvent, createTrip, deleteDay, insertDay, listTrips, reorderDays, restoreDay, updateEvent } from "./trips";
 
 const tripParamsSchema = z.object({ tripId: z.uuid() });
 const eventIdParamsSchema = z.object({ tripId: z.uuid(), eventId: z.uuid() });
 const dayParamsSchema = z.object({ tripId: z.uuid(), dayId: z.uuid() });
+const areaParamsSchema = z.object({ tripId: z.uuid(), area: holdingAreaSchema });
 
 const LODGING_ERROR = "A Lodging needs at least one night, and every night must fall on a Day of the Trip";
 
@@ -46,6 +49,21 @@ export function createApp(db: Db) {
     }
     if (event === "invalid-lodging") {
       res.status(400).json({ error: LODGING_ERROR });
+      return;
+    }
+    res.status(201).json(event);
+  });
+
+  app.post("/api/trips/:tripId/:area/events", async (req, res) => {
+    const { tripId, area } = areaParamsSchema.parse(req.params);
+    const input = createEventInputSchema.parse(req.body);
+    const event = await addHeldEvent(db, DEV_USER_ID, tripId, area, input);
+    if (!event) {
+      res.status(404).json({ error: "Trip not found" });
+      return;
+    }
+    if (event === "invalid-lodging") {
+      res.status(400).json({ error: "A Lodging needs at least one night" });
       return;
     }
     res.status(201).json(event);
@@ -107,19 +125,30 @@ export function createApp(db: Db) {
       res.status(404).json({ error: "Day not found" });
       return;
     }
-    if (result === "not-empty") {
-      res.status(409).json({ error: "Only an empty Day can be deleted" });
-      return;
-    }
-    if (result === "lodging-would-end") {
-      res.status(409).json({ error: "This Day is the only night of a Lodging; change the Lodging first" });
-      return;
-    }
     if (result === "last-day") {
       res.status(409).json({ error: "A Trip must keep at least one Day" });
       return;
     }
     res.json(result);
+  });
+
+  app.post("/api/trips/:tripId/days/restore", async (req, res) => {
+    const { tripId } = tripParamsSchema.parse(req.params);
+    const input = restoreDayInputSchema.parse(req.body);
+    const result = await restoreDay(db, DEV_USER_ID, tripId, input);
+    if (!result) {
+      res.status(404).json({ error: "Trip not found" });
+      return;
+    }
+    if (result === "exists") {
+      res.status(409).json({ error: "That Day already exists" });
+      return;
+    }
+    if (result === "invalid") {
+      res.status(400).json({ error: "The Day cannot be restored with these Events" });
+      return;
+    }
+    res.status(201).json(result);
   });
 
   app.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {

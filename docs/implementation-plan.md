@@ -2,7 +2,7 @@
 
 Product rules are in [`PRD.md`](./PRD.md); vocabulary in [`CONTEXT.md`](../CONTEXT.md); decisions in [`docs/adr/`](./adr/). This file orders the work and tracks status. It changes often; the PRD should not.
 
-**Current step: 8 (Backlog and Archive).** Steps 0 to 7 are done. The final design is in [`docs/design/`](./design/); a few designer fixes are pending and do not block step 0.
+**Current step: 9 (Todos).** Steps 0 to 8 are done. The final design is in [`docs/design/`](./design/); a few designer fixes are pending and do not block step 0.
 
 ## Working agreement
 
@@ -39,7 +39,7 @@ Each step lists what it needs from earlier steps and when it is done.
 
 ### Holding areas and Todos
 
-- [ ] **8. Backlog and Archive.** Events without a start time; schedule through the Day and start-time fields; desktop drag between areas and Days. Deleting a Day that has Events becomes allowed: a confirmation dialog states how many Events move to the Backlog, with an Undo toast (design 13). *Needs:* 5.
+- [x] **8. Backlog and Archive.** Events without a start time; schedule through the Day and start-time fields; desktop drag between areas and Days. Deleting a Day that has Events becomes allowed: a confirmation dialog states how many Events move to the Backlog, with an Undo toast (design 13). An empty Day is deleted at once, also with the toast. The Todo and Leg lines of the dialog come with steps 9 and 15. *Needs:* 5.
 - [ ] **9. Todos.** Trip Todos and Event Todos; deleting or archiving an Event deletes its Todos with the confirmation and count, "do not remind me again", and an undo window for deletion. *Needs:* 8.
 - [ ] **10. Notes.** Floating Notes panel with Markdown, pinning and ordering by last edit. *Needs:* 1.
 

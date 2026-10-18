@@ -28,6 +28,7 @@ export const days = pgTable(
 );
 
 export const eventKind = pgEnum("event_kind", ["attraction", "meal", "lodging", "transport"]);
+export const holdingArea = pgEnum("holding_area", ["backlog", "archive"]);
 export const transportLabel = pgEnum("transport_label", ["flight", "train", "ferry", "bus", "other"]);
 
 // startMinute and durationMinutes: minutes from 00:00 of the Day, and length. The defaults
@@ -36,9 +37,13 @@ export const events = pgTable(
   "events",
   {
     id: uuid().primaryKey().defaultRandom(),
-    dayId: uuid()
+    tripId: uuid()
       .notNull()
-      .references(() => days.id, { onDelete: "cascade" }),
+      .references(() => trips.id, { onDelete: "cascade" }),
+    // An Event is on a Day or in a holding area, never both. Its start time is kept in a holding
+    // area (not shown), so scheduling it again starts from there.
+    dayId: uuid().references(() => days.id, { onDelete: "cascade" }),
+    holding: holdingArea(),
     kind: eventKind().notNull().default("attraction"),
     title: text().notNull(),
     // Kept when the kind changes, so switching back to Transport restores it.
@@ -58,6 +63,7 @@ export const events = pgTable(
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
+    check("events_one_place", sql`(${t.dayId} is not null) <> (${t.holding} is not null)`),
     check("events_start_minute_range", sql`${t.startMinute} between 0 and 1439`),
     check("events_lodging_has_nights", sql`${t.kind} <> 'lodging' or ${t.nights} is not null`),
     check("events_nights_range", sql`${t.nights} is null or ${t.nights} between 1 and 365`),
@@ -67,11 +73,12 @@ export const events = pgTable(
   ],
 );
 
-export const tripsRelations = relations(trips, ({ many }) => ({ days: many(days) }));
+export const tripsRelations = relations(trips, ({ many }) => ({ days: many(days), events: many(events) }));
 export const daysRelations = relations(days, ({ one, many }) => ({
   trip: one(trips, { fields: [days.tripId], references: [trips.id] }),
   events: many(events),
 }));
 export const eventsRelations = relations(events, ({ one }) => ({
   day: one(days, { fields: [events.dayId], references: [days.id] }),
+  trip: one(trips, { fields: [events.tripId], references: [trips.id] }),
 }));

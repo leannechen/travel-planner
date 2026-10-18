@@ -1,23 +1,73 @@
-import { axisRange, DEFAULT_START_MINUTE, moveBy, type Day, type Event, type Trip } from "@travel-planner/shared";
-import { useState } from "react";
-import { deleteDay, insertDay, reorderDays } from "./api";
+import { DragDropProvider } from "@dnd-kit/react";
+import { Accessibility } from "@dnd-kit/dom";
+import {
+  allEvents,
+  axisRange,
+  DEFAULT_START_MINUTE,
+  isHoldingArea,
+  minuteAtOffset,
+  moveBy,
+  moveEvent,
+  planDayDeletion,
+  pxToMinutes,
+  type Day,
+  type DayDeletionPlan,
+  type Event,
+  type HoldingArea,
+  type Trip,
+} from "@travel-planner/shared";
+import { useCallback, useState } from "react";
+import { deleteDay, insertDay, reorderDays, restoreDay } from "./api";
+import { ConfirmDialog } from "./ConfirmDialog";
+import { accessibility, DayTimeline, HourLabels, PX_PER_HOUR, sensors, type EventTimes } from "./DayTimeline";
+import { endGesture } from "./gesture";
+import { HoldingAreas } from "./HoldingAreas";
 import { LodgingBanners, staysOf } from "./LodgingBanners";
-import { DayTimeline, HourLabels, type EventTimes } from "./DayTimeline";
+import { Toast } from "./Toast";
+
+// What a move changes: the time, and/or the place (a Day id in `dayId`, or a holding area).
+export type EventMove = Partial<Pick<Event, "startMinute" | "durationMinutes" | "dayId" | "holding">>;
 
 type Props = {
   trip: Trip;
-  onDaysChange: (tripId: string, days: Day[]) => void;
+  onDaysChange: (tripId: string, days: Day[], backlog?: Event[]) => void;
   selectedEventId?: string;
   // A new Event being set up in the panel.
   draft?: { dayId: string; startMinute: number; durationMinutes: number; kind?: Event["kind"] };
   onSelectEvent: (eventId: string) => void;
   onCreateAt: (dayId: string, startMinute: number) => void;
-  onChangeTimes: (eventId: string, times: EventTimes) => void;
+  onAddToBacklog: () => void;
+  onMove: (eventId: string, move: EventMove) => void;
 };
 
-export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectEvent, onCreateAt, onChangeTimes }: Props) {
+const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
+
+type Toasted = { id: number; message: string; undo?: () => void };
+
+// Where the pointer is, as a drop target: a Day's axis (its id) or a holding area. The Event being
+// dragged is skipped, as it is under the pointer itself; beside an axis (above, below) the Day's
+// column still counts, so a drag past the end of the axis lands at its edge.
+function dropTargetAt(x: number, y: number, draggedId: string): string | undefined {
+  for (const element of document.elementsFromPoint(x, y)) {
+    if (element.closest<HTMLElement>("[data-event-id]")?.dataset.eventId === draggedId) continue;
+    const target = element.closest<HTMLElement>("[data-drop]");
+    if (target) return target.dataset.drop;
+  }
+  for (const timeline of document.querySelectorAll<HTMLElement>(".day-timeline[data-drop]")) {
+    const box = timeline.getBoundingClientRect();
+    if (x >= box.left && x <= box.right) return timeline.dataset.drop;
+  }
+  return undefined;
+}
+
+export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectEvent, onCreateAt, onAddToBacklog, onMove }: Props) {
   const [error, setError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
+  // The Day waiting for the user to confirm its deletion.
+  const [pendingDelete, setPendingDelete] = useState<{ day: Day; plan: DayDeletionPlan } | undefined>();
+  const [toast, setToast] = useState<Toasted | undefined>();
+  // The area or Day a dragged Event is over.
+  const [dropTarget, setDropTarget] = useState<string | undefined>();
 
   // Runs one Day change at a time and replaces the Trip's Days with the server's answer.
   async function changeDays(action: () => Promise<Day[]>) {
@@ -33,6 +83,57 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
     }
   }
 
+  // An empty Day goes at once; one with Events asks first. Either way the toast offers Undo.
+  function requestDelete(day: Day) {
+    const plan = planDayDeletion(trip.days, day.id);
+    if (plan.moved.length > 0) setPendingDelete({ day, plan });
+    else void performDelete(day, plan);
+  }
+
+  async function performDelete(day: Day, plan: DayDeletionPlan) {
+    if (busy) return;
+    setPendingDelete(undefined);
+    setBusy(true);
+    setError(undefined);
+    // What undo has to put back: the moved Events, and the stays that lost a night.
+    const placements = [
+      ...plan.moved.map((e) => ({ eventId: e.id, dayId: day.id, nights: e.nights })),
+      ...plan.stays.map(({ event, before }) => ({ eventId: event.id, dayId: event.dayId!, nights: before.nights })),
+    ];
+    try {
+      const result = await deleteDay(trip.id, day.id);
+      onDaysChange(trip.id, result.days, result.backlog);
+      setToast({
+        id: Date.now(),
+        message:
+          plan.moved.length > 0
+            ? `Day ${day.position} deleted · ${plural(plan.moved.length, "Event")} moved to the Backlog`
+            : `Day ${day.position} deleted`,
+        undo: () => undoDelete(day, placements),
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function undoDelete(day: Day, placements: { eventId: string; dayId: string; nights: number | null }[]) {
+    setToast(undefined);
+    setBusy(true);
+    setError(undefined);
+    try {
+      const result = await restoreDay(trip.id, { dayId: day.id, position: day.position, placements });
+      onDaysChange(trip.id, result.days, result.backlog);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not undo the deletion");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const dismissToast = useCallback(() => setToast(undefined), []);
+
   const dayIds = trip.days.map((d) => d.id);
   const lastPosition = trip.days.length;
   // One range for every Day, so the Days line up side by side.
@@ -40,6 +141,7 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
   const onAxis = (day: Day) => day.events.filter((e) => e.kind !== "lodging");
   const range = axisRange(trip.days.flatMap(onAxis));
   const stays = staysOf(trip.days);
+  const events = allEvents(trip);
 
   function insertButton(position: number) {
     return (
@@ -49,83 +151,151 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
     );
   }
 
+  // Where a dropped Event goes. Within a Day it moves by how far it was dragged; from a holding
+  // area onto a Day it starts where the pointer is.
+  function drop(event: Event, target: string, pointerY: number, draggedPx: number) {
+    if (isHoldingArea(target)) {
+      if (event.holding !== target) onMove(event.id, { holding: target });
+      return;
+    }
+    if (event.dayId) {
+      const { startMinute } = moveEvent(event, pxToMinutes(draggedPx, PX_PER_HOUR), range);
+      if (target !== event.dayId || startMinute !== event.startMinute) onMove(event.id, { dayId: target, startMinute });
+      return;
+    }
+    const top = document.querySelector<HTMLElement>(`.day-timeline[data-drop="${target}"]`)?.getBoundingClientRect().top ?? 0;
+    onMove(event.id, { dayId: target, startMinute: minuteAtOffset(pointerY - top, range, PX_PER_HOUR) });
+  }
+
   // Grid: hour labels, then for each Day a narrow column for its Insert button and a Day column.
   const columns = `auto ${trip.days.map(() => "auto minmax(14rem, 1fr)").join(" ")} auto`;
+  const deleting = pendingDelete;
 
   return (
     <article>
       <h2>{trip.title}</h2>
       {error && <p role="alert">{error}</p>}
-      <div className="days-grid" style={{ gridTemplateColumns: columns }}>
-        <div className="axis-cell" style={{ gridColumn: 1, gridRow: 3 }}>
-          <HourLabels range={range} />
+      <DragDropProvider
+        sensors={sensors}
+        plugins={(defaults) => [...defaults.filter((p) => p !== Accessibility), accessibility(events)]}
+        onDragMove={({ operation }) => {
+          const pointer = operation.position.current;
+          setDropTarget(operation.source ? dropTargetAt(pointer.x, pointer.y, String(operation.source.id)) : undefined);
+        }}
+        onDragEnd={({ operation, canceled }) => {
+          endGesture();
+          setDropTarget(undefined);
+          const event = events.find((e) => e.id === operation.source?.id);
+          if (canceled || !event) return;
+          const pointer = operation.position.current;
+          const target = dropTargetAt(pointer.x, pointer.y, event.id);
+          if (target) drop(event, target, pointer.y, operation.transform.y);
+        }}
+      >
+        <div className="trip-layout">
+          <HoldingAreas
+            backlog={trip.backlog}
+            archive={trip.archive}
+            selectedEventId={selectedEventId}
+            dropTarget={dropTarget}
+            onSelectEvent={onSelectEvent}
+            onAddToBacklog={onAddToBacklog}
+            onMoveTo={(eventId, area: HoldingArea) => onMove(eventId, { holding: area })}
+          />
+          <div className="days-grid" style={{ gridTemplateColumns: columns }}>
+            <div className="axis-cell" style={{ gridColumn: 1, gridRow: 3 }}>
+              <HourLabels range={range} />
+            </div>
+            {trip.days.map((day, index) => {
+              const insertColumn = 2 + index * 2;
+              const dayColumn = insertColumn + 1;
+              return [
+                <div key={`insert-${day.id}`} style={{ gridColumn: insertColumn, gridRow: 1 }}>
+                  {insertButton(day.position)}
+                </div>,
+                <section
+                  key={`head-${day.id}`}
+                  className="day-head"
+                  aria-label={`Day ${day.position}`}
+                  style={{ gridColumn: dayColumn, gridRow: 1 }}
+                >
+                  <h3>Day {day.position}</h3>
+                  <div>
+                    <button
+                      type="button"
+                      disabled={busy || day.position === 1}
+                      onClick={() => changeDays(() => reorderDays(trip.id, moveBy(dayIds, day.id, -1)))}
+                    >
+                      Move earlier
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy || day.position === lastPosition}
+                      onClick={() => changeDays(() => reorderDays(trip.id, moveBy(dayIds, day.id, 1)))}
+                    >
+                      Move later
+                    </button>
+                    <button type="button" disabled={busy || lastPosition === 1} onClick={() => requestDelete(day)}>
+                      Delete Day
+                    </button>
+                  </div>
+                  <button type="button" disabled={busy} onClick={() => onCreateAt(day.id, DEFAULT_START_MINUTE)}>
+                    Add event
+                  </button>
+                </section>,
+                <div key={`banners-${day.id}`} style={{ gridColumn: dayColumn, gridRow: 2 }}>
+                  <LodgingBanners
+                    position={day.position}
+                    stays={stays}
+                    selectedEventId={selectedEventId}
+                    onSelectEvent={onSelectEvent}
+                  />
+                </div>,
+                <div key={`axis-${day.id}`} style={{ gridColumn: dayColumn, gridRow: 3 }}>
+                  <DayTimeline
+                    dayId={day.id}
+                    events={onAxis(day)}
+                    range={range}
+                    selectedEventId={selectedEventId}
+                    dropTarget={dropTarget === day.id}
+                    // A Lodging is never drawn on the axis, so its draft has no placeholder there.
+                    draft={draft?.dayId === day.id && draft.kind !== "lodging" ? draft : undefined}
+                    onSelectEvent={onSelectEvent}
+                    onChangeTimes={(eventId: string, times: EventTimes) => onMove(eventId, times)}
+                    onCreateAt={(startMinute) => onCreateAt(day.id, startMinute)}
+                  />
+                </div>,
+              ];
+            })}
+            <div style={{ gridColumn: 2 + lastPosition * 2, gridRow: 1 }}>{insertButton(lastPosition + 1)}</div>
+          </div>
         </div>
-        {trip.days.map((day, index) => {
-          const insertColumn = 2 + index * 2;
-          const dayColumn = insertColumn + 1;
-          return [
-            <div key={`insert-${day.id}`} style={{ gridColumn: insertColumn, gridRow: 1 }}>
-              {insertButton(day.position)}
-            </div>,
-            <section
-              key={`head-${day.id}`}
-              className="day-head"
-              aria-label={`Day ${day.position}`}
-              style={{ gridColumn: dayColumn, gridRow: 1 }}
-            >
-              <h3>Day {day.position}</h3>
-              <div>
-                <button
-                  type="button"
-                  disabled={busy || day.position === 1}
-                  onClick={() => changeDays(() => reorderDays(trip.id, moveBy(dayIds, day.id, -1)))}
-                >
-                  Move earlier
-                </button>
-                <button
-                  type="button"
-                  disabled={busy || day.position === lastPosition}
-                  onClick={() => changeDays(() => reorderDays(trip.id, moveBy(dayIds, day.id, 1)))}
-                >
-                  Move later
-                </button>
-                <button
-                  type="button"
-                  disabled={busy || onAxis(day).length > 0 || lastPosition === 1}
-                  title={onAxis(day).length > 0 ? "Only an empty Day can be deleted" : undefined}
-                  onClick={() => changeDays(() => deleteDay(trip.id, day.id))}
-                >
-                  Delete Day
-                </button>
-              </div>
-              <button type="button" disabled={busy} onClick={() => onCreateAt(day.id, DEFAULT_START_MINUTE)}>
-                Add event
-              </button>
-            </section>,
-            <div key={`banners-${day.id}`} style={{ gridColumn: dayColumn, gridRow: 2 }}>
-              <LodgingBanners
-                position={day.position}
-                stays={stays}
-                selectedEventId={selectedEventId}
-                onSelectEvent={onSelectEvent}
-              />
-            </div>,
-            <div key={`axis-${day.id}`} style={{ gridColumn: dayColumn, gridRow: 3 }}>
-              <DayTimeline
-                events={onAxis(day)}
-                range={range}
-                selectedEventId={selectedEventId}
-                // A Lodging is never drawn on the axis, so its draft has no placeholder there.
-                draft={draft?.dayId === day.id && draft.kind !== "lodging" ? draft : undefined}
-                onSelectEvent={onSelectEvent}
-                onChangeTimes={onChangeTimes}
-                onCreateAt={(startMinute) => onCreateAt(day.id, startMinute)}
-              />
-            </div>,
-          ];
-        })}
-        <div style={{ gridColumn: 2 + lastPosition * 2, gridRow: 1 }}>{insertButton(lastPosition + 1)}</div>
-      </div>
+      </DragDropProvider>
+      {deleting && (
+        <ConfirmDialog
+          title={`Delete Day ${deleting.day.position}?`}
+          confirmLabel="Delete Day"
+          onConfirm={() => performDelete(deleting.day, deleting.plan)}
+          onCancel={() => setPendingDelete(undefined)}
+        >
+          <p>
+            <strong>{plural(deleting.plan.moved.length, "Event")}</strong> will move to the Backlog.
+          </p>
+          <ul>
+            {deleting.day.position < lastPosition && (
+              <li>
+                Later Days move up: Day {deleting.day.position + 1} becomes Day {deleting.day.position}.
+              </li>
+            )}
+            {deleting.plan.stays.map(({ event, before, after }) => (
+              <li key={event.id}>
+                {event.title} loses a night ({before.nights} to {after.nights}).
+              </li>
+            ))}
+          </ul>
+        </ConfirmDialog>
+      )}
+      {toast && <Toast key={toast.id} message={toast.message} actionLabel={toast.undo ? "Undo" : undefined} onAction={toast.undo} onDismiss={dismissToast} />}
     </article>
   );
 }

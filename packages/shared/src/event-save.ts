@@ -1,12 +1,13 @@
 import { parseTime } from "./time-layout";
 import { durationBetween } from "./transport";
-import { detailSchemas, DEFAULT_DURATION_MINUTES, DEFAULT_START_MINUTE, MAX_DURATION_MINUTES, MAX_NIGHTS, TRANSPORT_LABELS } from "./index";
+import { detailSchemas, DEFAULT_DURATION_MINUTES, DEFAULT_START_MINUTE, isHoldingArea, MAX_DURATION_MINUTES, MAX_NIGHTS, TRANSPORT_LABELS } from "./index";
 import type { CreateEventInput, Event, UpdateEventInput } from "./index";
 
 // What the edit panel holds as text. `arrival` is used for Transport events, where the duration
 // is derived from it; `duration` is used for the other kinds. `transportLabel` is "" for none.
 export type EventFields = {
   title: string;
+  // A Day id, or "backlog" or "archive" for an Event outside any Day.
   dayId: string;
   kind: Event["kind"];
   start: string;
@@ -48,7 +49,7 @@ export type SavePlan =
   | { kind: "wait" } // a new Event without a title yet
   | { kind: "nothing" } // nothing differs from what is saved
   | { kind: "error"; message: string }
-  | { kind: "create"; dayId: string; input: CreateEventInput }
+  | { kind: "create"; dayId: string /* or a holding area */; input: CreateEventInput }
   | { kind: "update"; patch: UpdateEventInput };
 
 // Decides what saving the edit panel's fields means: validate them, then either create a new
@@ -57,25 +58,32 @@ export function planEventSave(fields: EventFields, saved: Event | undefined): Sa
   const title = fields.title.trim();
   if (!title) return saved ? { kind: "error", message: "Title is required" } : { kind: "wait" };
 
+  // Outside a Day an Event has no start time: the last one is kept, and a Transport event is
+  // measured by its duration (there is no departure to arrive from).
+  const held = isHoldingArea(fields.dayId);
   const lodging = fields.kind === "lodging" ? lodgingFields(fields) : undefined;
   if (lodging && "error" in lodging) return { kind: "error", message: lodging.error };
 
   // A Lodging has no start time or duration of its own: they are hidden, so keep what is saved.
   const startMinute = lodging
     ? (saved?.startMinute ?? parseTime(fields.start) ?? DEFAULT_START_MINUTE)
-    : parseTime(fields.start);
+    : held
+      ? (parseTime(fields.start) ?? saved?.startMinute ?? DEFAULT_START_MINUTE)
+      : parseTime(fields.start);
   const durationMinutes = lodging
     ? (saved?.durationMinutes ?? typedDuration(fields.duration) ?? DEFAULT_DURATION_MINUTES)
-    : fields.kind === "transport"
+    : fields.kind === "transport" && !held
       ? transportDuration(startMinute, fields.arrival)
       : typedDuration(fields.duration);
   if (startMinute === undefined || durationMinutes === undefined) {
     return {
       kind: "error",
       message:
-        fields.kind === "transport"
+        fields.kind === "transport" && !held
           ? "Enter a departure time and a different arrival time"
-          : `Enter a start time and a duration of 1 to ${MAX_DURATION_MINUTES} whole minutes`,
+          : held
+            ? `Enter a duration of 1 to ${MAX_DURATION_MINUTES} whole minutes`
+            : `Enter a start time and a duration of 1 to ${MAX_DURATION_MINUTES} whole minutes`,
     };
   }
   const transportLabel = TRANSPORT_LABELS.find((label) => label === fields.transportLabel) ?? null;
@@ -114,7 +122,10 @@ export function planEventSave(fields: EventFields, saved: Event | undefined): Sa
 
   const patch: UpdateEventInput = {};
   if (title !== saved.title) patch.title = title;
-  if (fields.dayId !== saved.dayId) patch.dayId = fields.dayId;
+  if (fields.dayId !== (saved.dayId ?? saved.holding)) {
+    if (isHoldingArea(fields.dayId)) patch.area = fields.dayId;
+    else patch.dayId = fields.dayId;
+  }
   if (fields.kind !== saved.kind) patch.kind = fields.kind;
   if (transportLabel !== saved.transportLabel) patch.transportLabel = transportLabel;
   if (startMinute !== saved.startMinute) patch.startMinute = startMinute;

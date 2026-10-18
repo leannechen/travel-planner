@@ -1,9 +1,12 @@
 import {
   daySchema,
+  dayDeletionSchema,
   eventSchema,
   tripSchema,
   type CreateEventInput,
   type CreateTripInput,
+  type HoldingArea,
+  type RestoreDayInput,
   type UpdateEventInput,
 } from "@travel-planner/shared";
 import { z } from "zod";
@@ -43,8 +46,14 @@ export const insertDay = (tripId: string, position: number) =>
 export const reorderDays = (tripId: string, dayIds: string[]) =>
   request(`/api/trips/${tripId}/days/order`, daysSchema, { dayIds }, "PUT");
 
+export const addHeldEvent = (tripId: string, area: HoldingArea, input: CreateEventInput) =>
+  request(`/api/trips/${tripId}/${area}/events`, eventSchema, input);
+
 export const deleteDay = (tripId: string, dayId: string) =>
-  request(`/api/trips/${tripId}/days/${dayId}`, daysSchema, undefined, "DELETE");
+  request(`/api/trips/${tripId}/days/${dayId}`, dayDeletionSchema, undefined, "DELETE");
+
+export const restoreDay = (tripId: string, input: RestoreDayInput) =>
+  request(`/api/trips/${tripId}/days/restore`, dayDeletionSchema, input);
 
 export const updateEvent = (tripId: string, eventId: string, input: UpdateEventInput) =>
   request(`/api/trips/${tripId}/events/${eventId}`, eventSchema, input, "PATCH");

@@ -53,9 +53,18 @@ export const detailSchemas = {
 
 const nightsField = z.number().int().min(1).max(MAX_NIGHTS).nullable();
 
+// Where an Event is outside any Day (PRD §4).
+export const HOLDING_AREAS = ["backlog", "archive"] as const;
+export const holdingAreaSchema = z.enum(HOLDING_AREAS);
+export type HoldingArea = z.infer<typeof holdingAreaSchema>;
+export const isHoldingArea = (place: string): place is HoldingArea => (HOLDING_AREAS as readonly string[]).includes(place);
+
+// An Event is either on a Day (`dayId`) or in a holding area (`holding`), never both. In a holding
+// area its start time is not shown; the last one is kept so scheduling it again starts from there.
 export const eventSchema = z.object({
   id: z.uuid(),
-  dayId: z.uuid(),
+  dayId: z.uuid().nullable(),
+  holding: holdingAreaSchema.nullable(),
   kind: kindSchema,
   title,
   startMinute,
@@ -79,6 +88,8 @@ export const tripSchema = z.object({
   id: z.uuid(),
   title,
   days: z.array(daySchema),
+  backlog: z.array(eventSchema),
+  archive: z.array(eventSchema),
 });
 
 export const createTripInputSchema = z.object({ title });
@@ -120,19 +131,38 @@ export const updateEventInputSchema = z
     email: detailSchemas.email.optional(),
     website: detailSchemas.website.optional(),
     bookingUrl: detailSchemas.bookingUrl.optional(),
+    // Moves the Event onto a Day, or into a holding area; not both.
     dayId: z.uuid().optional(),
+    area: holdingAreaSchema.optional(),
     startMinute: startMinute.optional(),
     durationMinutes: durationMinutes.optional(),
   })
   .refine((input) => Object.values(input).some((v) => v !== undefined), {
     message: "Provide at least one field to change",
+  })
+  .refine((input) => input.dayId === undefined || input.area === undefined, {
+    message: "Give a Day or a holding area, not both",
   });
 
 export type UpdateEventInput = z.infer<typeof updateEventInputSchema>;
 
+// Putting a deleted Day back (undo): the Day with its old position, and the Events that were moved
+// or adjusted when it was deleted, as they were.
+export const restoreDayInputSchema = z.object({
+  dayId: z.uuid(),
+  position: z.number().int().positive(),
+  placements: z.array(z.object({ eventId: z.uuid(), dayId: z.uuid(), nights: nightsField })),
+});
+export type RestoreDayInput = z.infer<typeof restoreDayInputSchema>;
+
+// What deleting a Day returns: the Trip's Days and Backlog after the change.
+export const dayDeletionSchema = z.object({ days: z.array(daySchema), backlog: z.array(eventSchema) });
+export type DayDeletion = z.infer<typeof dayDeletionSchema>;
+
 export type CreateDayInput = z.infer<typeof createDayInputSchema>;
 export type ReorderDaysInput = z.infer<typeof reorderDaysInputSchema>;
 
+export * from "./day-deletion";
 export * from "./day-order";
 export * from "./event-list";
 export * from "./event-save";

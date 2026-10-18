@@ -5,6 +5,7 @@ import type { Event } from "./index";
 const saved: Event = {
   id: "e1",
   dayId: "d1",
+  holding: null,
   kind: "meal",
   title: "Lunch",
   startMinute: 720,
@@ -240,5 +241,49 @@ describe("planEventSave for Description and contacts", () => {
     const transport = { ...saved, kind: "transport" as const, phone: "123" };
     expect(planEventSave({ ...fields, kind: "transport", phone: "999", email: "bad", arrival: "13:00" }, transport)).toEqual({ kind: "nothing" });
     expect(planEventSave({ ...fields, kind: "attraction", bookingUrl: "bad" }, { ...saved, kind: "attraction" })).toEqual({ kind: "nothing" });
+  });
+});
+
+describe("planEventSave and holding areas", () => {
+  it("moves a saved Event into the Backlog or the Archive without touching its time", () => {
+    expect(planEventSave({ ...fields, dayId: "backlog" }, saved)).toEqual({ kind: "update", patch: { area: "backlog" } });
+    expect(planEventSave({ ...fields, dayId: "archive" }, saved)).toEqual({ kind: "update", patch: { area: "archive" } });
+  });
+
+  it("schedules a held Event onto a Day with the start time shown", () => {
+    const held: Event = { ...saved, dayId: null, holding: "backlog" };
+    expect(planEventSave({ ...fields, dayId: "d2", start: "10:30" }, held)).toEqual({
+      kind: "update",
+      patch: { dayId: "d2", startMinute: 630 },
+    });
+  });
+
+  it("does nothing while a held Event stays where it is", () => {
+    const held: Event = { ...saved, dayId: null, holding: "backlog" };
+    expect(planEventSave({ ...fields, dayId: "backlog" }, held)).toEqual({ kind: "nothing" });
+  });
+
+  it("keeps the saved start time of a held Event whatever the hidden field says", () => {
+    const held: Event = { ...saved, dayId: null, holding: "backlog" };
+    expect(planEventSave({ ...fields, dayId: "backlog", start: "", duration: "90" }, held)).toEqual({
+      kind: "update",
+      patch: { durationMinutes: 90 },
+    });
+  });
+
+  it("measures a held Transport event by its duration, not an arrival", () => {
+    const transport = { ...fields, kind: "transport" as const, dayId: "backlog", arrival: "", duration: "120" };
+    expect(planEventSave(transport, undefined)).toEqual({
+      kind: "create",
+      dayId: "backlog",
+      input: { title: "Lunch", kind: "transport", startMinute: 720, durationMinutes: 120, ...noExtras },
+    });
+  });
+
+  it("asks for a valid duration of a held Event", () => {
+    expect(planEventSave({ ...fields, dayId: "backlog", duration: "" }, undefined)).toEqual({
+      kind: "error",
+      message: "Enter a duration of 1 to 1439 whole minutes",
+    });
   });
 });

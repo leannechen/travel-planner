@@ -1,14 +1,17 @@
-import { DEFAULT_DURATION_MINUTES, upsertEvent } from "@travel-planner/shared";
+import { allEvents, DEFAULT_DURATION_MINUTES, DEFAULT_START_MINUTE, isHoldingArea, upsertEvent, type Areas } from "@travel-planner/shared";
 import type { CreateEventInput, Day, Event, Trip, UpdateEventInput } from "@travel-planner/shared";
 import { useEffect, useRef, useState } from "react";
-import { addEvent, createTrip, listTrips, updateEvent } from "./api";
+import { addEvent, addHeldEvent, createTrip, listTrips, updateEvent } from "./api";
 import { EventPanel } from "./EventPanel";
 import { TitleForm } from "./TitleForm";
-import { TripCard } from "./TripCard";
+import { TripCard, type EventMove } from "./TripCard";
 
+// `dayId` is a Day id, or "backlog" or "archive" for an Event outside any Day.
 type Draft = { dayId: string; startMinute: number; durationMinutes: number; kind?: Event["kind"] };
 
 // What the Event panel shows: an existing Event, or a new Event that is not saved yet.
+const emptyAreas: Areas = { days: [], backlog: [], archive: [] };
+
 type Selection = { tripId: string; eventId: string } | { tripId: string; draft: Draft };
 
 export function App() {
@@ -40,9 +43,9 @@ export function App() {
     setTrips((current) => [trip, ...(current ?? [])]);
   }
 
-  function setTripDays(tripId: string, change: (days: Day[]) => Day[]) {
+  function setTripAreas(tripId: string, change: (areas: Areas) => Areas) {
     setTrips((current) =>
-      current?.map((trip) => (trip.id === tripId ? { ...trip, days: change(trip.days) } : trip)),
+      current?.map((trip) => (trip.id === tripId ? { ...trip, ...change(trip) } : trip)),
     );
   }
 
@@ -52,18 +55,20 @@ export function App() {
     setPanelKey(panelKeyRef.current);
   }
 
-  function handleDaysChange(tripId: string, newDays: Day[]) {
-    setTripDays(tripId, () => newDays);
+  // The server's answer after a Day change; the Backlog comes along when the change moves Events.
+  function handleDaysChange(tripId: string, newDays: Day[], backlog?: Event[]) {
+    setTripAreas(tripId, (areas) => ({ ...areas, days: newDays, backlog: backlog ?? areas.backlog }));
     // A new Event set up on a Day that no longer exists cannot be saved.
-    if (selection?.tripId === tripId && "draft" in selection && !newDays.some((d) => d.id === selection.draft.dayId)) {
+    const draftDay = selection && "draft" in selection ? selection.draft.dayId : undefined;
+    if (selection?.tripId === tripId && draftDay && !isHoldingArea(draftDay) && !newDays.some((d) => d.id === draftDay)) {
       select(undefined);
     }
   }
 
-  async function handleCreateEvent(tripId: string, input: CreateEventInput, dayId: string) {
+  async function handleCreateEvent(tripId: string, input: CreateEventInput, place: string) {
     const panel = panelKeyRef.current;
-    const event = await addEvent(tripId, dayId, input);
-    setTripDays(tripId, (days) => upsertEvent(days, event));
+    const event = isHoldingArea(place) ? await addHeldEvent(tripId, place, input) : await addEvent(tripId, place, input);
+    setTripAreas(tripId, (areas) => upsertEvent(areas, event));
     // Follow the new Event only if the user is still on the panel that created it.
     if (panelKeyRef.current === panel) setSelection({ tripId, eventId: event.id });
     return event;
@@ -81,7 +86,7 @@ export function App() {
   function applySaved(tripId: string, event: Event, n: number) {
     if (!isLatestSave(event.id, n)) return;
     confirmed.current.set(event.id, event);
-    setTripDays(tripId, (days) => upsertEvent(days, event));
+    setTripAreas(tripId, (areas) => upsertEvent(areas, event));
   }
 
   async function handleUpdateEvent(tripId: string, eventId: string, input: UpdateEventInput) {
@@ -91,46 +96,46 @@ export function App() {
     return event;
   }
 
-  // Changes only the time of an Event already in `days`, whatever else changed meanwhile.
-  function withTimes(days: Day[], eventId: string, times: { startMinute: number; durationMinutes: number }) {
-    const event = days.flatMap((d) => d.events).find((e) => e.id === eventId);
-    return event ? upsertEvent(days, { ...event, ...times }) : days;
+  // Changes only where and when an Event is, whatever else changed meanwhile.
+  function withMove(areas: Areas, eventId: string, move: EventMove) {
+    const event = allEvents(areas).find((e) => e.id === eventId);
+    return event ? upsertEvent(areas, { ...event, ...move }) : areas;
   }
 
-  // Dragging or resizing: show the new time at once, and put the last saved time back if saving
-  // fails. The panel follows the Event's time by itself.
-  async function handleChangeTimes(
-    tripId: string,
-    eventId: string,
-    times: { startMinute: number; durationMinutes: number },
-  ) {
-    const current = tripsRef.current
-      ?.find((t) => t.id === tripId)
-      ?.days.flatMap((d) => d.events)
-      .find((e) => e.id === eventId);
+  // Dragging, resizing or moving to another area: show the result at once, and put the last saved
+  // place and time back if saving fails. The panel follows the Event by itself.
+  async function handleMove(tripId: string, eventId: string, move: EventMove) {
+    const current = tripsRef.current && allEvents(tripsRef.current.find((t) => t.id === tripId) ?? emptyAreas).find((e) => e.id === eventId);
     if (!current) return;
 
     if (!confirmed.current.has(eventId)) confirmed.current.set(eventId, current);
     const n = beginSave(eventId);
     setSaveError(undefined);
-    setTripDays(tripId, (days) => withTimes(days, eventId, times));
+    setTripAreas(tripId, (areas) => withMove(areas, eventId, move));
+    const { dayId, holding, ...times } = move;
+    const patch: UpdateEventInput = { ...times, ...(holding ? { area: holding } : dayId ? { dayId } : {}) };
     try {
-      applySaved(tripId, await updateEvent(tripId, eventId, times), n);
+      applySaved(tripId, await updateEvent(tripId, eventId, patch), n);
     } catch (err) {
       // A newer save has taken over; its own result decides what is shown.
       if (!isLatestSave(eventId, n)) return;
       const last = confirmed.current.get(eventId)!;
-      setTripDays(tripId, (days) =>
-        withTimes(days, eventId, { startMinute: last.startMinute, durationMinutes: last.durationMinutes }),
+      setTripAreas(tripId, (areas) =>
+        withMove(areas, eventId, {
+          startMinute: last.startMinute,
+          durationMinutes: last.durationMinutes,
+          dayId: last.dayId,
+          holding: last.holding,
+        }),
       );
-      setSaveError(err instanceof Error ? err.message : "Could not save the new time");
+      setSaveError(err instanceof Error ? err.message : "Could not move the Event");
     }
   }
 
   const selectedTrip = selection && trips?.find((t) => t.id === selection.tripId);
   const selectedEvent =
     selectedTrip && selection && "eventId" in selection
-      ? selectedTrip.days.flatMap((d) => d.events).find((e) => e.id === selection.eventId)
+      ? allEvents(selectedTrip).find((e) => e.id === selection.eventId)
       : undefined;
 
   return (
@@ -148,7 +153,7 @@ export function App() {
             onDaysChange={handleDaysChange}
             selectedEventId={mine && "eventId" in mine ? mine.eventId : undefined}
             draft={mine && "draft" in mine ? mine.draft : undefined}
-            onChangeTimes={(eventId, times) => handleChangeTimes(trip.id, eventId, times)}
+            onMove={(eventId, move) => handleMove(trip.id, eventId, move)}
             onSelectEvent={(eventId) => {
               // Clicking the Event that is already open must not reset the panel.
               if (!(mine && "eventId" in mine && mine.eventId === eventId)) select({ tripId: trip.id, eventId });
@@ -157,6 +162,12 @@ export function App() {
               select({
                 tripId: trip.id,
                 draft: { dayId, startMinute, durationMinutes: DEFAULT_DURATION_MINUTES },
+              })
+            }
+            onAddToBacklog={() =>
+              select({
+                tripId: trip.id,
+                draft: { dayId: "backlog", startMinute: DEFAULT_START_MINUTE, durationMinutes: DEFAULT_DURATION_MINUTES },
               })
             }
           />
@@ -169,7 +180,7 @@ export function App() {
           days={selectedTrip.days}
           event={selectedEvent}
           newEvent={"draft" in selection ? selection.draft : undefined}
-          onCreate={(input, dayId) => handleCreateEvent(selectedTrip.id, input, dayId)}
+          onCreate={(input, place) => handleCreateEvent(selectedTrip.id, input, place)}
           onUpdate={(eventId, input) => handleUpdateEvent(selectedTrip.id, eventId, input)}
           onDraftChange={(draft) =>
             setSelection((s) => (s && "draft" in s ? { ...s, draft } : s))

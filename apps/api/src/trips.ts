@@ -1,5 +1,9 @@
 import {
   insertAt,
+  planDayDeletion,
+  type DayDeletion,
+  type HoldingArea,
+  type RestoreDayInput,
   isReorderOf,
   lodgingAfterDelete,
   lodgingAfterInsert,
@@ -13,14 +17,15 @@ import {
   type Trip,
   type UpdateEventInput,
 } from "@travel-planner/shared";
-import { and, asc, desc, eq, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import type { Db } from "./db/client";
 import { days, events, trips } from "./db/schema";
 
-function toEvent(row: typeof events.$inferSelect): Event {
+function toEvent(row: Pick<typeof events.$inferSelect, keyof Event>): Event {
   return {
     id: row.id,
     dayId: row.dayId,
+    holding: row.holding,
     kind: row.kind,
     title: row.title,
     startMinute: row.startMinute,
@@ -40,6 +45,7 @@ function toEvent(row: typeof events.$inferSelect): Event {
 const eventColumns = {
   id: true,
   dayId: true,
+  holding: true,
   kind: true,
   title: true,
   startMinute: true,
@@ -55,8 +61,30 @@ const eventColumns = {
   bookingUrl: true,
 } as const;
 
+const arrivalOrder = [asc(events.createdAt), asc(events.id)];
+
+// The same columns, for a select (the query API above takes `eventColumns`).
+const eventColumnsSelect = {
+  id: events.id,
+  dayId: events.dayId,
+  holding: events.holding,
+  kind: events.kind,
+  title: events.title,
+  startMinute: events.startMinute,
+  durationMinutes: events.durationMinutes,
+  transportLabel: events.transportLabel,
+  nights: events.nights,
+  checkInMinute: events.checkInMinute,
+  checkOutMinute: events.checkOutMinute,
+  description: events.description,
+  phone: events.phone,
+  email: events.email,
+  website: events.website,
+  bookingUrl: events.bookingUrl,
+};
+
 export async function listTrips(db: Db, ownerId: string): Promise<Trip[]> {
-  return db.query.trips.findMany({
+  const rows = await db.query.trips.findMany({
     where: eq(trips.ownerId, ownerId),
     orderBy: [desc(trips.createdAt), desc(trips.id)],
     columns: { id: true, title: true },
@@ -66,13 +94,23 @@ export async function listTrips(db: Db, ownerId: string): Promise<Trip[]> {
         columns: { id: true, position: true },
         with: {
           events: {
-            orderBy: [asc(events.startMinute), asc(events.createdAt), asc(events.id)],
+            orderBy: [asc(events.startMinute), ...arrivalOrder],
             columns: eventColumns,
           },
         },
       },
+      events: {
+        where: isNotNull(events.holding),
+        orderBy: arrivalOrder,
+        columns: eventColumns,
+      },
     },
   });
+  return rows.map(({ events: held, ...trip }) => ({
+    ...trip,
+    backlog: held.filter((e) => e.holding === "backlog"),
+    archive: held.filter((e) => e.holding === "archive"),
+  }));
 }
 
 export async function createTrip(db: Db, ownerId: string, input: CreateTripInput): Promise<Trip> {
@@ -83,6 +121,8 @@ export async function createTrip(db: Db, ownerId: string, input: CreateTripInput
       id: trip!.id,
       title: trip!.title,
       days: [{ id: day!.id, position: day!.position, events: [] }],
+      backlog: [],
+      archive: [],
     };
   });
 }
@@ -113,14 +153,37 @@ export async function addEvent(
     if (!day) return undefined;
     if (input.kind === "lodging" && !(await stayFits(tx, tripId, dayId, input.nights))) return "invalid-lodging";
 
-    const [event] = await tx.insert(events).values({ dayId, ...input }).returning();
+    const [event] = await tx.insert(events).values({ tripId, dayId, ...input }).returning();
     return toEvent(event!);
   });
 }
 
-// Changes the given fields of an Event; `dayId` moves it to another Day of the same Trip.
-// Returns undefined when the Event is not in a Trip owned by this user, and "invalid-day" when
-// the target Day is not in the Trip. Takes the same shared Trip lock as addEvent.
+// Adds an Event to the Backlog or the Archive. Returns undefined when the user does not own the
+// Trip. A Lodging still needs its nights, but they need not fit the Trip's Days yet.
+export async function addHeldEvent(
+  db: Db,
+  ownerId: string,
+  tripId: string,
+  holding: HoldingArea,
+  input: CreateEventInput,
+): Promise<Event | undefined | "invalid-lodging"> {
+  if (input.kind === "lodging" && !input.nights) return "invalid-lodging";
+  return db.transaction(async (tx) => {
+    const [trip] = await tx
+      .select({ id: trips.id })
+      .from(trips)
+      .where(and(eq(trips.id, tripId), eq(trips.ownerId, ownerId)))
+      .for("share");
+    if (!trip) return undefined;
+    const [event] = await tx.insert(events).values({ tripId, holding, ...input }).returning();
+    return toEvent(event!);
+  });
+}
+
+// Changes the given fields of an Event; `dayId` moves it onto a Day of the same Trip and `area`
+// into the Backlog or the Archive (its start time is kept). Returns undefined when the Event is
+// not in a Trip owned by this user, and "invalid-day" when the target Day is not in the Trip.
+// Takes the same shared Trip lock as addEvent.
 export async function updateEvent(
   db: Db,
   ownerId: string,
@@ -139,10 +202,9 @@ export async function updateEvent(
     const [current] = await tx
       .select({ id: events.id, kind: events.kind, nights: events.nights, dayId: events.dayId })
       .from(events)
-      .innerJoin(days, eq(events.dayId, days.id))
-      .where(and(eq(events.id, eventId), eq(days.tripId, tripId)))
+      .where(and(eq(events.id, eventId), eq(events.tripId, tripId)))
       // So two updates of one Event run one after another, each checking the latest values.
-      .for("update", { of: events });
+      .for("update");
     if (!current) return undefined;
 
     if (input.dayId) {
@@ -153,13 +215,21 @@ export async function updateEvent(
       if (!target) return "invalid-day";
     }
 
+    // Where the Event ends up: a Day (its id), or a holding area (undefined).
+    const finalDayId = input.area ? undefined : (input.dayId ?? current.dayId ?? undefined);
     const kind = input.kind ?? current.kind;
     const nights = input.nights !== undefined ? input.nights : current.nights;
-    if (kind === "lodging" && !(await stayFits(tx, tripId, input.dayId ?? current.dayId, nights))) {
+    if (kind === "lodging" && finalDayId && !(await stayFits(tx, tripId, finalDayId, nights))) {
       return "invalid-lodging";
     }
 
-    const [event] = await tx.update(events).set(input).where(eq(events.id, eventId)).returning();
+    const { area, ...fields } = input;
+    const place = area ? { dayId: null, holding: area } : input.dayId ? { holding: null } : {};
+    const [event] = await tx
+      .update(events)
+      .set({ ...fields, ...place })
+      .where(eq(events.id, eventId))
+      .returning();
     return toEvent(event!);
   });
 }
@@ -281,39 +351,87 @@ export async function reorderDays(
   });
 }
 
-// Only an empty Day can be deleted, and a Trip always keeps at least one Day.
+async function loadBacklog(tx: Tx, tripId: string): Promise<Event[]> {
+  const rows = await tx
+    .select(eventColumnsSelect)
+    .from(events)
+    .where(and(eq(events.tripId, tripId), eq(events.holding, "backlog")))
+    .orderBy(...arrivalOrder);
+  return rows.map(toEvent);
+}
+
+// Deletes a Day (a Trip keeps at least one). Its Events go to the Backlog, with their details and
+// start time; a Lodging only loses a night, unless that was its only one (PRD §3.1, §3.2). Later
+// Days are renumbered. Returns the Trip's Days and Backlog after the change.
 export async function deleteDay(
   db: Db,
   ownerId: string,
   tripId: string,
   dayId: string,
-): Promise<Day[] | undefined | "not-empty" | "last-day" | "lodging-would-end"> {
+): Promise<DayDeletion | undefined | "last-day"> {
   return db.transaction(async (tx) => {
     const ids = await lockTripDays(tx, ownerId, tripId);
     if (!ids?.includes(dayId)) return undefined;
     if (ids.length === 1) return "last-day";
 
-    // A check-in alone does not make a Day non-empty; the stay is adjusted instead.
-    const [event] = await tx
-      .select({ id: events.id })
-      .from(events)
-      .where(and(eq(events.dayId, dayId), ne(events.kind, "lodging")))
-      .limit(1);
-    if (event) return "not-empty";
+    const plan = planDayDeletion(await loadDays(tx, tripId), dayId);
+    const movedIds = new Set(plan.moved.map((e) => e.id));
+    if (movedIds.size > 0) {
+      // Before the Day is deleted, so none of them is cascaded away with it.
+      await tx.update(events).set({ dayId: null, holding: "backlog" }).where(inArray(events.id, [...movedIds]));
+    }
 
     const position = ids.indexOf(dayId) + 1;
     const adjusted: PlacedStay[] = [];
     for (const { id, stay } of await loadStays(tx, tripId)) {
       const result = lodgingAfterDelete(stay, position);
-      if (result === "empty") return "lodging-would-end"; // moves to the Backlog once step 8 exists
-      adjusted.push({ id, stay: result });
+      if (result !== "empty") adjusted.push({ id, stay: result });
     }
 
     const order = removeId(ids, dayId);
-    // Before the Day is deleted, so no stay is cascaded away with it.
+    // Also before the deletion, for the same reason.
     await placeStays(tx, order, adjusted);
     await tx.delete(days).where(eq(days.id, dayId));
     await applyDayOrder(tx, tripId, order);
-    return loadDays(tx, tripId);
+    return { days: await loadDays(tx, tripId), backlog: await loadBacklog(tx, tripId) };
+  });
+}
+
+// Undoes deleteDay: the Day comes back with its old id at its old position, and each placement
+// puts an Event back on the Day (and, for a Lodging, its nights) as it was. Placements are
+// trusted to be what the client saw before the deletion, so they only need to name this Trip's
+// Events and Days. Returns undefined when the user does not own the Trip.
+export async function restoreDay(
+  db: Db,
+  ownerId: string,
+  tripId: string,
+  input: RestoreDayInput,
+): Promise<DayDeletion | undefined | "invalid" | "exists"> {
+  return db.transaction(async (tx) => {
+    const ids = await lockTripDays(tx, ownerId, tripId);
+    if (!ids) return undefined;
+    if (input.position > ids.length + 1) return "invalid";
+    const [taken] = await tx.select({ id: days.id }).from(days).where(eq(days.id, input.dayId));
+    if (taken) return "exists";
+
+    const order = insertAt(ids, input.dayId, input.position);
+    const placed = input.placements.map((p) => p.eventId);
+    const own = placed.length
+      ? await tx.select({ id: events.id }).from(events).where(and(eq(events.tripId, tripId), inArray(events.id, placed)))
+      : [];
+    const dayKnown = (id: string) => order.includes(id);
+    if (new Set(placed).size !== placed.length || own.length !== placed.length || !input.placements.every((p) => dayKnown(p.dayId))) {
+      return "invalid";
+    }
+
+    await tx.insert(days).values({ id: input.dayId, tripId, position: ids.length + 1 });
+    await applyDayOrder(tx, tripId, order);
+    for (const p of input.placements) {
+      await tx
+        .update(events)
+        .set({ dayId: p.dayId, holding: null, ...(p.nights === null ? {} : { nights: p.nights }) })
+        .where(eq(events.id, p.eventId));
+    }
+    return { days: await loadDays(tx, tripId), backlog: await loadBacklog(tx, tripId) };
   });
 }

@@ -16,7 +16,7 @@ import {
   type HoldingArea,
   type Trip,
 } from "@travel-planner/shared";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { deleteDay, insertDay, reorderDays, restoreDay } from "./api";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { accessibility, DayTimeline, HourLabels, PX_PER_HOUR, sensors, type EventTimes } from "./DayTimeline";
@@ -47,13 +47,14 @@ type Toasted = { id: number; message: string; undo?: () => void };
 // Where the pointer is, as a drop target: a Day's axis (its id) or a holding area. The Event being
 // dragged is skipped, as it is under the pointer itself; beside an axis (above, below) the Day's
 // column still counts, so a drag past the end of the axis lands at its edge.
-function dropTargetAt(x: number, y: number, draggedId: string): string | undefined {
+// Only targets inside this Trip (`root`) count, as the page shows several Trips.
+function dropTargetAt(root: HTMLElement, x: number, y: number, draggedId: string): string | undefined {
   for (const element of document.elementsFromPoint(x, y)) {
     if (element.closest<HTMLElement>("[data-event-id]")?.dataset.eventId === draggedId) continue;
     const target = element.closest<HTMLElement>("[data-drop]");
-    if (target) return target.dataset.drop;
+    if (target && root.contains(target)) return target.dataset.drop;
   }
-  for (const timeline of document.querySelectorAll<HTMLElement>(".day-timeline[data-drop]")) {
+  for (const timeline of root.querySelectorAll<HTMLElement>(".day-timeline[data-drop]")) {
     const box = timeline.getBoundingClientRect();
     if (x >= box.left && x <= box.right) return timeline.dataset.drop;
   }
@@ -61,6 +62,7 @@ function dropTargetAt(x: number, y: number, draggedId: string): string | undefin
 }
 
 export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectEvent, onCreateAt, onAddToBacklog, onMove }: Props) {
+  const root = useRef<HTMLElement>(null);
   const [error, setError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
   // The Day waiting for the user to confirm its deletion.
@@ -74,6 +76,8 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
     if (busy) return;
     setBusy(true);
     setError(undefined);
+    // The Days are about to change, so the last deletion can no longer be undone safely.
+    setToast(undefined);
     try {
       onDaysChange(trip.id, await action());
     } catch (err) {
@@ -93,6 +97,7 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
   async function performDelete(day: Day, plan: DayDeletionPlan) {
     if (busy) return;
     setPendingDelete(undefined);
+    setToast(undefined);
     setBusy(true);
     setError(undefined);
     // What undo has to put back: the moved Events, and the stays that lost a night.
@@ -163,7 +168,7 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
       if (target !== event.dayId || startMinute !== event.startMinute) onMove(event.id, { dayId: target, startMinute });
       return;
     }
-    const top = document.querySelector<HTMLElement>(`.day-timeline[data-drop="${target}"]`)?.getBoundingClientRect().top ?? 0;
+    const top = root.current?.querySelector<HTMLElement>(`.day-timeline[data-drop="${target}"]`)?.getBoundingClientRect().top ?? 0;
     onMove(event.id, { dayId: target, startMinute: minuteAtOffset(pointerY - top, range, PX_PER_HOUR) });
   }
 
@@ -172,7 +177,7 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
   const deleting = pendingDelete;
 
   return (
-    <article>
+    <article ref={root}>
       <h2>{trip.title}</h2>
       {error && <p role="alert">{error}</p>}
       <DragDropProvider
@@ -180,7 +185,7 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
         plugins={(defaults) => [...defaults.filter((p) => p !== Accessibility), accessibility(events)]}
         onDragMove={({ operation }) => {
           const pointer = operation.position.current;
-          setDropTarget(operation.source ? dropTargetAt(pointer.x, pointer.y, String(operation.source.id)) : undefined);
+          setDropTarget(operation.source ? dropTargetAt(root.current!, pointer.x, pointer.y, String(operation.source.id)) : undefined);
         }}
         onDragEnd={({ operation, canceled }) => {
           endGesture();
@@ -188,7 +193,7 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
           const event = events.find((e) => e.id === operation.source?.id);
           if (canceled || !event) return;
           const pointer = operation.position.current;
-          const target = dropTargetAt(pointer.x, pointer.y, event.id);
+          const target = dropTargetAt(root.current!, pointer.x, pointer.y, event.id);
           if (target) drop(event, target, pointer.y, operation.transform.y);
         }}
       >

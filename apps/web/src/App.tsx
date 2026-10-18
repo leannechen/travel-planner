@@ -111,7 +111,9 @@ export function App() {
     if (!confirmed.current.has(eventId)) confirmed.current.set(eventId, current);
     const n = beginSave(eventId);
     setSaveError(undefined);
-    setTripAreas(tripId, (areas) => withMove(areas, eventId, move));
+    // A place is a Day or a holding area, never both: show it whole before the server answers.
+    const shown: EventMove = move.holding ? { ...move, dayId: null } : move.dayId ? { ...move, holding: null } : move;
+    setTripAreas(tripId, (areas) => withMove(areas, eventId, shown));
     const { dayId, holding, ...times } = move;
     const patch: UpdateEventInput = { ...times, ...(holding ? { area: holding } : dayId ? { dayId } : {}) };
     try {

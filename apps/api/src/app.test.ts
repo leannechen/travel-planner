@@ -837,6 +837,14 @@ describe("Backlog and Archive", () => {
     expect(listed.days[1]!.events.map((e) => e.id)).toEqual([event.id]);
   });
 
+  it("rejects making an Event in a holding area a Lodging without nights", async () => {
+    const { trip } = await createTrip("Kyoto");
+    const event = eventSchema.parse(await (await post(`/api/trips/${trip.id}/backlog/events`, { title: "Thing" })).json());
+    expect((await patch(trip.id, event.id, { kind: "lodging" })).status).toBe(400);
+    expect((await patch(trip.id, event.id, { kind: "lodging", nights: 2 })).status).toBe(200);
+    expect((await patch(trip.id, event.id, { nights: null })).status).toBe(400);
+  });
+
   it("rejects a change that names both a Day and a holding area", async () => {
     const { trip, ids } = await tripWithDays(1);
     const event = eventSchema.parse(await (await post(`/api/trips/${trip.id}/days/${ids[0]}/events`, { title: "x" })).json());
@@ -944,6 +952,35 @@ describe("restoring a deleted Day (undo)", () => {
     expect((await restore(trip.id, { dayId: fresh, position: 4, placements: [] })).status).toBe(400);
     expect((await restore(trip.id, { dayId: fresh, position: 1, placements: [{ eventId: foreign.id, dayId: fresh, nights: null }] })).status).toBe(400);
     expect((await restore(trip.id, { dayId: fresh, position: 1, placements: [{ eventId: foreign.id, dayId: ids[0], nights: null }] })).status).toBe(400);
+    expect(await positionsOf(trip.id)).toHaveLength(2);
+  });
+
+  it("does not bring back an Event that was archived since the deletion", async () => {
+    const { trip, ids } = await tripWithDays(2);
+    const gion = eventSchema.parse(await (await post(`/api/trips/${trip.id}/days/${ids[1]}/events`, { title: "Gion" })).json());
+    await deleteDay(trip.id, ids[1]!);
+    await send("PATCH", `/api/trips/${trip.id}/events/${gion.id}`, { area: "archive" });
+
+    const res = await restore(trip.id, { dayId: ids[1], position: 2, placements: [{ eventId: gion.id, dayId: ids[1], nights: null }] });
+    const result = dayDeletionSchema.parse(await res.json());
+
+    expect(res.status).toBe(201);
+    expect(result.days[1]!.events).toEqual([]);
+    const [listed] = z.array(tripSchema).parse(await (await fetch(`${app.baseUrl}/api/trips`)).json()).filter((t) => t.id === trip.id);
+    expect(listed!.archive.map((e) => e.id)).toEqual([gion.id]);
+  });
+
+  it("refuses to put a stay back where its nights no longer fit", async () => {
+    const { trip, ids } = await tripWithDays(3);
+    const stay = eventSchema.parse(
+      await (await post(`/api/trips/${trip.id}/days/${ids[0]}/events`, { title: "Hotel", kind: "lodging", nights: 2 })).json(),
+    );
+    await deleteDay(trip.id, ids[1]!); // the stay now has 1 night
+    await send("PUT", `/api/trips/${trip.id}/days/order`, { dayIds: [ids[2], ids[0]] });
+
+    const res = await restore(trip.id, { dayId: ids[1], position: 2, placements: [{ eventId: stay.id, dayId: ids[0], nights: 2 }] });
+
+    expect(res.status).toBe(400);
     expect(await positionsOf(trip.id)).toHaveLength(2);
   });
 

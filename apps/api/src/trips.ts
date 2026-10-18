@@ -219,6 +219,7 @@ export async function updateEvent(
     const finalDayId = input.area ? undefined : (input.dayId ?? current.dayId ?? undefined);
     const kind = input.kind ?? current.kind;
     const nights = input.nights !== undefined ? input.nights : current.nights;
+    if (kind === "lodging" && !nights) return "invalid-lodging";
     if (kind === "lodging" && finalDayId && !(await stayFits(tx, tripId, finalDayId, nights))) {
       return "invalid-lodging";
     }
@@ -401,7 +402,23 @@ export async function deleteDay(
 // puts an Event back on the Day (and, for a Lodging, its nights) as it was. Placements are
 // trusted to be what the client saw before the deletion, so they only need to name this Trip's
 // Events and Days. Returns undefined when the user does not own the Trip.
+class RestoreRefused extends Error {}
+
 export async function restoreDay(
+  db: Db,
+  ownerId: string,
+  tripId: string,
+  input: RestoreDayInput,
+): Promise<DayDeletion | undefined | "invalid" | "exists"> {
+  try {
+    return await restoreInTransaction(db, ownerId, tripId, input);
+  } catch (err) {
+    if (err instanceof RestoreRefused) return "invalid";
+    throw err;
+  }
+}
+
+async function restoreInTransaction(
   db: Db,
   ownerId: string,
   tripId: string,
@@ -417,20 +434,33 @@ export async function restoreDay(
     const order = insertAt(ids, input.dayId, input.position);
     const placed = input.placements.map((p) => p.eventId);
     const own = placed.length
-      ? await tx.select({ id: events.id }).from(events).where(and(eq(events.tripId, tripId), inArray(events.id, placed)))
+      ? await tx
+          .select({ id: events.id, holding: events.holding })
+          .from(events)
+          .where(and(eq(events.tripId, tripId), inArray(events.id, placed)))
       : [];
     const dayKnown = (id: string) => order.includes(id);
     if (new Set(placed).size !== placed.length || own.length !== placed.length || !input.placements.every((p) => dayKnown(p.dayId))) {
       return "invalid";
     }
 
+    // An Event archived since the deletion stays archived.
+    const archived = new Set(own.filter((e) => e.holding === "archive").map((e) => e.id));
+    const placements = input.placements.filter((p) => !archived.has(p.eventId));
+
     await tx.insert(days).values({ id: input.dayId, tripId, position: ids.length + 1 });
     await applyDayOrder(tx, tripId, order);
-    for (const p of input.placements) {
+    for (const p of placements) {
       await tx
         .update(events)
         .set({ dayId: p.dayId, holding: null, ...(p.nights === null ? {} : { nights: p.nights }) })
         .where(eq(events.id, p.eventId));
+    }
+    // Days may have changed since the deletion, so every stay must still fit.
+    for (const { id, stay } of await loadStays(tx, tripId)) {
+      if (placements.some((p) => p.eventId === id) && !lodgingFits(stay, order.length)) {
+        throw new RestoreRefused();
+      }
     }
     return { days: await loadDays(tx, tripId), backlog: await loadBacklog(tx, tripId) };
   });

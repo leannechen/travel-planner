@@ -14,8 +14,8 @@ describe("arrivalOf", () => {
     expect(arrivalOf(1380, 60)).toEqual({ minute: 0, dayOffset: 1 });
   });
 
-  it("can span a whole day", () => {
-    expect(arrivalOf(600, 1440)).toEqual({ minute: 600, dayOffset: 1 });
+  it("can run for almost a whole day", () => {
+    expect(arrivalOf(600, 1439)).toEqual({ minute: 599, dayOffset: 1 });
   });
 });
 
@@ -33,8 +33,8 @@ describe("durationBetween", () => {
   });
 
   it("round-trips with arrivalOf", () => {
-    for (const [start, duration] of [[0, 1], [1439, 1440], [720, 600], [1380, 300]] as const) {
-      expect(durationBetween(start, arrivalOf(start, duration).minute)).toBe(duration === 1440 ? undefined : duration);
+    for (const [start, duration] of [[0, 1], [1439, 1439], [720, 600], [1380, 300]] as const) {
+      expect(durationBetween(start, arrivalOf(start, duration).minute)).toBe(duration);
     }
   });
 });

@@ -49,7 +49,7 @@ export const events = pgTable(
   },
   (t) => [
     check("events_start_minute_range", sql`${t.startMinute} between 0 and 1439`),
-    check("events_duration_range", sql`${t.durationMinutes} between 1 and 1440`),
+    check("events_duration_range", sql`${t.durationMinutes} between 1 and 1439`),
   ],
 );
 

@@ -9,7 +9,8 @@ export type HealthResponse = z.infer<typeof healthResponseSchema>;
 const title = z.string().trim().min(1, "Title is required").max(200);
 
 // Minutes from 00:00 of the Day. An Event may run past midnight; the axis cuts it off there.
-export const MAX_DURATION_MINUTES = 1440;
+// One minute short of a day, so a Transport event never arrives at its own departure time.
+export const MAX_DURATION_MINUTES = 1439;
 const startMinute = z.number().int().min(0).max(1439);
 const durationMinutes = z.number().int().min(1).max(MAX_DURATION_MINUTES);
 

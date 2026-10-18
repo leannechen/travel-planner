@@ -35,7 +35,7 @@ describe("planEventSave for a new Event", () => {
   });
 
   it("reports a bad time or duration", () => {
-    for (const bad of [{ start: "" }, { duration: "" }, { duration: "0" }, { duration: "1.5" }, { duration: "1441" }]) {
+    for (const bad of [{ start: "" }, { duration: "" }, { duration: "0" }, { duration: "1.5" }, { duration: "1440" }]) {
       expect(planEventSave({ ...fields, ...bad }, undefined).kind).toBe("error");
     }
   });
@@ -113,10 +113,5 @@ describe("planEventSave with kinds", () => {
     expect(
       planEventSave({ ...fields, kind: "transport", arrival: "14:15" }, existing),
     ).toEqual({ kind: "update", patch: { durationMinutes: 135 } });
-  });
-
-  it("refuses a 24-hour Event as Transport, since its arrival equals its departure", () => {
-    const full = { ...saved, startMinute: 0, durationMinutes: 1440 };
-    expect(planEventSave({ ...fields, kind: "transport", start: "00:00", arrival: "00:00" }, full).kind).toBe("error");
   });
 });

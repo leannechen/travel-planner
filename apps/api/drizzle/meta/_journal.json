@@ -29,6 +29,13 @@
       "when": 1792312049540,
       "tag": "0003_event_kinds",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792313069192,
+      "tag": "0004_max_duration_1439",
+      "breakpoints": true
     }
   ]
 }

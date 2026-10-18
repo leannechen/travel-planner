@@ -371,7 +371,7 @@ describe("Event times", () => {
       { startMinute: 1440 },
       { startMinute: 90.5 },
       { durationMinutes: 0 },
-      { durationMinutes: 1441 },
+      { durationMinutes: 1440 },
       { durationMinutes: "60" },
     ]) {
       expect((await addEvent(trip.id, dayId, { title: "Bad", ...bad })).status).toBe(400);
@@ -384,7 +384,7 @@ describe("Event times", () => {
 
     for (const times of [
       { startMinute: 0, durationMinutes: 1 },
-      { startMinute: 1439, durationMinutes: 1440 },
+      { startMinute: 1439, durationMinutes: 1439 },
       { startMinute: 1380, durationMinutes: 240 },
     ]) {
       const res = await addEvent(trip.id, dayId, { title: "Edge", ...times });

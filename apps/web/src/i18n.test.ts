@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { detectLanguage, translate } from "./i18n";
+import { SHORTCUTS } from "@travel-planner/shared";
 import { en, zh } from "./messages";
 
 const placeholders = (text: string) => [...text.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
@@ -10,6 +11,9 @@ describe("messages", () => {
     for (const key of Object.keys(en) as (keyof typeof en)[]) {
       expect(placeholders(zh[key]), key).toEqual(placeholders(en[key]));
     }
+  });
+  it("describes every shortcut", () => {
+    for (const { id } of SHORTCUTS) expect(`shortcut.${id}` in en, id).toBe(true);
   });
   it("uses the design's Chinese terms", () => {
     expect(zh["area.backlog"]).toBe("未決區");

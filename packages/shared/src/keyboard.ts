@@ -46,20 +46,21 @@ export function adjacentDayId(areas: Areas, dayId: string, step: -1 | 1): string
 }
 
 // `macKeys` is shown instead of `keys` on a Mac.
-export type Shortcut = { id: string; keys: string; macKeys?: string; label: string; group: "Events" | "Selection" | "Anywhere" };
+export type Shortcut = { id: string; keys: string; macKeys?: string; group: "Events" | "Selection" | "Anywhere" };
 
-// Single keys work when no text field has focus; the Notes shortcut works everywhere.
+// Single keys work when no text field has focus; the Notes shortcut works everywhere. The texts
+// that describe them are in the interface messages (`shortcut.<id>`).
 export const SHORTCUTS: Shortcut[] = [
-  { id: "new-event", keys: "N", label: "New Event on the selected Event's Day", group: "Events" },
-  { id: "new-backlog", keys: "B", label: "New Event in the Backlog", group: "Events" },
-  { id: "open", keys: "Enter", label: "Edit the selected Event", group: "Events" },
-  { id: "delete", keys: "Delete", label: "Delete the selected Event", group: "Events" },
-  { id: "nudge", keys: "Shift+↑ / Shift+↓", label: "Move the selected Event 15 minutes earlier or later", group: "Events" },
-  { id: "day", keys: "Shift+← / Shift+→", label: "Move the selected Event to the previous or next Day", group: "Events" },
-  { id: "move", keys: "↑ ↓ ← →", label: "Select another Event", group: "Selection" },
-  { id: "clear", keys: "Esc", label: "Clear the selection, or close the panel", group: "Selection" },
-  { id: "notes", keys: "Ctrl+Alt+N", macKeys: "Ctrl+Option+N", label: "Open or close Notes", group: "Anywhere" },
-  { id: "help", keys: "?", label: "Show this list", group: "Anywhere" },
+  { id: "new-event", keys: "N", group: "Events" },
+  { id: "new-backlog", keys: "B", group: "Events" },
+  { id: "open", keys: "Enter", group: "Events" },
+  { id: "delete", keys: "Delete", group: "Events" },
+  { id: "nudge", keys: "Shift+↑ / Shift+↓", group: "Events" },
+  { id: "day", keys: "Shift+← / Shift+→", group: "Events" },
+  { id: "move", keys: "↑ ↓ ← →", group: "Selection" },
+  { id: "clear", keys: "Esc", group: "Selection" },
+  { id: "notes", keys: "Ctrl+Alt+N", macKeys: "Ctrl+Option+N", group: "Anywhere" },
+  { id: "help", keys: "?", group: "Anywhere" },
 ];
 
 export const keysOf = (shortcut: Shortcut, mac = false) => (mac && shortcut.macKeys) || shortcut.keys;

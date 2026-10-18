@@ -4,6 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Travel Planner</title>
+    <script>
+      // Apply the saved theme and language before the first paint, so there is no flash.
+      try {
+        var theme = localStorage.getItem("travel-planner.theme");
+        if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
+        var language = localStorage.getItem("travel-planner.language");
+        if (language === "zh") document.documentElement.lang = "zh-Hant";
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -39,7 +39,10 @@ export function TodosPanel({ trip, onSelectEvent, onAdd, onToggle, onDelete }: P
               <button type="button" onClick={() => onSelectEvent(group.eventId!)}>
                 {group.title}
               </button>
-              <span className="hint"> · {group.place}</span>
+              <span className="hint">
+                {" · "}
+                {typeof group.place === "object" && group.place ? t("day.title", { n: group.place.day }) : t(group.place === "archive" ? "area.archive" : "area.backlog")}
+              </span>
             </h4>
             <TodoList todos={group.todos} label={t("todo.ofEvent", { title: group.title ?? "" })} onToggle={onToggle} onDelete={onDelete} />
           </section>

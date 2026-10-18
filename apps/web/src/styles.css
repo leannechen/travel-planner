@@ -42,7 +42,9 @@
   }
 }
 
+/* Same as the media query above. */
 :root[data-theme="dark"] {
+  color-scheme: dark;
   /* The same colors as above: CSS cannot share them between a media query and an attribute. */
   --bg: #0e1526;
   --surface: #141d33;
@@ -63,10 +65,6 @@
 
 :root[data-theme="light"] {
   color-scheme: light;
-}
-
-:root[data-theme="dark"] {
-  color-scheme: dark;
 }
 
 body {
@@ -1025,10 +1023,17 @@ main.has-panel .todos-panel {
   color: var(--muted);
 }
 
-.sidebar-controls label span,
-.sidebar-shortcuts {
-  /* Only icons and the language code fit the slim sidebar on desktop. */
-  font-size: 0.6875rem;
+/* The slim desktop sidebar shows icons and the language code; the texts appear in the phone menu. */
+.sidebar-shortcuts span,
+.sidebar-controls label span {
+  display: none;
+}
+
+@media (max-width: 40rem) {
+  .sidebar-shortcuts span,
+  .sidebar-controls label span {
+    display: inline;
+  }
 }
 
 .sidebar select {

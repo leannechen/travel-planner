@@ -63,8 +63,8 @@ describe("todoGroups", () => {
     const c = todo(E1);
     expect(todoGroups([a, b, c], events, days)).toEqual([
       { eventId: null, title: null, place: null, todos: [b] },
-      { eventId: E1, title: "Fushimi Inari", place: "Day 1", todos: [c] },
-      { eventId: E2, title: "Ramen", place: "Backlog", todos: [a] },
+      { eventId: E1, title: "Fushimi Inari", place: { day: 1 }, todos: [c] },
+      { eventId: E2, title: "Ramen", place: "backlog", todos: [a] },
     ]);
   });
 

@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useState, type ReactNode } from "react";
 import { detectLanguage, isLanguage, isTheme, LANGUAGES, translate, type Language, type Params, type Theme } from "./i18n";
 import type { MessageKey } from "./messages";
 
@@ -42,12 +42,12 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     return isTheme(saved) ? saved : "system";
   });
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     document.documentElement.lang = LANGUAGES.find((l) => l.id === language)!.htmlLang;
   }, [language]);
 
   // "system" leaves the attribute off so the stylesheet follows the system setting.
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (theme === "system") document.documentElement.removeAttribute("data-theme");
     else document.documentElement.dataset.theme = theme;
   }, [theme]);

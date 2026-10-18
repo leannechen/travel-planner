@@ -19,10 +19,11 @@ export function dropEventTodos(todos: readonly Todo[], eventId: string): Todo[] 
   return todos.filter((t) => t.eventId !== eventId);
 }
 
-export type TodoGroup = { eventId: string | null; title: string | null; place: string | null; todos: Todo[] };
+export type TodoPlace = { day: number } | "backlog" | "archive";
+export type TodoGroup = { eventId: string | null; title: string | null; place: TodoPlace | null; todos: Todo[] };
 
 // The Todos panel: Trip Todos first (always shown), then one group per Event that has Todos, in
-// the order of the Events given. `place` is "Day 2", "Backlog" or "Archive".
+// the order of the Events given. `place` is `{ day: 2 }`, "backlog" or "archive"; the interface words it.
 export function todoGroups(
   todos: readonly Todo[],
   events: readonly Pick<Event, "id" | "title" | "dayId" | "holding">[],
@@ -33,7 +34,7 @@ export function todoGroups(
     const own = todos.filter((t) => t.eventId === event.id);
     if (own.length === 0) continue;
     const day = days.find((d) => d.id === event.dayId);
-    const place = day ? `Day ${day.position}` : event.holding === "archive" ? "Archive" : "Backlog";
+    const place: TodoPlace = day ? { day: day.position } : event.holding === "archive" ? "archive" : "backlog";
     groups.push({ eventId: event.id, title: event.title, place, todos: own });
   }
   return groups;

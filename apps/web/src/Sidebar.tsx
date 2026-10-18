@@ -1,4 +1,4 @@
-import { Menu, Moon, Sun, SunMoon } from "lucide-react";
+import { CircleHelp, Menu, Moon, Sun, SunMoon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { tip } from "./shortcuts";
 import { LANGUAGES, isLanguage, type Theme } from "./i18n";
@@ -20,14 +20,19 @@ export function Sidebar({ onShowShortcuts }: { onShowShortcuts: () => void }) {
   // The phone menu closes on Escape or a click outside it.
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    // Captured first, and marked handled, so the page's own Escape (clear the selection) stays out.
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.preventDefault();
+      setOpen(false);
+    };
     const onPointer = (e: PointerEvent) => {
       if (!menu.current?.contains(e.target as Node)) setOpen(false);
     };
-    window.addEventListener("keydown", onKey);
+    window.addEventListener("keydown", onKey, true);
     window.addEventListener("pointerdown", onPointer);
     return () => {
-      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("keydown", onKey, true);
       window.removeEventListener("pointerdown", onPointer);
     };
   }, [open]);
@@ -40,10 +45,10 @@ export function Sidebar({ onShowShortcuts }: { onShowShortcuts: () => void }) {
       <div className="sidebar-controls">
         <label>
           <span>{t("sidebar.language")}</span>
-          <select value={language} onChange={(e) => isLanguage(e.target.value) && setLanguage(e.target.value)}>
+          <select aria-label={t("sidebar.language")} title={LANGUAGES.find((l) => l.id === language)!.label} value={language} onChange={(e) => isLanguage(e.target.value) && setLanguage(e.target.value)}>
             {LANGUAGES.map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.label}
+              <option key={l.id} value={l.id} title={l.label}>
+                {l.short}
               </option>
             ))}
           </select>
@@ -55,8 +60,9 @@ export function Sidebar({ onShowShortcuts }: { onShowShortcuts: () => void }) {
             </button>
           ))}
         </div>
-        <button type="button" className="sidebar-shortcuts" title={tip(t("shortcuts.title"), "help")} onClick={() => { setOpen(false); onShowShortcuts(); }}>
-          ? {t("shortcuts.title")}
+        <button type="button" className="sidebar-shortcuts" aria-label={t("shortcuts.title")} title={tip(t("shortcuts.title"), "help")} onClick={() => { setOpen(false); onShowShortcuts(); }}>
+          <CircleHelp size={16} aria-hidden="true" />
+          <span>{t("shortcuts.title")}</span>
         </button>
       </div>
     </nav>

@@ -19,6 +19,9 @@ export const en = {
   "count.event_other": "{count} Events",
   "count.todo_one": "{count} Todo",
   "count.todo_other": "{count} Todos",
+  "duration.hm": "{h}h {m}m",
+  "duration.h": "{h}h",
+  "duration.m": "{m}m",
   "count.night_one": "{count} night",
   "count.night_other": "{count} nights",
 
@@ -187,6 +190,9 @@ export const zh: Record<FullKey, string> = {
   "count.event_other": "{count} 個事件",
   "count.todo_one": "{count} 項待辦",
   "count.todo_other": "{count} 項待辦",
+  "duration.hm": "{h} 小時 {m} 分",
+  "duration.h": "{h} 小時",
+  "duration.m": "{m} 分",
   "count.night_one": "{count} 晚",
   "count.night_other": "{count} 晚",
 

@@ -6,7 +6,7 @@ type Props = {
   confirmLabel: string;
   // Danger (red) for deleting, primary (blue) for a move that is not a loss of the Event itself.
   tone?: "danger" | "primary";
-  // Shows a "{t("removal.remind")}" checkbox; its state is passed to onConfirm.
+  // Shows a "Do not remind me again" checkbox; its state is passed to onConfirm.
   reminderOption?: boolean;
   children: ReactNode;
   onConfirm: (skipReminder: boolean) => void;
@@ -30,7 +30,7 @@ export function ConfirmDialog({ title, confirmLabel, tone = "danger", reminderOp
       {reminderOption && (
         <label className="dialog-reminder">
           <input type="checkbox" checked={skip} onChange={(e) => setSkip(e.target.checked)} />
-          Do not remind me again
+          {t("removal.remind")}
         </label>
       )}
       <div className="dialog-actions">

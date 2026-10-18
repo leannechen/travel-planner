@@ -1,9 +1,9 @@
 import { en, zh, type MessageKey } from "./messages";
 
 export type Language = "en" | "zh";
-export const LANGUAGES: { id: Language; label: string; htmlLang: string }[] = [
-  { id: "en", label: "English", htmlLang: "en" },
-  { id: "zh", label: "繁體中文", htmlLang: "zh-Hant" },
+export const LANGUAGES: { id: Language; label: string; short: string; htmlLang: string }[] = [
+  { id: "en", label: "English", short: "EN", htmlLang: "en" },
+  { id: "zh", label: "繁體中文", short: "中", htmlLang: "zh-Hant" },
 ];
 
 const dictionaries: Record<Language, Record<string, string>> = { en, zh };

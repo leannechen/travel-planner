@@ -7,14 +7,15 @@ import { useT } from "./preferences";
 import { tip } from "./shortcuts";
 
 // "1h 30m", "45m", "2h".
-export function formatDuration(minutes: number) {
-  const hours = Math.floor(minutes / 60);
-  const rest = minutes % 60;
-  return [hours && `${hours}h`, rest && `${rest}m`].filter(Boolean).join(" ") || "0m";
+export function formatDuration(minutes: number, t: ReturnType<typeof useT>) {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h && m) return t("duration.hm", { h, m });
+  return h ? t("duration.h", { h }) : t("duration.m", { m });
 }
 
 const lengthOf = (event: Event, t: ReturnType<typeof useT>) =>
-  event.kind === "lodging" && event.nights ? t("count.night", { count: event.nights }) : formatDuration(event.durationMinutes);
+  event.kind === "lodging" && event.nights ? t("count.night", { count: event.nights }) : formatDuration(event.durationMinutes, t);
 
 type CardProps = {
   event: Event;

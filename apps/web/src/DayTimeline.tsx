@@ -13,6 +13,9 @@ import {
   type Event,
 } from "@travel-planner/shared";
 import { KindIcon } from "./kinds";
+import { useT } from "./preferences";
+import type { Params } from "./i18n";
+import type { MessageKey } from "./messages";
 import { endGesture, gestureJustEnded } from "./gesture";
 import { useMemo, useState, type MouseEvent, type PointerEvent } from "react";
 
@@ -78,17 +81,16 @@ export class RoundSnapY extends Modifier {
 
 // Keyboard dragging is off, so screen reader users are pointed to the panel's fields. The
 // library's default texts promise keyboard dragging and read out the Event's id.
-export function accessibility(events: Event[]) {
+export function accessibility(events: Event[], t: (key: MessageKey, params?: Params) => string) {
   const title = (operation: DragOperation) =>
-    events.find((e) => e.id === operation.source?.id)?.title ?? "event";
+    events.find((e) => e.id === operation.source?.id)?.title ?? t("drag.event");
   return Accessibility.configure({
     screenReaderInstructions: {
-      draggable:
-        "Drag with the mouse to change the time or move the event to another Day, the Backlog or the Archive. With the keyboard, select the event and use the Day, Start and Duration fields in the edit panel.",
+      draggable: t("drag.instructions"),
     },
     announcements: {
-      dragstart: ({ operation }: { operation: DragOperation }) => `Picked up ${title(operation)}`,
-      dragend: ({ operation }: { operation: DragOperation }) => `Dropped ${title(operation)}`,
+      dragstart: ({ operation }: { operation: DragOperation }) => t("drag.picked", { title: title(operation) }),
+      dragend: ({ operation }: { operation: DragOperation }) => t("drag.dropped", { title: title(operation) }),
     },
   });
 }
@@ -108,6 +110,7 @@ export function DayTimeline({
   onCreateAt,
   onChangeTimes,
 }: Props) {
+  const t = useT();
   const placements = new Map(layoutDay(events).map((p) => [p.id, p]));
   const [resizing, setResizing] = useState<({ id: string } & EventTimes) | undefined>();
 
@@ -199,7 +202,7 @@ export function DayTimeline({
             height: toPx(Math.min(draft.durationMinutes, MINUTES_PER_DAY - draft.startMinute)) - 2,
           }}
         >
-          New Event · {formatMinute(draft.startMinute)}
+          {t("timeline.newEvent", { time: formatMinute(draft.startMinute) })}
         </li>
       )}
     </ul>

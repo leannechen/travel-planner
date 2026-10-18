@@ -14,12 +14,12 @@ const stripMarkers = (line: string) =>
     .trim();
 
 // The title of a Note in the list: its first line with the Markdown markers left out.
-export function noteTitle(body: string): string {
+export function noteTitle(body: string, empty = "Empty note"): string {
   const first = body
     .split("\n")
     .map(stripMarkers)
     .find((line) => line !== "");
-  return first ?? "Empty note";
+  return first ?? empty;
 }
 
 export type Point = { x: number; y: number };

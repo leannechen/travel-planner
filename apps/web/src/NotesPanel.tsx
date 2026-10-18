@@ -1,6 +1,7 @@
 import { clampPosition, noteTitle, orderNotes, type Note, type Point } from "@travel-planner/shared";
 import { ArrowLeft, GripHorizontal, List, Pin, Plus, Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useT } from "./preferences";
 
 const POSITION_KEY = "travel-planner.notes-position";
 // What was open when the panel was closed, for the rest of the browser session (PRD §5.1).
@@ -68,6 +69,7 @@ type Props = {
 // The text is plain Markdown as typed. It is saved shortly after typing stops, and when the user
 // leaves the field, the Note or the panel.
 export function NotesPanel({ tripId, notes, onAdd, onUpdate, onDelete, onClose, closeRef }: Props) {
+  const t = useT();
   const panel = useRef<HTMLElement>(null);
   const [position, setPosition] = useState<Point>(() => readPosition() ?? { x: Math.max(0, window.innerWidth - WIDTH - 16), y: 72 });
 
@@ -217,7 +219,7 @@ export function NotesPanel({ tripId, notes, onAdd, onUpdate, onDelete, onClose, 
     <section
       ref={panel}
       className="notes-panel"
-      aria-label="Notes"
+      aria-label={t("notes.panel")}
       style={{ left: position.x, top: position.y }}
       onKeyDown={(e) => {
         if (e.key === "Escape") void close();
@@ -226,22 +228,22 @@ export function NotesPanel({ tripId, notes, onAdd, onUpdate, onDelete, onClose, 
       <header onPointerDown={dragStart}>
         <div className="notes-toolbar">
           {view === "edit" && currentId ? (
-            <button type="button" aria-label="Back to all Notes" title="Back to all Notes" onClick={() => void showList()}>
+            <button type="button" aria-label={t("notes.back")} title={t("notes.back")} onClick={() => void showList()}>
               <ArrowLeft size={16} aria-hidden="true" />
             </button>
           ) : (
             <>
-            <button type="button" aria-label="New Note" title="New Note" disabled={emptyNew} onClick={() => void openField()}>
+            <button type="button" aria-label={t("notes.new")} title={t("notes.new")} disabled={emptyNew} onClick={() => void openField()}>
               <Plus size={16} aria-hidden="true" />
             </button>
-            <button type="button" aria-label="All Notes" title="All Notes" disabled={view === "list"} onClick={() => void showList()}>
+            <button type="button" aria-label={t("notes.all")} title={t("notes.all")} disabled={view === "list"} onClick={() => void showList()}>
               <List size={16} aria-hidden="true" />
             </button>
             </>
           )}
         </div>
         <GripHorizontal className="notes-grip" size={16} aria-hidden="true" />
-        <button type="button" aria-label="Close Notes" title="Close (Esc)" onClick={() => void close()}>
+        <button type="button" aria-label={t("notes.close")} title={t("generic.closeEsc")} onClick={() => void close()}>
           <X size={16} aria-hidden="true" />
         </button>
       </header>
@@ -250,8 +252,8 @@ export function NotesPanel({ tripId, notes, onAdd, onUpdate, onDelete, onClose, 
         <div className="notes-body">
           <textarea
             key={fieldKey}
-            aria-label={currentId ? "Note" : "New Note"}
-            placeholder={"Write a Note… Markdown works.\nNotes save automatically."}
+            aria-label={currentId ? t("notes.note") : t("notes.new")}
+            placeholder={t("notes.placeholder")}
             autoFocus
             value={text}
             maxLength={20000}
@@ -259,35 +261,35 @@ export function NotesPanel({ tripId, notes, onAdd, onUpdate, onDelete, onClose, 
             onBlur={() => void save(true)}
           />
           <p className="notes-status" role="status">
-            {status === "saved" && "✓ Saved"}
-            {status === "saving" && "Saving…"}
+            {status === "saved" && t("notes.saved")}
+            {status === "saving" && t("generic.saving")}
           </p>
         </div>
       ) : (
         <div className="notes-body">
           {notes.length === 0 ? (
-            <p className="holding-empty">No Notes yet. Use + to write the first one.</p>
+            <p className="holding-empty">{t("notes.empty")}</p>
           ) : (
             <ul className="notes-list">
               {[...pinned, ...recent].map((note) => (
                 <li key={note.id}>
                   <button type="button" className="note-title" onClick={() => void openField(note)}>
-                    {noteTitle(note.body)}
+                    {noteTitle(note.body, t("notes.emptyTitle"))}
                   </button>
                   <button
                     type="button"
                     className={note.pinned ? "pin pinned" : "pin"}
-                    aria-label={note.pinned ? "Unpin Note" : "Pin Note"}
+                    aria-label={note.pinned ? t("notes.unpinNote") : t("notes.pinNote")}
                     aria-pressed={note.pinned}
-                    title={note.pinned ? "Unpin" : "Pin"}
+                    title={note.pinned ? t("notes.unpin") : t("notes.pin")}
                     onClick={() => void onUpdate(note.id, { pinned: !note.pinned }).catch(() => undefined)}
                   >
                     <Pin size={14} aria-hidden="true" fill={note.pinned ? "currentColor" : "none"} />
                   </button>
                   <button
                     type="button"
-                    aria-label="Delete Note"
-                    title="Delete"
+                    aria-label={t("notes.deleteNote")}
+                    title={t("notes.delete")}
                     onClick={() => void onDelete(note).catch(() => undefined)}
                   >
                     <Trash2 size={14} aria-hidden="true" />

@@ -21,7 +21,8 @@ import {
   type UpdateEventInput,
 } from "@travel-planner/shared";
 import { TodoList } from "./TodoList";
-import { KIND_NAMES, KindIcon, TRANSPORT_LABEL_NAMES } from "./kinds";
+import { kindKey, KindIcon, transportKey } from "./kinds";
+import { useT } from "./preferences";
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from "react";
 import { tip } from "./shortcuts";
 
@@ -93,6 +94,7 @@ export function EventPanel({
   onDelete,
   quiet,
 }: Props) {
+  const t = useT();
   const initial = event ?? {
     title: "",
     kind: "attraction" as const,
@@ -237,7 +239,7 @@ export function EventPanel({
         setStatus({ kind: "idle" });
       }
     } catch (err) {
-      setStatus({ kind: "error", message: err instanceof Error ? err.message : "Something went wrong" });
+      setStatus({ kind: "error", message: err instanceof Error ? err.message : t("generic.error") });
     }
   }
 
@@ -256,7 +258,7 @@ export function EventPanel({
   return (
     <aside
       className="event-panel"
-      aria-label="Event"
+      aria-label={t("event.panel")}
       onKeyDown={(e) => {
         if (e.key === "Escape") {
           // The field being edited will not blur once the panel is gone, so save it first.
@@ -267,16 +269,16 @@ export function EventPanel({
     >
       <div className="panel-top">
         <span className="panel-status" role="status">
-          {status.kind === "saving" && "Saving…"}
-          {status.kind === "saved" && "Saved"}
+          {status.kind === "saving" && t("generic.saving")}
+          {status.kind === "saved" && t("generic.saved")}
         </span>
-        <button type="button" onClick={onClose} aria-label="Close" title="Close (Esc)">
+        <button type="button" onClick={onClose} aria-label={t("generic.close")} title={t("generic.closeEsc")}>
           ✕
         </button>
       </div>
       <form onSubmit={handleSubmit}>
         <fieldset className="kind-switch">
-          <legend>Kind</legend>
+          <legend>{t("event.kind")}</legend>
           {EVENT_KINDS.map((kind) => (
             <label key={kind} className={`kind-${kind}`}>
               <input
@@ -287,12 +289,12 @@ export function EventPanel({
                 onChange={() => changeKind(kind)}
               />
               <KindIcon kind={kind} transportLabel={null} />
-              {KIND_NAMES[kind]}
+              {t(kindKey(kind))}
             </label>
           ))}
         </fieldset>
         <label>
-          Title
+          {t("event.title")}
           <input
             autoFocus={!quiet}
             data-field="title"
@@ -302,21 +304,21 @@ export function EventPanel({
           />
         </label>
         <label>
-          {fields.kind === "lodging" ? "Check-in Day" : "Day"}
+          {fields.kind === "lodging" ? t("event.checkInDay") : t("event.day")}
           <select value={fields.dayId} onChange={(e) => changePlace(e.target.value)}>
             {days.map((d) => (
               <option key={d.id} value={d.id}>
-                Day {d.position}
+                {t("day.title", { n: d.position })}
               </option>
             ))}
-            <option value="backlog">Backlog (not scheduled)</option>
-            <option value="archive">Archive</option>
+            <option value="backlog">{t("event.backlogOption")}</option>
+            <option value="archive">{t("area.archive")}</option>
           </select>
         </label>
         {fields.kind === "lodging" ? (
           <>
             <label>
-              Nights
+              {t("event.nights")}
               <input
                 type="number"
                 min={1}
@@ -327,7 +329,7 @@ export function EventPanel({
               />
             </label>
             <label>
-              Check-in time (optional)
+              {t("event.checkIn")}
               <input
                 type="time"
                 value={fields.checkIn}
@@ -336,7 +338,7 @@ export function EventPanel({
               />
             </label>
             <label>
-              Check-out time (optional)
+              {t("event.checkOut")}
               <input
                 type="time"
                 value={fields.checkOut}
@@ -349,7 +351,7 @@ export function EventPanel({
           <>
             {!held && (
               <label>
-                {fields.kind === "transport" ? "Departure" : "Start"}
+                {fields.kind === "transport" ? t("event.departure") : t("event.start")}
                 <input
                   type="time"
                   value={fields.start}
@@ -360,18 +362,18 @@ export function EventPanel({
             )}
             {fields.kind === "transport" && !held ? (
               <label>
-                Arrival
+                {t("event.arrival")}
                 <input
                   type="time"
                   value={fields.arrival}
                   onChange={(e) => change({ arrival: e.target.value })}
                   onBlur={commit}
                 />
-                {arrivesNextDay && <span className="hint">+1 (next day)</span>}
+                {arrivesNextDay && <span className="hint">{t("event.nextDay")}</span>}
               </label>
             ) : (
               <label>
-                Duration (minutes)
+                {t("event.duration")}
                 <input
                   type="number"
                   min={1}
@@ -384,7 +386,7 @@ export function EventPanel({
             )}
             {fields.kind === "transport" && (
               <label>
-                Transport type
+                {t("event.transportType")}
                 <select
                   value={fields.transportLabel}
                   onChange={(e) => {
@@ -392,10 +394,10 @@ export function EventPanel({
                     commit();
                   }}
                 >
-                  <option value="">None</option>
+                  <option value="">{t("event.none")}</option>
                   {TRANSPORT_LABELS.map((label) => (
                     <option key={label} value={label}>
-                      {TRANSPORT_LABEL_NAMES[label]}
+                      {t(transportKey(label))}
                     </option>
                   ))}
                 </select>
@@ -405,7 +407,7 @@ export function EventPanel({
         )}
         {showsBookingLink(fields.kind) && (
           <label>
-            Booking link
+            {t("event.bookingLink")}
             <input
               type="url"
               value={fields.bookingUrl}
@@ -414,38 +416,38 @@ export function EventPanel({
             />
             {isWebUrl(fields.bookingUrl.trim()) && (
               <a href={fields.bookingUrl.trim()} target="_blank" rel="noreferrer">
-                Open link
+                {t("event.openLink")}
               </a>
             )}
           </label>
         )}
         {showsContact(fields.kind) && (
           <details className="contact" open={contactOpen}>
-            <summary>Contact</summary>
+            <summary>{t("event.contact")}</summary>
             <label>
-              Phone
+              {t("event.phone")}
               <input type="tel" value={fields.phone} onChange={(e) => change({ phone: e.target.value })} onBlur={commit} />
             </label>
             <label>
-              Email
+              {t("event.email")}
               <input type="email" value={fields.email} onChange={(e) => change({ email: e.target.value })} onBlur={commit} />
             </label>
             <label>
-              Website
+              {t("event.website")}
               <input type="url" value={fields.website} onChange={(e) => change({ website: e.target.value })} onBlur={commit} />
               {isWebUrl(fields.website.trim()) && (
                 <a href={fields.website.trim()} target="_blank" rel="noreferrer">
-                  Open website
+                  {t("event.openWebsite")}
                 </a>
               )}
             </label>
           </details>
         )}
         <div className="field">
-          <span>Description</span>
-          <Suspense fallback={<div className="md-editor-loading">Loading editor…</div>}>
+          <span>{t("event.description")}</span>
+          <Suspense fallback={<div className="md-editor-loading">{t("event.loadingEditor")}</div>}>
             <MarkdownEditor
-              label="Description"
+              label={t("event.description")}
               value={initial.description ?? ""}
               onChange={(description) => change({ description })}
               onBlur={commit}
@@ -459,12 +461,12 @@ export function EventPanel({
       {event && event.holding !== "archive" && (
         <section className="event-todos">
           <h4>
-            Event Todos <span className="count">{todos.length}</span>
+            {t("event.todos")} <span className="count">{todos.length}</span>
           </h4>
           <TodoList
             todos={todos}
-            label="Event Todos"
-            addLabel="Add an Event Todo"
+            label={t("event.todos")}
+            addLabel={t("event.addTodo")}
             onAdd={(text) => onAddTodo(text, event.id)}
             onToggle={onToggleTodo}
             onDelete={onDeleteTodo}
@@ -472,8 +474,8 @@ export function EventPanel({
         </section>
       )}
       {event && (
-        <button type="button" className="danger delete-event" title={tip("Delete Event", "delete")} onClick={() => onDelete(event)}>
-          Delete Event
+        <button type="button" className="danger delete-event" title={tip(t("event.delete"), "delete")} onClick={() => onDelete(event)}>
+          {t("event.delete")}
         </button>
       )}
     </aside>

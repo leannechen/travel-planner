@@ -1,20 +1,9 @@
 import type { Event } from "@travel-planner/shared";
 import { BedDouble, Bus, Flag, Plane, Route, Ship, TrainFront, Utensils, type LucideIcon } from "lucide-react";
 
-export const KIND_NAMES: Record<Event["kind"], string> = {
-  attraction: "Attraction",
-  meal: "Meal",
-  lodging: "Lodging",
-  transport: "Transport",
-};
-
-export const TRANSPORT_LABEL_NAMES: Record<NonNullable<Event["transportLabel"]>, string> = {
-  flight: "Flight",
-  train: "Train",
-  ferry: "Ferry",
-  bus: "Bus",
-  other: "Other",
-};
+// The message keys of the kind and Transport label names; the texts are in messages.ts.
+export const kindKey = (kind: Event["kind"]) => `kind.${kind}` as const;
+export const transportKey = (label: NonNullable<Event["transportLabel"]>) => `transport.${label}` as const;
 
 const KIND_ICONS: Record<Event["kind"], LucideIcon> = {
   attraction: Flag,

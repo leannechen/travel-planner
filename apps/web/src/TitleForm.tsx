@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { useT } from "./preferences";
 
 type Props = {
   label: string;
@@ -8,6 +9,7 @@ type Props = {
 };
 
 export function TitleForm({ label, submitLabel, onSubmit, disabled = false }: Props) {
+  const t = useT();
   const [title, setTitle] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | undefined>();
@@ -23,7 +25,7 @@ export function TitleForm({ label, submitLabel, onSubmit, disabled = false }: Pr
       await onSubmit(trimmed);
       setTitle("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setError(err instanceof Error ? err.message : t("generic.error"));
     } finally {
       setPending(false);
     }

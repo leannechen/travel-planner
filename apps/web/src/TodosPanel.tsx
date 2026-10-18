@@ -1,5 +1,6 @@
 import { allEvents, todoGroups, type Todo, type Trip } from "@travel-planner/shared";
 import { TodoList } from "./TodoList";
+import { useT } from "./preferences";
 
 type Props = {
   trip: Trip;
@@ -12,20 +13,21 @@ type Props = {
 // All Todos of a Trip: the Trip's own first, then each Event's under the Event's name. New Event
 // Todos are added in the Event's panel; only Trip Todos are added here.
 export function TodosPanel({ trip, onSelectEvent, onAdd, onToggle, onDelete }: Props) {
+  const t = useT();
   const groups = todoGroups(trip.todos, allEvents(trip), trip.days);
   return (
-    <aside className="todos-panel" aria-label="Todos">
+    <aside className="todos-panel" aria-label={t("todo.panel")}>
       <h3>
-        Todos <span className="count">{trip.todos.length}</span>
+        {t("todo.panel")} <span className="count">{trip.todos.length}</span>
       </h3>
       {groups.map((group) =>
         group.eventId === null ? (
           <section key="trip">
-            <h4>Trip</h4>
+            <h4>{t("todo.trip")}</h4>
             <TodoList
               todos={group.todos}
-              label="Trip Todos"
-              addLabel="Add a Trip Todo"
+              label={t("todo.tripList")}
+              addLabel={t("todo.addTrip")}
               onAdd={(text) => onAdd(text, null)}
               onToggle={onToggle}
               onDelete={onDelete}
@@ -39,7 +41,7 @@ export function TodosPanel({ trip, onSelectEvent, onAdd, onToggle, onDelete }: P
               </button>
               <span className="hint"> · {group.place}</span>
             </h4>
-            <TodoList todos={group.todos} label={`Todos of ${group.title}`} onToggle={onToggle} onDelete={onDelete} />
+            <TodoList todos={group.todos} label={t("todo.ofEvent", { title: group.title ?? "" })} onToggle={onToggle} onDelete={onDelete} />
           </section>
         ),
       )}

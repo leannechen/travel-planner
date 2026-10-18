@@ -3,6 +3,7 @@ import type { Event, HoldingArea } from "@travel-planner/shared";
 import { Plus } from "lucide-react";
 import { KindIcon } from "./kinds";
 import { gestureJustEnded } from "./gesture";
+import { useT } from "./preferences";
 import { tip } from "./shortcuts";
 
 // "1h 30m", "45m", "2h".
@@ -12,8 +13,8 @@ export function formatDuration(minutes: number) {
   return [hours && `${hours}h`, rest && `${rest}m`].filter(Boolean).join(" ") || "0m";
 }
 
-const lengthOf = (event: Event) =>
-  event.kind === "lodging" && event.nights ? `${event.nights} ${event.nights === 1 ? "night" : "nights"}` : formatDuration(event.durationMinutes);
+const lengthOf = (event: Event, t: ReturnType<typeof useT>) =>
+  event.kind === "lodging" && event.nights ? t("count.night", { count: event.nights }) : formatDuration(event.durationMinutes);
 
 type CardProps = {
   event: Event;
@@ -25,6 +26,7 @@ type CardProps = {
 
 // A compact card for an Event outside any Day. Dragging it onto a Day schedules it there.
 function HoldingCard({ event, selected, actionLabel, onSelect, onAction }: CardProps) {
+  const t = useT();
   const { ref, handleRef, isDragging } = useDraggable({ id: event.id });
   const classes = ["holding-card", `kind-${event.kind}`, selected && "selected", isDragging && "dragging"].filter(Boolean).join(" ");
   return (
@@ -41,7 +43,7 @@ function HoldingCard({ event, selected, actionLabel, onSelect, onAction }: CardP
           <KindIcon kind={event.kind} transportLabel={event.transportLabel} />
           {event.title}
         </strong>
-        <span>{lengthOf(event)}</span>
+        <span>{lengthOf(event, t)}</span>
       </button>
       <button type="button" className="holding-action" onClick={onAction}>
         {actionLabel}
@@ -64,19 +66,20 @@ type Props = {
 // The Backlog (Events still being considered) and the Archive (Events given up on), side by side
 // with the Days. Both are collapsible and both accept dragged Events.
 export function HoldingAreas({ backlog, archive, selectedEventId, dropTarget, onSelectEvent, onAddToBacklog, onMoveTo }: Props) {
+  const t = useT();
   const area = (name: HoldingArea) => (dropTarget === name ? "holding-area drop-target" : "holding-area");
   return (
-    <aside className="holding-areas" aria-label="Holding areas">
+    <aside className="holding-areas" aria-label={t("area.holding")}>
       <details className={area("backlog")} data-drop="backlog" open>
         <summary>
           <h3>
-            Backlog <span className="count">{backlog.length}</span>
+            {t("area.backlog")} <span className="count">{backlog.length}</span>
           </h3>
           <button
             type="button"
             className="holding-add"
-            aria-label="Add to Backlog"
-            title={tip("Add to Backlog", "new-backlog")}
+            aria-label={t("area.addToBacklog")}
+            title={tip(t("area.addToBacklog"), "new-backlog")}
             // Inside the summary, so it must not also toggle the section.
             onClick={(e) => {
               e.preventDefault();
@@ -87,7 +90,7 @@ export function HoldingAreas({ backlog, archive, selectedEventId, dropTarget, on
           </button>
         </summary>
         {backlog.length === 0 ? (
-          <p className="holding-empty">No ideas waiting. Add one, or drag an Event here from a Day.</p>
+          <p className="holding-empty">{t("area.backlogEmpty")}</p>
         ) : (
           <ul>
             {backlog.map((event) => (
@@ -95,7 +98,7 @@ export function HoldingAreas({ backlog, archive, selectedEventId, dropTarget, on
                 key={event.id}
                 event={event}
                 selected={event.id === selectedEventId}
-                actionLabel="Schedule"
+                actionLabel={t("area.schedule")}
                 onSelect={() => onSelectEvent(event.id)}
                 onAction={() => onSelectEvent(event.id)}
               />
@@ -106,12 +109,12 @@ export function HoldingAreas({ backlog, archive, selectedEventId, dropTarget, on
       <details className={area("archive")} data-drop="archive">
         <summary>
           <h3>
-            Archive <span className="count">{archive.length}</span>
+            {t("area.archive")} <span className="count">{archive.length}</span>
           </h3>
-          <span className="hint">given up</span>
+          <span className="hint">{t("area.givenUp")}</span>
         </summary>
         {archive.length === 0 ? (
-          <p className="holding-empty">Nothing archived. Events you give up on go here. Their Todos are deleted when archived.</p>
+          <p className="holding-empty">{t("area.archiveEmpty")}</p>
         ) : (
           <ul>
             {archive.map((event) => (
@@ -119,7 +122,7 @@ export function HoldingAreas({ backlog, archive, selectedEventId, dropTarget, on
                 key={event.id}
                 event={event}
                 selected={event.id === selectedEventId}
-                actionLabel="Back to Backlog"
+                actionLabel={t("area.backToBacklog")}
                 onSelect={() => onSelectEvent(event.id)}
                 onAction={() => onMoveTo(event.id, "backlog")}
               />

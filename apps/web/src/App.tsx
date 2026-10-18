@@ -43,6 +43,8 @@ import {
 import { ConfirmDialog } from "./ConfirmDialog";
 import { EventPanel } from "./EventPanel";
 import { NotesPanel } from "./NotesPanel";
+import { Sidebar } from "./Sidebar";
+import { useT } from "./preferences";
 import { ShortcutSheet } from "./ShortcutSheet";
 import { Toast } from "./Toast";
 import { TitleForm } from "./TitleForm";
@@ -85,9 +87,8 @@ type Removal = {
   resolve: (confirmed: boolean) => void;
 };
 
-const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
-
 export function App() {
+  const t = useT();
   const [trips, setTrips] = useState<Trip[] | undefined>();
   const [error, setError] = useState<string | undefined>();
   // Why a drag or resize could not be saved; kept apart from the load error.
@@ -158,7 +159,7 @@ export function App() {
     setRemoval(undefined);
   }
 
-  const showArchived = () => setToast({ id: Date.now(), message: "Moved to Archive" });
+  const showArchived = () => setToast({ id: Date.now(), message: t("event.archived") });
 
   function select(next: Selection | undefined) {
     setSelection(next);
@@ -240,13 +241,13 @@ export function App() {
     try {
       deleted = await deleteEvent(tripId, event.id);
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : "Could not delete the Event");
+      setSaveError(err instanceof Error ? err.message : t("event.deleteFailed"));
       return;
     }
     setTripAreas(tripId, (areas) => removeEvent(areas, event.id));
     setTripTodos(tripId, (todos) => dropEventTodos(todos, event.id));
     if (selection && "eventId" in selection && selection.eventId === event.id) select(undefined);
-    setToast({ id: Date.now(), message: `"${event.title}" deleted`, undo: () => undoDeleteEvent(tripId, deleted) });
+    setToast({ id: Date.now(), message: t("event.deleted", { title: event.title }), undo: () => undoDeleteEvent(tripId, deleted) });
   }
 
   async function undoDeleteEvent(tripId: string, deleted: DeletedEvent) {
@@ -257,7 +258,7 @@ export function App() {
       setTripAreas(tripId, (areas) => upsertEvent(areas, event));
       setTripTodos(tripId, (todos) => [...todos, ...deleted.todos]);
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : "Could not undo the deletion");
+      setSaveError(err instanceof Error ? err.message : t("day.undoFailed"));
     }
   }
 
@@ -267,7 +268,7 @@ export function App() {
     try {
       return await action();
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : "Something went wrong");
+      setSaveError(err instanceof Error ? err.message : t("generic.error"));
       throw err;
     }
   }
@@ -296,7 +297,7 @@ export function App() {
     failing(async () => {
       await deleteNote(tripId, note.id);
       setTripNotes(tripId, (notes) => notes.filter((n) => n.id !== note.id));
-      setToast({ id: Date.now(), message: `Note “${noteTitle(note.body)}” deleted`, undo: () => undoDeleteNote(tripId, note) });
+      setToast({ id: Date.now(), message: t("notes.deleted", { title: noteTitle(note.body, t("notes.emptyTitle")) }), undo: () => undoDeleteNote(tripId, note) });
     });
 
   async function undoDeleteNote(tripId: string, note: Note) {
@@ -306,7 +307,7 @@ export function App() {
       const restored = await restoreNote(tripId, note);
       setTripNotes(tripId, (notes) => [restored, ...notes.filter((n) => n.id !== restored.id)]);
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : "Could not undo the deletion");
+      setSaveError(err instanceof Error ? err.message : t("day.undoFailed"));
     }
   }
 
@@ -533,7 +534,7 @@ export function App() {
           holding: last.holding,
         }),
       );
-      setSaveError(err instanceof Error ? err.message : "Could not move the Event");
+      setSaveError(err instanceof Error ? err.message : t("event.moveFailed"));
     }
   }
 
@@ -544,9 +545,11 @@ export function App() {
       : undefined;
 
   return (
+    <>
+    <Sidebar onShowShortcuts={() => setSheetOpen(true)} />
     <main className={selectedTrip ? "has-panel" : undefined}>
-      <h1>Travel Planner</h1>
-      <TitleForm label="Trip title" submitLabel="Create trip" onSubmit={handleCreateTrip} />
+      <h1>{t("app.title")}</h1>
+      <TitleForm label={t("app.tripTitle")} submitLabel={t("app.createTrip")} onSubmit={handleCreateTrip} />
       {error && <p role="alert">{error}</p>}
       {saveError && <p role="alert">{saveError}</p>}
       {trips?.map((trip) => {
@@ -585,7 +588,7 @@ export function App() {
           />
         );
       })}
-      {trips?.length === 0 && <p>No trips yet.</p>}
+      {trips?.length === 0 && <p>{t("app.noTrips")}</p>}
       {selectedTrip && selection && (selectedEvent || "draft" in selection) && (
         <EventPanel
           key={panelKey}
@@ -622,30 +625,33 @@ export function App() {
       {sheetOpen && <ShortcutSheet onClose={() => setSheetOpen(false)} />}
       {removal && (
         <ConfirmDialog
-          title={`${removal.action === "archive" ? "Archive" : "Delete"} “${removal.title}”?`}
-          confirmLabel={removal.action === "archive" ? "Archive Event" : "Delete Event"}
+          title={t(removal.action === "archive" ? "removal.archiveTitle" : "removal.deleteTitle", { title: removal.title })}
+          confirmLabel={t(removal.action === "archive" ? "removal.archiveConfirm" : "removal.deleteConfirm")}
           tone={removal.action === "archive" ? "primary" : "danger"}
           reminderOption
           onConfirm={(skip) => answerRemoval(true, skip)}
           onCancel={() => answerRemoval(false)}
         >
           <p>
-            <strong>{plural(removal.summary.count, "Todo")}</strong> will be deleted
-            {removal.summary.byOthers > 0 && `, including ${removal.summary.byOthers} created by someone else`}.
+            <strong>{t("count.todo", { count: removal.summary.count })}</strong>
+            {removal.summary.byOthers > 0
+              ? t("removal.restOthers", { others: removal.summary.byOthers })
+              : t("removal.rest")}
           </p>
           <ul>
             {removal.action === "archive" ? (
               <>
-                <li>Archiving removes this Event’s Todos. Taking the Event back from the Archive does not restore them.</li>
-                <li>The Event moves to the Archive. There is no undo for archiving.</li>
+                <li>{t("removal.archiveNote1")}</li>
+                <li>{t("removal.archiveNote2")}</li>
               </>
             ) : (
-              <li>You can undo for a few seconds after deleting. Undo restores the Todos too.</li>
+              <li>{t("removal.deleteNote")}</li>
             )}
           </ul>
         </ConfirmDialog>
       )}
-      {toast && <Toast key={toast.id} message={toast.message} actionLabel={toast.undo ? "Undo" : undefined} onAction={toast.undo} onDismiss={dismissToast} />}
+      {toast && <Toast key={toast.id} message={toast.message} actionLabel={toast.undo ? t("generic.undo") : undefined} onAction={toast.undo} onDismiss={dismissToast} />}
     </main>
+    </>
   );
 }

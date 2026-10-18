@@ -1,5 +1,6 @@
 import type { Todo } from "@travel-planner/shared";
 import { useState } from "react";
+import { useT } from "./preferences";
 
 type Props = {
   todos: Todo[];
@@ -14,6 +15,7 @@ type Props = {
 
 // Todos with a checkbox each, and optionally a field to add one.
 export function TodoList({ todos, label, addLabel, onAdd, onToggle, onDelete }: Props) {
+  const t = useT();
   const [text, setText] = useState("");
   const [adding, setAdding] = useState(false);
 
@@ -42,7 +44,7 @@ export function TodoList({ todos, label, addLabel, onAdd, onToggle, onDelete }: 
                 <input type="checkbox" checked={todo.done} onChange={() => onToggle(todo)} />
                 <span>{todo.text}</span>
               </label>
-              <button type="button" className="todo-delete" aria-label={`Delete Todo "${todo.text}"`} onClick={() => onDelete(todo)}>
+              <button type="button" className="todo-delete" aria-label={t("todo.delete", { text: todo.text })} onClick={() => onDelete(todo)}>
                 ✕
               </button>
             </li>
@@ -53,7 +55,7 @@ export function TodoList({ todos, label, addLabel, onAdd, onToggle, onDelete }: 
         <form className="todo-add" onSubmit={submit}>
           <input aria-label={addLabel} placeholder={addLabel} maxLength={500} value={text} onChange={(e) => setText(e.target.value)} />
           <button type="submit" disabled={adding || !text.trim()}>
-            Add
+            {t("generic.add")}
           </button>
         </form>
       )}

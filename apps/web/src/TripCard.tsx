@@ -26,6 +26,7 @@ import { HoldingAreas } from "./HoldingAreas";
 import { LodgingBanners, staysOf } from "./LodgingBanners";
 import { TodosPanel } from "./TodosPanel";
 import { tip } from "./shortcuts";
+import { useT } from "./preferences";
 
 // What a move changes: the time, and/or the place (a Day id in `dayId`, or a holding area).
 export type EventMove = Partial<Pick<Event, "startMinute" | "durationMinutes" | "dayId" | "holding">>;
@@ -50,8 +51,6 @@ type Props = {
   onDeleteTodo: (todo: Todo) => void;
 };
 
-const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
-
 export type Toasted = { id: number; message: string; undo?: () => void };
 
 // Where the pointer is, as a drop target: a Day's axis (its id) or a holding area. The Event being
@@ -72,6 +71,7 @@ function dropTargetAt(root: HTMLElement, x: number, y: number, draggedId: string
 }
 
 export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectEvent, onCreateAt, onAddToBacklog, onMove, onToast, notesOpen, onToggleNotes, onShowShortcuts, onAddTodo, onToggleTodo, onDeleteTodo }: Props) {
+  const t = useT();
   const root = useRef<HTMLElement>(null);
   const [error, setError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
@@ -91,7 +91,7 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
     try {
       onDaysChange(trip.id, await action());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setError(err instanceof Error ? err.message : t("generic.error"));
     } finally {
       setBusy(false);
     }
@@ -122,12 +122,12 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
         id: Date.now(),
         message:
           plan.moved.length > 0
-            ? `Day ${day.position} deleted · ${plural(plan.moved.length, "Event")} moved to the Backlog`
-            : `Day ${day.position} deleted`,
+            ? t("day.deletedMoved", { n: day.position, events: t("count.event", { count: plan.moved.length }) })
+            : t("day.deleted", { n: day.position }),
         undo: () => undoDelete(day, placements),
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setError(err instanceof Error ? err.message : t("generic.error"));
     } finally {
       setBusy(false);
     }
@@ -141,7 +141,7 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
       const result = await restoreDay(trip.id, { dayId: day.id, position: day.position, placements });
       onDaysChange(trip.id, result.days, result.backlog);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not undo the deletion");
+      setError(err instanceof Error ? err.message : t("day.undoFailed"));
     } finally {
       setBusy(false);
     }
@@ -159,7 +159,7 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
   function insertButton(position: number) {
     return (
       <button type="button" disabled={busy} onClick={() => changeDays(() => insertDay(trip.id, position))}>
-        Insert Day {position}
+        {t("day.insert", { n: position })}
       </button>
     );
   }
@@ -188,17 +188,17 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
     <article ref={root}>
       <div className="trip-head">
         <h2>{trip.title}</h2>
-        <button type="button" aria-pressed={notesOpen} title={tip("Notes", "notes")} onClick={onToggleNotes}>
-          Notes <span className="count">{trip.notes.length}</span>
+        <button type="button" aria-pressed={notesOpen} title={tip(t("notes.title"), "notes")} onClick={onToggleNotes}>
+          {t("notes.title")} <span className="count">{trip.notes.length}</span>
         </button>
-        <button type="button" title={tip("Keyboard shortcuts", "help")} aria-label="Keyboard shortcuts" onClick={onShowShortcuts}>
+        <button type="button" title={tip(t("shortcuts.title"), "help")} aria-label={t("shortcuts.title")} onClick={onShowShortcuts}>
           ?
         </button>
       </div>
       {error && <p role="alert">{error}</p>}
       <DragDropProvider
         sensors={sensors}
-        plugins={(defaults) => [...defaults.filter((p) => p !== Accessibility), accessibility(events)]}
+        plugins={(defaults) => [...defaults.filter((p) => p !== Accessibility), accessibility(events, t)]}
         onDragMove={({ operation }) => {
           const pointer = operation.position.current;
           setDropTarget(operation.source ? dropTargetAt(root.current!, pointer.x, pointer.y, String(operation.source.id)) : undefined);
@@ -237,31 +237,31 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
                 <section
                   key={`head-${day.id}`}
                   className="day-head"
-                  aria-label={`Day ${day.position}`}
+                  aria-label={t("day.title", { n: day.position })}
                   style={{ gridColumn: dayColumn, gridRow: 1 }}
                 >
-                  <h3>Day {day.position}</h3>
+                  <h3>{t("day.title", { n: day.position })}</h3>
                   <div>
                     <button
                       type="button"
                       disabled={busy || day.position === 1}
                       onClick={() => changeDays(() => reorderDays(trip.id, moveBy(dayIds, day.id, -1)))}
                     >
-                      Move earlier
+                      {t("day.earlier")}
                     </button>
                     <button
                       type="button"
                       disabled={busy || day.position === lastPosition}
                       onClick={() => changeDays(() => reorderDays(trip.id, moveBy(dayIds, day.id, 1)))}
                     >
-                      Move later
+                      {t("day.later")}
                     </button>
                     <button type="button" disabled={busy || lastPosition === 1} onClick={() => requestDelete(day)}>
-                      Delete Day
+                      {t("day.delete")}
                     </button>
                   </div>
-                  <button type="button" disabled={busy} title={tip("Add event", "new-event")} onClick={() => onCreateAt(day.id, DEFAULT_START_MINUTE)}>
-                    Add event
+                  <button type="button" disabled={busy} title={tip(t("day.addEvent"), "new-event")} onClick={() => onCreateAt(day.id, DEFAULT_START_MINUTE)}>
+                    {t("day.addEvent")}
                   </button>
                 </section>,
                 <div key={`banners-${day.id}`} style={{ gridColumn: dayColumn, gridRow: 2 }}>
@@ -295,24 +295,25 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
       </DragDropProvider>
       {deleting && (
         <ConfirmDialog
-          title={`Delete Day ${deleting.day.position}?`}
-          confirmLabel="Delete Day"
+          title={t("day.deleteTitle", { n: deleting.day.position })}
+          confirmLabel={t("day.delete")}
           onConfirm={() => performDelete(deleting.day, deleting.plan)}
           onCancel={() => setPendingDelete(undefined)}
         >
           <p>
-            <strong>{plural(deleting.plan.moved.length, "Event")}</strong> will move to the Backlog.
+            <strong>{t("count.event", { count: deleting.plan.moved.length })}</strong>
+            {t("day.willMove")}
           </p>
           <ul>
-            <li>{deleting.plan.moved.length === 1 ? "Its Todos are kept." : "Their Todos are kept."}</li>
+            <li>{deleting.plan.moved.length === 1 ? t("day.todosKeptOne") : t("day.todosKeptMany")}</li>
             {deleting.day.position < lastPosition && (
               <li>
-                Later Days move up: Day {deleting.day.position + 1} becomes Day {deleting.day.position}.
+                {t("day.laterMoveUp", { from: deleting.day.position + 1, to: deleting.day.position })}
               </li>
             )}
             {deleting.plan.stays.map(({ event, before, after }) => (
               <li key={event.id}>
-                {event.title} loses a night ({before.nights} to {after.nights}).
+                {t("day.losesNight", { title: event.title, before: before.nights ?? 0, after: after.nights ?? 0 })}
               </li>
             ))}
           </ul>

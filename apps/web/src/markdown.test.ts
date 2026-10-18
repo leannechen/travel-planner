@@ -1,6 +1,6 @@
 import { MarkdownManager } from "@tiptap/markdown";
 import { describe, expect, it } from "vitest";
-import { markdownExtensions } from "./markdown-extensions";
+import { markdownExtensions, startsWithOtherNumber } from "./markdown-extensions";
 
 // What the editor writes back after loading stored Markdown. The first edit rewrites the whole
 // Description, so anything lost here is lost for good.
@@ -19,5 +19,15 @@ describe("Markdown round trip", () => {
       const reloaded = manager.parse(manager.serialize(doc));
       expect(reloaded.content, text).toEqual(doc.content);
     }
+  });
+});
+
+describe("startsWithOtherNumber", () => {
+  it("is true for numbers that are probably not a list", () => {
+    for (const text of ["2026. A good year", "  12) item", "3. third"]) expect(startsWithOtherNumber(text)).toBe(true);
+  });
+
+  it("is false for a list that starts at 1 and for other text", () => {
+    for (const text of ["1. first\n2. second", "1) first", "plain text", "2026"]) expect(startsWithOtherNumber(text)).toBe(false);
   });
 });

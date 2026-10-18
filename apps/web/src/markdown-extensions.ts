@@ -1,4 +1,5 @@
-import { TaskItem, TaskList } from "@tiptap/extension-list";
+import { wrappingInputRule } from "@tiptap/core";
+import { OrderedList, TaskItem, TaskList } from "@tiptap/extension-list";
 import { Paragraph } from "@tiptap/extension-paragraph";
 import { Table, TableCell, TableHeader, TableRow } from "@tiptap/extension-table";
 import { Markdown } from "@tiptap/markdown";
@@ -13,6 +14,30 @@ function escapeBlockSyntax(markdown: string) {
     .replace(/^(\s{0,3}\d+)([.)])(?=\s|$)/gm, "$1\\$2");
 }
 
+// Text that begins with a number other than 1 ("2026. A good year") is text, not a list. Typing
+// "1. " starts a list and so does pasting a list that begins at 1; a list loaded from Markdown
+// keeps whatever number it starts with.
+export const startsWithOtherNumber = (text: string) => /^\s*(?!1[.)]\s)\d+[.)]\s/.test(text);
+
+const NumberedList = OrderedList.extend({
+  addInputRules() {
+    return [wrappingInputRule({ find: /^1\.\s$/, type: this.type, getAttributes: () => ({ start: 1 }) })];
+  },
+  addProseMirrorPlugins() {
+    return (this.parent?.() ?? []).map((plugin) => {
+      const handlePaste = plugin.props.handlePaste;
+      if (handlePaste) {
+        plugin.props.handlePaste = function (view, event, slice) {
+          return startsWithOtherNumber(event.clipboardData?.getData("text/plain") ?? "")
+            ? false
+            : handlePaste.call(this, view, event, slice);
+        };
+      }
+      return plugin;
+    });
+  },
+});
+
 const renderParagraph = Paragraph.config.renderMarkdown!;
 
 // The links that may be in a Description. Anything else (javascript:, data:, relative) is not
@@ -24,8 +49,10 @@ export const markdownExtensions = [
   StarterKit.configure({
     underline: false,
     paragraph: false,
+    orderedList: false,
     link: { openOnClick: false, isAllowedUri: isAllowedLink },
   }),
+  NumberedList,
   Paragraph.extend({
     renderMarkdown: (node, helpers, context) => escapeBlockSyntax(renderParagraph(node, helpers, context)),
   }),

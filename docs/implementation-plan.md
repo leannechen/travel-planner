@@ -2,7 +2,7 @@
 
 Product rules are in [`PRD.md`](./PRD.md); vocabulary in [`CONTEXT.md`](../CONTEXT.md); decisions in [`docs/adr/`](./adr/). This file orders the work and tracks status. It changes often; the PRD should not.
 
-**Current step: 6 (kinds and Lodging).** Steps 0 to 5 are done. The final design is in [`docs/design/`](./design/); a few designer fixes are pending and do not block step 0.
+**Current step: 6 (kinds and Transport).** Steps 0 to 5 are done. The final design is in [`docs/design/`](./design/); a few designer fixes are pending and do not block step 0.
 
 ## Working agreement
 
@@ -33,7 +33,8 @@ Each step lists what it needs from earlier steps and when it is done.
 - [x] **3. Time model.** Events get a start time and duration and are drawn on the time axis; overlapping Events share width (pure layout logic with tests). The axis shows 08:00 to 22:00 and widens to cover Events; an Event running past midnight is cut off there. *Needs:* 2.
 - [x] **4. Create and edit on the axis.** Click a time (rounded down to 15 minutes) to create an Event there; edit title, Day, start time and duration in the side edit panel, which autosaves a field when it is left. A new Event is saved once it has a title. Each Day also has an "Add event" button for keyboard users. Deleting an Event waits for step 9. *Needs:* 3.
 - [x] **5. Drag and resize (desktop).** Move and resize Events within a Day with snapping to 15 minutes (minimum 15 minutes); nothing else moves. Move uses dnd kit (`@dnd-kit/react`, pinned), resize uses the handles on the selected card; dragging does not select an Event or open the panel. Dragging across Days is step 8. *Needs:* 4. (ADR 0001)
-- [ ] **6. Kinds and Lodging.** Four kinds with distinct looks; Lodging spans nights and shows as a banner on each Day; inserting or deleting a Day adjusts a Lodging's nights (PRD §3.2), and reordering Days leaves it alone. Transport arrival on a later day shows "+1". *Needs:* 4.
+- [ ] **6. Kinds and Transport.** Four kinds with distinct looks (icon and color); kind switcher in the panel; Transport has departure and arrival times (arrival on a later day shows "+1") and a transport label. Booking links, contacts and locations come later. *Needs:* 4.
+- [ ] **6b. Lodging.** Lodging spans nights and shows as a banner on each Day; inserting or deleting a Day adjusts a Lodging's nights (PRD §3.2), and reordering Days leaves it alone. Until the Backlog exists (step 8), a Day deletion that would leave a Lodging with no nights is refused. *Needs:* 6.
 - [ ] **7. Description and contacts.** Markdown Description, phone and email, with preview. *Needs:* 4.
 
 ### Holding areas and Todos
@@ -50,9 +51,9 @@ Each step lists what it needs from earlier steps and when it is done.
 
 ### Places and travel
 
-- [ ] **14. Places.** Attach a location to an Event through a place-search interface, first with a fake provider, then Google. *Needs:* 4. Check Google's terms for place photos here and adjust PRD §3.2 and §9 if needed. (Opening hours auto-fill and warnings in step 16.)
+- [ ] **14. Places.** Attach a location to an Event through a place-search interface, first with a fake provider, then Google. *Needs:* 4. Check Google's terms for place photos here and adjust PRD §3.2 and §9 if needed. (Opening hours display and warnings in step 16.)
 - [ ] **15. Legs.** Click the slot between two Events to create a Leg; travel mode choice; lifecycle rules from PRD §3.3 with tests; first with a fake travel-time provider, then Google, with server-side caching. *Needs:* 5, 14. (ADR 0002)
-- [ ] **16. Opening hours.** Fill from Google place data, manual override, warnings when a Trip has dates. *Needs:* 14.
+- [ ] **16. Opening hours.** Read-only opening hours fetched from Google place data (server-side cache), shown in the panel, warnings when a Trip has dates. No manual editing. Check Google's terms for storing place data. *Needs:* 14.
 - [ ] **17. Map View.** Markers colored by Day, Day filter, gray Backlog markers, marker opens the edit panel. *Needs:* 14.
 
 ### Accounts and collaboration

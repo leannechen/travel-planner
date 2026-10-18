@@ -70,7 +70,7 @@ Each non-goal is listed with its reason, so it is not reopened without new infor
 | Time | start time and duration | start time and duration | check-in time and check-out time, optional, display only | departure and arrival time |
 | Location | one place | one place | one place | departure and destination, both optional |
 | Nights | | | yes | |
-| Opening hours | yes | yes | | |
+| Opening hours (read-only, from Google) | yes | yes | | |
 | Contact (phone, email, website) | yes | yes | yes | |
 | Booking link | | optional | yes | yes |
 | Transport label (flight, train, ferry, bus, other), sets the icon | | | | yes |
@@ -79,7 +79,7 @@ Each non-goal is listed with its reason, so it is not reopened without new infor
 Only the title is required.
 
 - **Location is optional for every kind.** A free-text idea such as "tempura place a friend recommended in Ginza" is valid. Events without a location are ignored by Legs and the Map View.
-- **Opening hours** are filled from Google place data when available and can be overridden by the user. They are stored as a per-weekday structure.
+- **Opening hours** come from Google place data and are read-only: the user cannot edit them. They exist only while the Event has a location, are fetched from Google when needed (server-side cached, not stored with the Event), and are not part of the data kept when the kind changes. Google's terms for storing place data are checked at implementation time (plan steps 14 and 16).
 - **Preview image** defaults to the Google place photo when the Event has a location; the user may upload a replacement. Without an image, the kind's icon is shown.
   - **Replace** uploads the user's own image. **Remove** means "no image for this Event": the Google photo is no longer shown and the kind's icon is used. If the Event has a location, the image area then offers "Use place photo" to bring the default back.
   - Changing the location swaps the default Google photo to the new place's photo, but never replaces an image the user uploaded.
@@ -91,7 +91,7 @@ Only the title is required.
 **Changing an Event's kind** never silently loses data:
 
 - Fields both kinds have (title, Description, image, Todos, location, contact) are kept as they are.
-- Fields the new kind does not have are hidden but their values are kept, and reappear if the user switches back. A short note names what is hidden (for example "Opening hours kept, hidden for Lodging"). No confirmation is needed.
+- Fields the new kind does not have are hidden but their values are kept, and reappear if the user switches back. A short note names what is hidden (for example "Duration kept, hidden for Lodging"). No confirmation is needed. Opening hours are not user data and are never listed: Google supplies them again when the Event is an Attraction or Meal with a location.
 - Fields with a natural counterpart are converted: Attraction to Transport turns the location into the departure place; Transport to Attraction turns it back and keeps the destination hidden; Attraction to Lodging turns the Day into the check-in Day, the start time into the check-in time and sets nights to 1, keeping the duration hidden; Lodging to Attraction does the reverse and restores the kept duration or a default.
 
 ### 3.3 Legs
@@ -127,7 +127,7 @@ A Transport event is an Event the user creates for transport with its own charac
 
 ### 3.5 Opening-hours check
 
-When a Trip has dates and an Event with opening hours is placed in a Day, a warning is shown if the Event's time falls outside those hours. Warnings never block the user.
+When a Trip has dates and an Attraction or Meal with a location (so Google opening hours are available) is placed in a Day, a warning is shown if the Event's time falls outside those hours. Without a location or without Google data, nothing is checked. Warnings never block the user.
 
 ## 4. Holding areas
 

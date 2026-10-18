@@ -66,4 +66,9 @@ describe("shortcut labels", () => {
     expect(shortcutKeys("notes")).toBe("Ctrl+Alt+N");
     expect(withShortcut("Notes", "notes")).toBe("Notes (Ctrl+Alt+N)");
   });
+  it("uses the Mac keys on a Mac", () => {
+    expect(shortcutKeys("notes", true)).toBe("Ctrl+Option+N");
+    expect(withShortcut("Notes", "notes", true)).toBe("Notes (Ctrl+Option+N)");
+    expect(shortcutKeys("open", true)).toBe("Enter");
+  });
 });

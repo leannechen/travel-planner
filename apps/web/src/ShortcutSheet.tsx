@@ -1,5 +1,6 @@
 import { SHORTCUTS } from "@travel-planner/shared";
 import { useEffect, useRef } from "react";
+import { keysFor } from "./shortcuts";
 
 const groups = ["Events", "Selection", "Anywhere"] as const;
 
@@ -30,7 +31,7 @@ export function ShortcutSheet({ onClose }: { onClose: () => void }) {
             {SHORTCUTS.filter((s) => s.group === group).map((s) => (
               <div key={s.id}>
                 <dt>
-                  <kbd>{s.keys}</kbd>
+                  <kbd>{keysFor(s)}</kbd>
                 </dt>
                 <dd>{s.label}</dd>
               </div>

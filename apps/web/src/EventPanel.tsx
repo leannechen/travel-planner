@@ -19,11 +19,11 @@ import {
   type Event,
   type Todo,
   type UpdateEventInput,
-  withShortcut,
 } from "@travel-planner/shared";
 import { TodoList } from "./TodoList";
 import { KIND_NAMES, KindIcon, TRANSPORT_LABEL_NAMES } from "./kinds";
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from "react";
+import { tip } from "./shortcuts";
 
 // The editor is large, so it is loaded when the first panel opens, not with the page.
 const MarkdownEditor = lazy(() => import("./MarkdownEditor").then((m) => ({ default: m.MarkdownEditor })));
@@ -472,7 +472,7 @@ export function EventPanel({
         </section>
       )}
       {event && (
-        <button type="button" className="danger delete-event" title={withShortcut("Delete Event", "delete")} onClick={() => onDelete(event)}>
+        <button type="button" className="danger delete-event" title={tip("Delete Event", "delete")} onClick={() => onDelete(event)}>
           Delete Event
         </button>
       )}

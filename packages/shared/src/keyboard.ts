@@ -45,7 +45,8 @@ export function adjacentDayId(areas: Areas, dayId: string, step: -1 | 1): string
   return index === -1 ? undefined : areas.days[index + step]?.id;
 }
 
-export type Shortcut = { id: string; keys: string; label: string; group: "Events" | "Selection" | "Anywhere" };
+// `macKeys` is shown instead of `keys` on a Mac.
+export type Shortcut = { id: string; keys: string; macKeys?: string; label: string; group: "Events" | "Selection" | "Anywhere" };
 
 // Single keys work when no text field has focus; the Notes shortcut works everywhere.
 export const SHORTCUTS: Shortcut[] = [
@@ -57,10 +58,14 @@ export const SHORTCUTS: Shortcut[] = [
   { id: "day", keys: "Shift+← / Shift+→", label: "Move the selected Event to the previous or next Day", group: "Events" },
   { id: "move", keys: "↑ ↓ ← →", label: "Select another Event", group: "Selection" },
   { id: "clear", keys: "Esc", label: "Clear the selection, or close the panel", group: "Selection" },
-  { id: "notes", keys: "Ctrl+Alt+N", label: "Open or close Notes", group: "Anywhere" },
+  { id: "notes", keys: "Ctrl+Alt+N", macKeys: "Ctrl+Option+N", label: "Open or close Notes", group: "Anywhere" },
   { id: "help", keys: "?", label: "Show this list", group: "Anywhere" },
 ];
 
-export const shortcutKeys = (id: string) => SHORTCUTS.find((s) => s.id === id)?.keys;
+export const keysOf = (shortcut: Shortcut, mac = false) => (mac && shortcut.macKeys) || shortcut.keys;
+export const shortcutKeys = (id: string, mac = false) => {
+  const shortcut = SHORTCUTS.find((s) => s.id === id);
+  return shortcut && keysOf(shortcut, mac);
+};
 // A tooltip with its shortcut: "Notes (Ctrl+Alt+N)".
-export const withShortcut = (label: string, id: string) => `${label} (${shortcutKeys(id)})`;
+export const withShortcut = (label: string, id: string, mac = false) => `${label} (${shortcutKeys(id, mac)})`;

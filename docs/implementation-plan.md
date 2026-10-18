@@ -84,6 +84,8 @@ Each step lists what it needs from earlier steps and when it is done.
 
 - **Drag shows the old time.** While an Event is dragged (for example from Day 1 09:00 towards Day 2 10:00), the card keeps its old time until it is dropped, which can suggest the target is wrong. Show the time of the current drop position on the card during the drag. Best done together with a browser check of dragging, which the automated browser could not do in step 8.
 
+- **Keyboard time and Day changes are unreliable.** Shift+arrow (move 15 minutes or to another Day) and Delete on the selected Event often do nothing, probably because the focus is in the Event panel's title field after an Event is selected with the mouse, where single keys are off by design. Not important; decide how focus should work after selecting an Event, then revisit.
+
 ## Next phase (not scheduled)
 
 Offline read-only access; adding Events from the Map View.

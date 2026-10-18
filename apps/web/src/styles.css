@@ -946,3 +946,17 @@ main.has-panel {
   font: inherit;
   font-size: 0.85rem;
 }
+
+/* The side panel covers the Todos instead of squeezing the Days. */
+main.has-panel .trip-layout {
+  position: relative;
+}
+
+main.has-panel .todos-panel {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  width: 15rem;
+  /* Past the gap between the Days and the side panel, so it is fully covered. */
+  margin-left: 4rem;
+}

@@ -16,7 +16,6 @@ import {
   type HoldingArea,
   type Todo,
   type Trip,
-  withShortcut,
 } from "@travel-planner/shared";
 import { useRef, useState } from "react";
 import { deleteDay, insertDay, reorderDays, restoreDay } from "./api";
@@ -26,6 +25,7 @@ import { endGesture } from "./gesture";
 import { HoldingAreas } from "./HoldingAreas";
 import { LodgingBanners, staysOf } from "./LodgingBanners";
 import { TodosPanel } from "./TodosPanel";
+import { tip } from "./shortcuts";
 
 // What a move changes: the time, and/or the place (a Day id in `dayId`, or a holding area).
 export type EventMove = Partial<Pick<Event, "startMinute" | "durationMinutes" | "dayId" | "holding">>;
@@ -188,10 +188,10 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
     <article ref={root}>
       <div className="trip-head">
         <h2>{trip.title}</h2>
-        <button type="button" aria-pressed={notesOpen} title={withShortcut("Notes", "notes")} onClick={onToggleNotes}>
+        <button type="button" aria-pressed={notesOpen} title={tip("Notes", "notes")} onClick={onToggleNotes}>
           Notes <span className="count">{trip.notes.length}</span>
         </button>
-        <button type="button" title={withShortcut("Keyboard shortcuts", "help")} aria-label="Keyboard shortcuts" onClick={onShowShortcuts}>
+        <button type="button" title={tip("Keyboard shortcuts", "help")} aria-label="Keyboard shortcuts" onClick={onShowShortcuts}>
           ?
         </button>
       </div>
@@ -260,7 +260,7 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
                       Delete Day
                     </button>
                   </div>
-                  <button type="button" disabled={busy} title={withShortcut("Add event", "new-event")} onClick={() => onCreateAt(day.id, DEFAULT_START_MINUTE)}>
+                  <button type="button" disabled={busy} title={tip("Add event", "new-event")} onClick={() => onCreateAt(day.id, DEFAULT_START_MINUTE)}>
                     Add event
                   </button>
                 </section>,

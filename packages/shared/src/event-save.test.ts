@@ -114,4 +114,13 @@ describe("planEventSave with kinds", () => {
       planEventSave({ ...fields, kind: "transport", arrival: "14:15" }, existing),
     ).toEqual({ kind: "update", patch: { durationMinutes: 135 } });
   });
+
+  it("keeps a saved 24-hour Event valid when it becomes Transport", () => {
+    const full = { ...saved, startMinute: 0, durationMinutes: 1440 };
+    expect(planEventSave({ ...fields, kind: "transport", start: "00:00", arrival: "00:00" }, full)).toEqual({
+      kind: "update",
+      patch: { kind: "transport" },
+    });
+    expect(planEventSave({ ...fields, kind: "transport", start: "00:00", arrival: "00:00" }, undefined).kind).toBe("error");
+  });
 });

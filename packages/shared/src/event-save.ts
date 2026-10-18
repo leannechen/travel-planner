@@ -29,7 +29,7 @@ export function planEventSave(fields: EventFields, saved: Event | undefined): Sa
   if (!title) return saved ? { kind: "error", message: "Title is required" } : { kind: "wait" };
 
   const startMinute = parseTime(fields.start);
-  const durationMinutes = fields.kind === "transport" ? transportDuration(startMinute, fields.arrival) : typedDuration(fields.duration);
+  const durationMinutes = fields.kind === "transport" ? transportDuration(startMinute, fields.arrival, saved) : typedDuration(fields.duration);
   if (startMinute === undefined || durationMinutes === undefined) {
     return {
       kind: "error",
@@ -59,8 +59,12 @@ function typedDuration(text: string): number | undefined {
   return valid ? minutes : undefined;
 }
 
-function transportDuration(startMinute: number | undefined, arrival: string): number | undefined {
+function transportDuration(startMinute: number | undefined, arrival: string, saved: Event | undefined): number | undefined {
   const arrivalMinute = parseTime(arrival);
   if (startMinute === undefined || arrivalMinute === undefined) return undefined;
+  // A saved Event of exactly 24 hours arrives at its own departure time; leaving that untouched is valid.
+  if (arrivalMinute === startMinute && saved?.startMinute === startMinute && saved.durationMinutes === MAX_DURATION_MINUTES) {
+    return MAX_DURATION_MINUTES;
+  }
   return durationBetween(startMinute, arrivalMinute);
 }

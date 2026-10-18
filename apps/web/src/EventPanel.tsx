@@ -102,8 +102,9 @@ export function EventPanel({ days, event, newEvent, onCreate, onUpdate, onDraftC
   // arrival describe one thing, so the field that was hidden is recalculated from the shown one.
   function changeKind(kind: EventFields["kind"]) {
     const current = latest.current;
-    const start = parseTime(current.start);
-    const duration = typedDuration(current);
+    // An invalid time field must not leave the hidden one stale: fall back to the saved Event.
+    const start = parseTime(current.start) ?? saved.current?.startMinute;
+    const duration = typedDuration(current) ?? saved.current?.durationMinutes;
     change({ kind, ...(start !== undefined && duration !== undefined ? timeFields(start, duration) : {}) });
     commit();
   }

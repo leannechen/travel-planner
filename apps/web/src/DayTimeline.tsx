@@ -26,7 +26,7 @@ export type EventTimes = { startMinute: number; durationMinutes: number };
 
 // The real end, even when it is past midnight and the card is cut off there.
 const formatEnd = (end: number) =>
-  end > MINUTES_PER_DAY ? `${formatMinute(end - MINUTES_PER_DAY)} +1` : formatMinute(end);
+  end >= MINUTES_PER_DAY ? `${formatMinute(end - MINUTES_PER_DAY)} +1` : formatMinute(end);
 
 const toPx = (minutes: number) => (minutes / 60) * PX_PER_HOUR;
 

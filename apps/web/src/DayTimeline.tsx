@@ -258,7 +258,7 @@ function EventCard({
       <button type="button" ref={handleRef} onClick={onSelect}>
         <strong>
           <KindIcon kind={event.kind} transportLabel={event.transportLabel} />
-          {event.title}
+          <span className="event-title">{event.title}</span>
         </strong>
         <span>
           {formatMinute(times.startMinute)} – {formatEnd(realEnd)}

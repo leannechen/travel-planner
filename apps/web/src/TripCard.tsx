@@ -204,7 +204,9 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
         <span className="spacer" />
         <button type="button" className="btn" aria-pressed={notesOpen} title={tip(t("notes.title"), "notes")} onClick={onToggleNotes}>
           {t("notes.title")} <span className="count">{trip.notes.length}</span>
-          <kbd className="kbd">{keyOf("notes")}</kbd>
+          <kbd className="kbd" aria-hidden="true">
+            {keyOf("notes")}
+          </kbd>
         </button>
         <button type="button" className="ib" title={tip(t("shortcuts.title"), "help")} aria-label={t("shortcuts.title")} onClick={onShowShortcuts}>
           <CircleHelp size={16} aria-hidden="true" />

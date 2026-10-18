@@ -590,6 +590,11 @@ export function App() {
         );
       })}
       {trips?.length === 0 && <p>{t("app.noTrips")}</p>}
+      {!trips?.length && (
+        <div className="standalone-switches">
+          <Sidebar onShowShortcuts={() => setSheetOpen(true)} />
+        </div>
+      )}
       {selectedTrip && selection && (selectedEvent || "draft" in selection) && (
         <EventPanel
           key={panelKey}

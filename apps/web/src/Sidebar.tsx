@@ -60,7 +60,7 @@ export function Sidebar({ onShowShortcuts }: { onShowShortcuts: () => void }) {
             </button>
           ))}
         </div>
-        <button type="button" className="sidebar-shortcuts" aria-label={t("shortcuts.title")} title={tip(t("shortcuts.title"), "help")} onClick={() => { setOpen(false); onShowShortcuts(); }}>
+        <button type="button" className="btn sidebar-shortcuts" aria-label={t("shortcuts.title")} title={tip(t("shortcuts.title"), "help")} onClick={() => { setOpen(false); onShowShortcuts(); }}>
           <CircleHelp size={16} aria-hidden="true" />
           <span>{t("shortcuts.title")}</span>
         </button>

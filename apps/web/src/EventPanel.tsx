@@ -5,6 +5,7 @@ import {
   formatMinute,
   MAX_DURATION_MINUTES,
   MAX_NIGHTS,
+  isWebUrl,
   parseTime,
   TRANSPORT_LABELS,
   typedDuration,
@@ -42,7 +43,6 @@ function fieldsDuration(fields: EventFields) {
   return start === undefined || arrival === undefined ? undefined : durationBetween(start, arrival);
 }
 
-const isWebLink = (text: string) => /^https?:\/\//i.test(text.trim()) && URL.canParse(text.trim());
 const hasContact = (event: { phone: string | null; email: string | null; website: string | null }) =>
   Boolean(event.phone || event.email || event.website);
 
@@ -91,6 +91,8 @@ export function EventPanel({ days, event, newEvent, onCreate, onUpdate, onDraftC
     bookingUrl: initial.bookingUrl ?? "",
     ...timeFields(initial.startMinute, initial.durationMinutes),
   });
+  // Open from the start when there is something to show; after that only the user changes it.
+  const [contactOpen] = useState(() => hasContact(initial));
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   // The saved Event; for a new one this is set after it has been created.
   const saved = useRef<Event | undefined>(event);
@@ -349,7 +351,7 @@ export function EventPanel({ days, event, newEvent, onCreate, onUpdate, onDraftC
               onChange={(e) => change({ bookingUrl: e.target.value })}
               onBlur={commit}
             />
-            {isWebLink(fields.bookingUrl) && (
+            {isWebUrl(fields.bookingUrl.trim()) && (
               <a href={fields.bookingUrl.trim()} target="_blank" rel="noreferrer">
                 Open link
               </a>
@@ -357,7 +359,7 @@ export function EventPanel({ days, event, newEvent, onCreate, onUpdate, onDraftC
           </label>
         )}
         {showsContact(fields.kind) && (
-          <details className="contact" open={hasContact(initial)}>
+          <details className="contact" open={contactOpen}>
             <summary>Contact</summary>
             <label>
               Phone
@@ -370,7 +372,7 @@ export function EventPanel({ days, event, newEvent, onCreate, onUpdate, onDraftC
             <label>
               Website
               <input type="url" value={fields.website} onChange={(e) => change({ website: e.target.value })} onBlur={commit} />
-              {isWebLink(fields.website) && (
+              {isWebUrl(fields.website.trim()) && (
                 <a href={fields.website.trim()} target="_blank" rel="noreferrer">
                   Open website
                 </a>

@@ -4,6 +4,7 @@ export default defineConfig({
   test: {
     projects: [
       { test: { name: "shared", root: "packages/shared", environment: "node" } },
+      { test: { name: "web", root: "apps/web", environment: "node" } },
       {
         test: {
           name: "api",

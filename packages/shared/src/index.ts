@@ -28,7 +28,7 @@ export const transportLabelSchema = z.enum(TRANSPORT_LABELS);
 export const MAX_DESCRIPTION_LENGTH = 10000;
 const blankToNull = (value: string) => (value === "" ? null : value);
 const optionalText = (max: number) => z.string().trim().max(max).transform(blankToNull).nullable();
-const isWebUrl = (value: string) => /^https?:\/\//i.test(value) && URL.canParse(value);
+export const isWebUrl = (value: string) => /^https?:\/\//i.test(value) && URL.canParse(value);
 const optionalWebUrl = z
   .string()
   .trim()

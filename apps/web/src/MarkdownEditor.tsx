@@ -1,8 +1,5 @@
-import { TaskItem, TaskList } from "@tiptap/extension-list";
-import { Table, TableCell, TableHeader, TableRow } from "@tiptap/extension-table";
-import { Markdown } from "@tiptap/markdown";
 import { EditorContent, useEditor } from "@tiptap/react";
-import { StarterKit } from "@tiptap/starter-kit";
+import { markdownExtensions } from "./markdown-extensions";
 
 type Props = {
   label: string;
@@ -13,24 +10,12 @@ type Props = {
 };
 
 // A Markdown editor that shows the formatting as you type (Cmd+B makes bold text, "- " starts a
-// list) and stores plain Markdown. Only standard Markdown is used: underline and other
-// extensions that would need non-standard syntax are off. Links may only be http, https, mailto
-// or tel. Checkboxes are formatting only (PRD §5.1).
+// list) and stores plain Markdown. Only standard Markdown is used (see markdown-extensions.ts).
+// Checkboxes are formatting only (PRD §5.1). Syntax the editor has no node for is not kept when a
+// Description is edited and saved again: images, reference links and footnotes.
 export function MarkdownEditor({ label, value, onChange, onBlur }: Props) {
   const editor = useEditor({
-    extensions: [
-      StarterKit.configure({
-        underline: false,
-        link: { openOnClick: false, protocols: ["mailto", "tel"] },
-      }),
-      TaskList,
-      TaskItem.configure({ nested: true }),
-      Table,
-      TableRow,
-      TableHeader,
-      TableCell,
-      Markdown,
-    ],
+    extensions: markdownExtensions,
     content: value,
     contentType: "markdown",
     editorProps: {

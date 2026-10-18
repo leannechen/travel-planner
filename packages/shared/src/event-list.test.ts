@@ -5,6 +5,8 @@ import type { Day, Event } from "./index";
 const ev = (id: string, dayId: string, start: number, title = id): Event => ({
   id,
   dayId,
+  kind: "attraction",
+  transportLabel: null,
   title,
   startMinute: start,
   durationMinutes: 60,

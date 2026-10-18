@@ -8,6 +8,13 @@
   --muted: #5b6a86;
   --pri: #2373f4;
   --pri-tint: #e7f0ff;
+  /* One color per Event kind (from the design tokens). */
+  --attraction-bar: #2f7bff;
+  --attraction-tint: #e3edff;
+  --meal-bar: #f46a1c;
+  --meal-tint: #ffe8d9;
+  --transport-bar: #12ae72;
+  --transport-tint: #d9f5e8;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -19,6 +26,12 @@
     --muted: #95a3c0;
     --pri: #578ef5;
     --pri-tint: #1b2a4d;
+    --attraction-bar: #6aa8ff;
+    --attraction-tint: rgba(106, 168, 255, 0.2);
+    --meal-bar: #ff9a55;
+    --meal-tint: rgba(255, 154, 85, 0.2);
+    --transport-bar: #3fd99a;
+    --transport-tint: rgba(63, 217, 154, 0.18);
   }
 }
 
@@ -89,8 +102,9 @@ body {
   padding: 0;
   /* The resize handles sit on the card's edges; the button inside clips the text. */
   overflow: visible;
-  background: var(--pri-tint);
-  border: 1px solid var(--pri);
+  background: var(--tint);
+  border: 1px solid var(--bar);
+  border-left-width: 4px;
   border-radius: 4px;
   font-size: 0.8125rem;
   line-height: 1.25;
@@ -231,4 +245,65 @@ main.has-panel {
 
 .resize-handle.bottom::after {
   bottom: 2px;
+}
+
+.kind-attraction {
+  --bar: var(--attraction-bar);
+  --tint: var(--attraction-tint);
+}
+
+.kind-meal {
+  --bar: var(--meal-bar);
+  --tint: var(--meal-tint);
+}
+
+.kind-transport {
+  --bar: var(--transport-bar);
+  --tint: var(--transport-tint);
+}
+
+.event-card strong svg {
+  display: inline;
+  margin-right: 0.25rem;
+  vertical-align: -2px;
+  color: var(--bar);
+}
+
+.kind-switch {
+  display: flex;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.kind-switch label {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.25rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.kind-switch label:has(input:checked) {
+  background: var(--tint);
+  border-color: var(--bar);
+}
+
+.kind-switch label:has(input:focus-visible) {
+  outline: 2px solid var(--pri);
+}
+
+.kind-switch input {
+  position: absolute;
+  opacity: 0;
+}
+
+.event-panel .hint {
+  color: var(--muted);
 }

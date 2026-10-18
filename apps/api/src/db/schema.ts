@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { check, integer, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { check, integer, pgEnum, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: uuid().primaryKey().defaultRandom(),
@@ -27,6 +27,9 @@ export const days = pgTable(
   (t) => [unique("days_trip_position_unique").on(t.tripId, t.position)],
 );
 
+export const eventKind = pgEnum("event_kind", ["attraction", "meal", "transport"]);
+export const transportLabel = pgEnum("transport_label", ["flight", "train", "ferry", "bus", "other"]);
+
 // startMinute and durationMinutes: minutes from 00:00 of the Day, and length. The defaults
 // (09:00, 60 minutes) are what Events created before the time model were given.
 export const events = pgTable(
@@ -36,7 +39,10 @@ export const events = pgTable(
     dayId: uuid()
       .notNull()
       .references(() => days.id, { onDelete: "cascade" }),
+    kind: eventKind().notNull().default("attraction"),
     title: text().notNull(),
+    // Kept when the kind changes, so switching back to Transport restores it.
+    transportLabel: transportLabel(),
     startMinute: integer().notNull().default(540),
     durationMinutes: integer().notNull().default(60),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),

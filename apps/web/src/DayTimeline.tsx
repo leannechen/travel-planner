@@ -15,6 +15,7 @@ import {
   SNAP_MINUTES,
   type Event,
 } from "@travel-planner/shared";
+import { KindIcon } from "./kinds";
 import { useMemo, useRef, useState, type MouseEvent, type PointerEvent } from "react";
 
 export const PX_PER_HOUR = 64;
@@ -263,7 +264,7 @@ function EventCard({
 
   const realEnd = times.startMinute + times.durationMinutes;
   const drawnHeight = toPx(Math.min(realEnd, MINUTES_PER_DAY) - times.startMinute);
-  const classes = ["event-card", selected && "selected", isDragging && "dragging"].filter(Boolean).join(" ");
+  const classes = ["event-card", `kind-${event.kind}`, selected && "selected", isDragging && "dragging"].filter(Boolean).join(" ");
 
   return (
     <li
@@ -277,7 +278,10 @@ function EventCard({
       }}
     >
       <button type="button" ref={handleRef} onClick={onSelect}>
-        <strong>{event.title}</strong>
+        <strong>
+          <KindIcon kind={event.kind} transportLabel={event.transportLabel} />
+          {event.title}
+        </strong>
         <span>
           {formatMinute(times.startMinute)} – {formatEnd(realEnd)}
         </span>

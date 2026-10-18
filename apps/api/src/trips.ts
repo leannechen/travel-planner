@@ -13,6 +13,28 @@ import { and, asc, desc, eq, sql } from "drizzle-orm";
 import type { Db } from "./db/client";
 import { days, events, trips } from "./db/schema";
 
+function toEvent(row: typeof events.$inferSelect): Event {
+  return {
+    id: row.id,
+    dayId: row.dayId,
+    kind: row.kind,
+    title: row.title,
+    startMinute: row.startMinute,
+    durationMinutes: row.durationMinutes,
+    transportLabel: row.transportLabel,
+  };
+}
+
+const eventColumns = {
+  id: true,
+  dayId: true,
+  kind: true,
+  title: true,
+  startMinute: true,
+  durationMinutes: true,
+  transportLabel: true,
+} as const;
+
 export async function listTrips(db: Db, ownerId: string): Promise<Trip[]> {
   return db.query.trips.findMany({
     where: eq(trips.ownerId, ownerId),
@@ -25,7 +47,7 @@ export async function listTrips(db: Db, ownerId: string): Promise<Trip[]> {
         with: {
           events: {
             orderBy: [asc(events.startMinute), asc(events.createdAt), asc(events.id)],
-            columns: { id: true, dayId: true, title: true, startMinute: true, durationMinutes: true },
+            columns: eventColumns,
           },
         },
       },
@@ -70,14 +92,8 @@ export async function addEvent(
       .where(and(eq(days.id, dayId), eq(days.tripId, tripId)));
     if (!day) return undefined;
 
-    const [event] = await tx.insert(events).values({ dayId, title: input.title, startMinute: input.startMinute, durationMinutes: input.durationMinutes }).returning();
-    return {
-      id: event!.id,
-      dayId: event!.dayId,
-      title: event!.title,
-      startMinute: event!.startMinute,
-      durationMinutes: event!.durationMinutes,
-    };
+    const [event] = await tx.insert(events).values({ dayId, ...input }).returning();
+    return toEvent(event!);
   });
 }
 
@@ -115,13 +131,7 @@ export async function updateEvent(
     }
 
     const [event] = await tx.update(events).set(input).where(eq(events.id, eventId)).returning();
-    return {
-      id: event!.id,
-      dayId: event!.dayId,
-      title: event!.title,
-      startMinute: event!.startMinute,
-      durationMinutes: event!.durationMinutes,
-    };
+    return toEvent(event!);
   });
 }
 
@@ -161,7 +171,7 @@ async function loadDays(tx: Tx, tripId: string): Promise<Day[]> {
     with: {
       events: {
         orderBy: [asc(events.startMinute), asc(events.createdAt), asc(events.id)],
-        columns: { id: true, dayId: true, title: true, startMinute: true, durationMinutes: true },
+        columns: eventColumns,
       },
     },
   });

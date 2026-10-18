@@ -16,12 +16,20 @@ const durationMinutes = z.number().int().min(1).max(MAX_DURATION_MINUTES);
 export const DEFAULT_START_MINUTE = 9 * 60;
 export const DEFAULT_DURATION_MINUTES = 60;
 
+export const EVENT_KINDS = ["attraction", "meal", "transport"] as const;
+export const TRANSPORT_LABELS = ["flight", "train", "ferry", "bus", "other"] as const;
+export const kindSchema = z.enum(EVENT_KINDS);
+export const transportLabelSchema = z.enum(TRANSPORT_LABELS);
+
 export const eventSchema = z.object({
   id: z.uuid(),
   dayId: z.uuid(),
+  kind: kindSchema,
   title,
   startMinute,
   durationMinutes,
+  // Only meaningful for Transport, but kept when the kind changes so switching back restores it.
+  transportLabel: transportLabelSchema.nullable(),
 });
 
 export const daySchema = z.object({
@@ -39,6 +47,8 @@ export const tripSchema = z.object({
 export const createTripInputSchema = z.object({ title });
 export const createEventInputSchema = z.object({
   title,
+  kind: kindSchema.default("attraction"),
+  transportLabel: transportLabelSchema.nullable().default(null),
   startMinute: startMinute.default(DEFAULT_START_MINUTE),
   durationMinutes: durationMinutes.default(DEFAULT_DURATION_MINUTES),
 });
@@ -55,6 +65,8 @@ export const reorderDaysInputSchema = z.object({ dayIds: z.array(z.uuid()) });
 export const updateEventInputSchema = z
   .object({
     title: title.optional(),
+    kind: kindSchema.optional(),
+    transportLabel: transportLabelSchema.nullable().optional(),
     dayId: z.uuid().optional(),
     startMinute: startMinute.optional(),
     durationMinutes: durationMinutes.optional(),
@@ -73,3 +85,4 @@ export * from "./event-list";
 export * from "./event-save";
 export * from "./time-edit";
 export * from "./time-layout";
+export * from "./transport";

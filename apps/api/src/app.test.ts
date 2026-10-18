@@ -503,3 +503,51 @@ describe("updating an Event", () => {
     }
   });
 });
+
+describe("Event kinds", () => {
+  async function newEvent(body: Record<string, unknown> = {}) {
+    const { trip } = await createTrip("Kyoto");
+    const res = await post(`/api/trips/${trip.id}/days/${trip.days[0]!.id}/events`, { title: "Thing", ...body });
+    return { trip, res };
+  }
+
+  it("makes an Attraction without a transport label by default", async () => {
+    const { res } = await newEvent();
+    expect(res.status).toBe(201);
+    expect(eventSchema.parse(await res.json())).toMatchObject({ kind: "attraction", transportLabel: null });
+  });
+
+  it("creates a Transport event with its label", async () => {
+    const { res } = await newEvent({ kind: "transport", transportLabel: "ferry", startMinute: 1380, durationMinutes: 150 });
+    expect(eventSchema.parse(await res.json())).toMatchObject({
+      kind: "transport",
+      transportLabel: "ferry",
+      durationMinutes: 150,
+    });
+  });
+
+  it("rejects an unknown kind or transport label", async () => {
+    expect((await newEvent({ kind: "hotel" })).res.status).toBe(400);
+    expect((await newEvent({ transportLabel: "rocket" })).res.status).toBe(400);
+  });
+
+  it("changes the kind, keeping the label, and lists the kind", async () => {
+    const { trip, res } = await newEvent({ kind: "transport", transportLabel: "train" });
+    const event = eventSchema.parse(await res.json());
+
+    const patched = await send("PATCH", `/api/trips/${trip.id}/events/${event.id}`, { kind: "meal" });
+
+    expect(eventSchema.parse(await patched.json())).toMatchObject({ kind: "meal", transportLabel: "train" });
+    const listed = z.array(tripSchema).parse(await (await fetch(`${app.baseUrl}/api/trips`)).json());
+    expect(listed[0]!.days[0]!.events[0]).toMatchObject({ kind: "meal", transportLabel: "train" });
+  });
+
+  it("clears the transport label with null", async () => {
+    const { trip, res } = await newEvent({ kind: "transport", transportLabel: "bus" });
+    const event = eventSchema.parse(await res.json());
+
+    const patched = await send("PATCH", `/api/trips/${trip.id}/events/${event.id}`, { transportLabel: null });
+
+    expect(eventSchema.parse(await patched.json()).transportLabel).toBeNull();
+  });
+});

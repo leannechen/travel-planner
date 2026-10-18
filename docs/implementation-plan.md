@@ -2,7 +2,7 @@
 
 Product rules are in [`PRD.md`](./PRD.md); vocabulary in [`CONTEXT.md`](../CONTEXT.md); decisions in [`docs/adr/`](./adr/). This file orders the work and tracks status. It changes often; the PRD should not.
 
-**Current step: 11 (Keyboard operation).** Steps 0 to 10 are done. The final design is in [`docs/design/`](./design/); a few designer fixes are pending and do not block step 0.
+**Current step: 12 (Interface language and theme).** Steps 0 to 11 are done. The final design is in [`docs/design/`](./design/); a few designer fixes are pending and do not block step 0.
 
 ## Working agreement
 
@@ -41,11 +41,11 @@ Each step lists what it needs from earlier steps and when it is done.
 
 - [x] **8. Backlog and Archive.** Events without a start time; schedule through the Day and start-time fields; desktop drag between areas and Days. Deleting a Day that has Events becomes allowed: a confirmation dialog states how many Events move to the Backlog, with an Undo toast (design 13). An empty Day is deleted at once, also with the toast. The Todo and Leg lines of the dialog come with steps 9 and 15. *Needs:* 5.
 - [x] **9. Todos.** Trip Todos and Event Todos; deleting or archiving an Event deletes its Todos with the confirmation and count, "do not remind me again", and an undo window for deletion. Deleting an Event (from the edit panel) arrives here. Todos can be added, ticked and deleted; renaming a Todo has an API but no UI yet. "Do not remind me again" is kept in the browser until accounts exist (step 18). *Needs:* 8.
-- [x] **10. Notes.** Floating Notes panel following design 42: one of three states at a time (new Note, list, open Note), a plain Markdown field (no live formatting), autosave with "Saved", pinning, ordering by last edit, and deleting a Note with an Undo toast. A Note emptied of text is deleted when left. The panel opens from a Notes button on each Trip and with Alt+Shift+N, a placeholder because browsers keep Ctrl+Shift+N; step 11 settles the shortcut. It is draggable (position kept in the browser), reopens on what was open (kept for the session), and is a bottom sheet on narrow screens (refined in step 13). *Needs:* 1.
+- [x] **10. Notes.** Floating Notes panel following design 42: one of three states at a time (new Note, list, open Note), a plain Markdown field (no live formatting), autosave with "Saved", pinning, ordering by last edit, and deleting a Note with an Undo toast. A Note emptied of text is deleted when left. The panel opens from a Notes button on each Trip and with Ctrl+Alt+N (settled in step 11). It is draggable (position kept in the browser), reopens on what was open (kept for the session), and is a bottom sheet on narrow screens (refined in step 13). *Needs:* 1.
 
 ### Experience
 
-- [ ] **11. Keyboard operation.** Selection model, single-key and modifier shortcuts, tooltips with shortcuts, `?` cheat sheet. *Needs:* 9, 10.
+- [x] **11. Keyboard operation.** Arrow keys move the selection (Backlog, Archive, then Days left to right); Enter edits, Delete removes (with the Todo confirmation), Esc clears; N and B create an Event; Shift+arrows change the time (15 minutes) or the Day; `?` opens the cheat sheet; Notes opens with Ctrl+Alt+N (Alt+Shift switches the input language on Windows); tooltips show shortcuts. Selecting a Day header and moving it from the keyboard is not done: the Move earlier / later buttons already work with the keyboard. *Needs:* 9, 10.
 - [ ] **12. Interface language and theme.** English and Traditional Chinese, and light and dark themes, each with a switch at the bottom of the left sidebar ("..." menu on phone); terms from the design spec mapping. *Needs:* 11.
 - [ ] **13. Phone layout.** One Day at a time, bottom drawers for Backlog, Archive and Todos, field-based moves across areas. *Needs:* 9.
 

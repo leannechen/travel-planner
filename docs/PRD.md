@@ -233,6 +233,7 @@ The product uses the terms in `CONTEXT.md`. In the Traditional Chinese interface
 - Most actions can be done from the keyboard: create an Event, select an Event, open it, move through Events, delete, cancel.
 - There is a notion of a selected Event: arrow keys move the selection, Enter opens it for editing, Delete removes it (following the confirmation rules in §5), Esc clears the selection.
 - Frequent actions use single keys, active only when no text field is focused. App-wide actions (such as opening the notes panel) use modifier combinations.
+- The shortcuts: arrow keys select, Enter edits, Delete removes, Esc clears, N / B create an Event on the selected Event's Day / in the Backlog, Shift+arrows change time or Day; Ctrl+Alt+N opens Notes (Alt+Shift combinations clash with the Windows input-language switch).
 - Pressing `?` shows a shortcut cheat sheet. Every button's tooltip also shows its shortcut.
 
 ## 14. Interface language and theme

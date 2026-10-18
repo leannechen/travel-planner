@@ -193,6 +193,7 @@ export * from "./day-deletion";
 export * from "./day-order";
 export * from "./event-list";
 export * from "./event-save";
+export * from "./keyboard";
 export * from "./lodging-range";
 export * from "./notes";
 export * from "./time-edit";

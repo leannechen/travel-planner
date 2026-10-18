@@ -19,6 +19,7 @@ import {
   type Event,
   type Todo,
   type UpdateEventInput,
+  withShortcut,
 } from "@travel-planner/shared";
 import { TodoList } from "./TodoList";
 import { KIND_NAMES, KindIcon, TRANSPORT_LABEL_NAMES } from "./kinds";
@@ -70,6 +71,8 @@ type Props = {
   onToggleTodo: (todo: Todo) => void;
   onDeleteTodo: (todo: Todo) => void;
   onDelete: (event: Event) => void;
+  // Selected from the keyboard: leave the focus where it is so the arrow keys keep working.
+  quiet?: boolean;
 };
 
 
@@ -88,6 +91,7 @@ export function EventPanel({
   onToggleTodo,
   onDeleteTodo,
   onDelete,
+  quiet,
 }: Props) {
   const initial = event ?? {
     title: "",
@@ -266,7 +270,7 @@ export function EventPanel({
           {status.kind === "saving" && "Saving…"}
           {status.kind === "saved" && "Saved"}
         </span>
-        <button type="button" onClick={onClose} aria-label="Close">
+        <button type="button" onClick={onClose} aria-label="Close" title="Close (Esc)">
           ✕
         </button>
       </div>
@@ -290,7 +294,8 @@ export function EventPanel({
         <label>
           Title
           <input
-            autoFocus
+            autoFocus={!quiet}
+            data-field="title"
             value={fields.title}
             onChange={(e) => change({ title: e.target.value })}
             onBlur={commit}
@@ -467,7 +472,7 @@ export function EventPanel({
         </section>
       )}
       {event && (
-        <button type="button" className="danger delete-event" onClick={() => onDelete(event)}>
+        <button type="button" className="danger delete-event" title={withShortcut("Delete Event", "delete")} onClick={() => onDelete(event)}>
           Delete Event
         </button>
       )}

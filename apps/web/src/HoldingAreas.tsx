@@ -1,5 +1,6 @@
 import { useDraggable } from "@dnd-kit/react";
 import type { Event, HoldingArea } from "@travel-planner/shared";
+import { withShortcut } from "@travel-planner/shared";
 import { Plus } from "lucide-react";
 import { KindIcon } from "./kinds";
 import { gestureJustEnded } from "./gesture";
@@ -75,7 +76,7 @@ export function HoldingAreas({ backlog, archive, selectedEventId, dropTarget, on
             type="button"
             className="holding-add"
             aria-label="Add to Backlog"
-            title="Add to Backlog"
+            title={withShortcut("Add to Backlog", "new-backlog")}
             // Inside the summary, so it must not also toggle the section.
             onClick={(e) => {
               e.preventDefault();

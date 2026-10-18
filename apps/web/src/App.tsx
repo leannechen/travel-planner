@@ -1,14 +1,20 @@
 import {
+  adjacentDayId,
   allEvents,
+  axisRange,
   DEFAULT_DURATION_MINUTES,
   DEFAULT_START_MINUTE,
   dropEventTodos,
   isHoldingArea,
+  moveEvent,
   needsTodoConfirmation,
+  neighbour,
   noteTitle,
   removeEvent,
+  SNAP_MINUTES,
   summarizeTodoDeletion,
   upsertEvent,
+  type Direction,
   type Areas,
   type DeletedEvent,
   type Note,
@@ -37,6 +43,7 @@ import {
 import { ConfirmDialog } from "./ConfirmDialog";
 import { EventPanel } from "./EventPanel";
 import { NotesPanel } from "./NotesPanel";
+import { ShortcutSheet } from "./ShortcutSheet";
 import { Toast } from "./Toast";
 import { TitleForm } from "./TitleForm";
 import { TripCard, type EventMove, type Toasted } from "./TripCard";
@@ -47,7 +54,8 @@ type Draft = { dayId: string; startMinute: number; durationMinutes: number; kind
 // What the Event panel shows: an existing Event, or a new Event that is not saved yet.
 const emptyAreas: Areas = { days: [], backlog: [], archive: [] };
 
-type Selection = { tripId: string; eventId: string } | { tripId: string; draft: Draft };
+// `quiet`: chosen with the keyboard, so the panel must not take the focus.
+type Selection = { tripId: string; eventId: string; quiet?: boolean } | { tripId: string; draft: Draft };
 
 // "Do not remind me again" for the Todo-deletion dialogs. Kept in this browser until accounts exist
 // (step 18); there is no setting to turn it back on in v1 (PRD §5).
@@ -88,6 +96,7 @@ export function App() {
   const [meId, setMeId] = useState<string | undefined>();
   const [removal, setRemoval] = useState<Removal | undefined>();
   const [toast, setToast] = useState<Toasted | undefined>();
+  const [sheetOpen, setSheetOpen] = useState(false);
   // The Trip whose Notes panel is open. The shortcut opens it for the Trip being worked on.
   const [notesTripId, setNotesTripId] = useState<string | undefined>();
   const lastNotesTripId = useRef<string | undefined>(undefined);
@@ -293,21 +302,167 @@ export function App() {
     setNotesTripId(tripId);
   }
 
-  // Alt+Shift+N opens or closes the Notes panel from anywhere. (A placeholder: browsers keep
-  // Ctrl+Shift+N for themselves; the shortcut set is settled in step 11.)
-  const shortcut = useRef<() => void>(() => undefined);
-  shortcut.current = () => {
-    if (notesTripId) return closeNotes.current?.();
-    const target = selection?.tripId ?? lastNotesTripId.current ?? trips?.[0]?.id;
-    if (target) toggleNotes(target);
+  // The Trip the keyboard works on: the one with the selection, else the last one used.
+  const workingTrip = () => {
+    const id = selection?.tripId ?? lastNotesTripId.current;
+    return trips?.find((t) => t.id === id) ?? trips?.[0];
   };
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.code === "KeyN" && e.altKey && e.shiftKey && !e.ctrlKey && !e.metaKey) {
-        e.preventDefault();
-        shortcut.current();
+
+  // Ctrl+Alt+N opens or closes the Notes panel from anywhere. (Browsers keep Ctrl+Shift+N, and
+  // Alt+Shift switches the input language on Windows.)
+  function notesShortcut() {
+    if (notesTripId) return closeNotes.current?.();
+    const target = workingTrip();
+    if (target) toggleNotes(target.id);
+  }
+
+  // Selecting with the arrow keys moves the focus to the card too, without opening the panel's
+  // fields, so the next arrow key still works.
+  function selectByKey(tripId: string, eventId: string) {
+    select({ tripId, eventId, quiet: true });
+    setTimeout(() => {
+      const element = document.querySelector<HTMLElement>(
+        `[data-event-id="${eventId}"]`,
+      );
+      (element?.matches("button")
+        ? element
+        : element?.querySelector("button")
+      )?.focus();
+    }, 0);
+  }
+
+  const ARROWS: Record<string, Direction> = {
+    ArrowUp: "up",
+    ArrowDown: "down",
+    ArrowLeft: "left",
+    ArrowRight: "right",
+  };
+
+  // Single keys work only when no text field has focus and no dialog is open (PRD §13).
+  function handleKey(e: KeyboardEvent) {
+    if (e.defaultPrevented) return;
+    if (
+      e.code === "KeyN" &&
+      e.ctrlKey &&
+      e.altKey &&
+      !e.shiftKey &&
+      !e.metaKey
+    ) {
+      e.preventDefault();
+      return notesShortcut();
+    }
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const target = e.target instanceof HTMLElement ? e.target : undefined;
+    if (
+      target?.closest("input, textarea, select, [contenteditable]") ||
+      document.querySelector("dialog[open]")
+    )
+      return;
+    const trip = workingTrip();
+    if (!trip) return;
+    const current =
+      selection && "eventId" in selection && selection.tripId === trip.id
+        ? allEvents(trip).find((ev) => ev.id === selection.eventId)
+        : undefined;
+    const handled = () => e.preventDefault();
+
+    if (e.key === "?") {
+      handled();
+      return setSheetOpen(true);
+    }
+    if (e.key === "Escape") {
+      if (selection) select(undefined);
+      return;
+    }
+    if (e.key in ARROWS) {
+      const direction = ARROWS[e.key]!;
+      if (!e.shiftKey) {
+        const next = neighbour(trip, current?.id, direction);
+        if (next) {
+          handled();
+          if (next.id !== current?.id) selectByKey(trip.id, next.id);
+        }
+        return;
       }
-    };
+      // Shift+arrow changes the selected Event: its time (up, down) or its Day (left, right).
+      if (!current?.dayId || current.kind === "lodging") return;
+      handled();
+      if (direction === "up" || direction === "down") {
+        const range = axisRange(
+          trip.days.flatMap((d) =>
+            d.events.filter((ev) => ev.kind !== "lodging"),
+          ),
+        );
+        const { startMinute } = moveEvent(
+          current,
+          direction === "up" ? -SNAP_MINUTES : SNAP_MINUTES,
+          range,
+        );
+        if (startMinute !== current.startMinute)
+          void handleMove(trip.id, current.id, { startMinute });
+      } else {
+        const dayId = adjacentDayId(
+          trip,
+          current.dayId,
+          direction === "left" ? -1 : 1,
+        );
+        if (dayId) void handleMove(trip.id, current.id, { dayId });
+      }
+      return;
+    }
+    if (e.shiftKey) return;
+    // Enter on a focused button keeps its own meaning, except on an Event card.
+    if (e.key === "Enter") {
+      if (
+        !current ||
+        (target?.closest("button, a, summary") &&
+          !target.closest("[data-event-id]"))
+      )
+        return;
+      handled();
+      return document
+        .querySelector<HTMLInputElement>('.event-panel [data-field="title"]')
+        ?.focus();
+    }
+    if (e.key === "Delete" || e.key === "Backspace") {
+      if (!current) return;
+      handled();
+      return void handleDeleteEvent(trip.id, current);
+    }
+    if (e.key === "n") {
+      const dayId =
+        current?.dayId ??
+        (selection &&
+        "draft" in selection &&
+        !isHoldingArea(selection.draft.dayId)
+          ? selection.draft.dayId
+          : trip.days[0]?.id);
+      if (!dayId) return;
+      handled();
+      select({
+        tripId: trip.id,
+        draft: {
+          dayId,
+          startMinute: DEFAULT_START_MINUTE,
+          durationMinutes: DEFAULT_DURATION_MINUTES,
+        },
+      });
+    } else if (e.key === "b") {
+      handled();
+      select({
+        tripId: trip.id,
+        draft: {
+          dayId: "backlog",
+          startMinute: DEFAULT_START_MINUTE,
+          durationMinutes: DEFAULT_DURATION_MINUTES,
+        },
+      });
+    }
+  }
+  const keyHandler = useRef(handleKey);
+  keyHandler.current = handleKey;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => keyHandler.current(e);
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
@@ -394,6 +549,7 @@ export function App() {
             onToast={setToast}
             notesOpen={notesTripId === trip.id}
             onToggleNotes={() => toggleNotes(trip.id)}
+            onShowShortcuts={() => setSheetOpen(true)}
             onAddTodo={(text, eventId) => handleAddTodo(trip.id, text, eventId)}
             onToggleTodo={(todo) => handleToggleTodo(trip.id, todo)}
             onDeleteTodo={(todo) => handleDeleteTodo(trip.id, todo)}
@@ -434,6 +590,7 @@ export function App() {
           onToggleTodo={(todo) => handleToggleTodo(selectedTrip.id, todo)}
           onDeleteTodo={(todo) => handleDeleteTodo(selectedTrip.id, todo)}
           onDelete={(event) => handleDeleteEvent(selectedTrip.id, event)}
+          quiet={"eventId" in selection && selection.quiet}
         />
       )}
       {notesTripId && trips?.some((t) => t.id === notesTripId) && (
@@ -449,6 +606,7 @@ export function App() {
           closeRef={closeNotes}
         />
       )}
+      {sheetOpen && <ShortcutSheet onClose={() => setSheetOpen(false)} />}
       {removal && (
         <ConfirmDialog
           title={`${removal.action === "archive" ? "Archive" : "Delete"} “${removal.title}”?`}

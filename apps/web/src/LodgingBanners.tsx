@@ -42,7 +42,7 @@ export function LodgingBanners({ position, stays, selectedEventId, onSelectEvent
                 .filter(Boolean)
                 .join(" · ");
         return (
-          <button key={`${event.id}-${banner.type}`} type="button" className={classes} onClick={() => onSelectEvent(event.id)}>
+          <button key={`${event.id}-${banner.type}`} type="button" className={classes} data-event-id={event.id} onClick={() => onSelectEvent(event.id)}>
             <KindIcon kind="lodging" transportLabel={null} />
             <span className="banner-title">{event.title}</span>
             {note && <span className="banner-note">{note}</span>}

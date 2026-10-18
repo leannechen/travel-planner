@@ -913,3 +913,36 @@ main.has-panel {
     min-height: 2.75rem;
   }
 }
+
+.shortcut-sheet dl {
+  margin: 0;
+}
+
+.shortcut-sheet dl > div {
+  display: flex;
+  gap: 1rem;
+  padding: 0.25rem 0;
+}
+
+.shortcut-sheet dt {
+  flex: 0 0 11rem;
+}
+
+.shortcut-sheet dd {
+  margin: 0;
+}
+
+.shortcut-sheet h3 {
+  margin: 0.75rem 0 0.25rem;
+  font-size: 0.85rem;
+  color: var(--muted, inherit);
+}
+
+.shortcut-sheet kbd {
+  padding: 0.1rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  font: inherit;
+  font-size: 0.85rem;
+}

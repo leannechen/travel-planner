@@ -16,6 +16,7 @@ import {
   type HoldingArea,
   type Todo,
   type Trip,
+  withShortcut,
 } from "@travel-planner/shared";
 import { useRef, useState } from "react";
 import { deleteDay, insertDay, reorderDays, restoreDay } from "./api";
@@ -43,6 +44,7 @@ type Props = {
   onToast: (toast: Toasted | undefined) => void;
   notesOpen: boolean;
   onToggleNotes: () => void;
+  onShowShortcuts: () => void;
   onAddTodo: (text: string, eventId: string | null) => Promise<void>;
   onToggleTodo: (todo: Todo) => void;
   onDeleteTodo: (todo: Todo) => void;
@@ -69,7 +71,7 @@ function dropTargetAt(root: HTMLElement, x: number, y: number, draggedId: string
   return undefined;
 }
 
-export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectEvent, onCreateAt, onAddToBacklog, onMove, onToast, notesOpen, onToggleNotes, onAddTodo, onToggleTodo, onDeleteTodo }: Props) {
+export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectEvent, onCreateAt, onAddToBacklog, onMove, onToast, notesOpen, onToggleNotes, onShowShortcuts, onAddTodo, onToggleTodo, onDeleteTodo }: Props) {
   const root = useRef<HTMLElement>(null);
   const [error, setError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
@@ -186,8 +188,11 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
     <article ref={root}>
       <div className="trip-head">
         <h2>{trip.title}</h2>
-        <button type="button" aria-pressed={notesOpen} title="Notes (Alt+Shift+N)" onClick={onToggleNotes}>
+        <button type="button" aria-pressed={notesOpen} title={withShortcut("Notes", "notes")} onClick={onToggleNotes}>
           Notes <span className="count">{trip.notes.length}</span>
+        </button>
+        <button type="button" title={withShortcut("Keyboard shortcuts", "help")} aria-label="Keyboard shortcuts" onClick={onShowShortcuts}>
+          ?
         </button>
       </div>
       {error && <p role="alert">{error}</p>}
@@ -255,7 +260,7 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
                       Delete Day
                     </button>
                   </div>
-                  <button type="button" disabled={busy} onClick={() => onCreateAt(day.id, DEFAULT_START_MINUTE)}>
+                  <button type="button" disabled={busy} title={withShortcut("Add event", "new-event")} onClick={() => onCreateAt(day.id, DEFAULT_START_MINUTE)}>
                     Add event
                   </button>
                 </section>,

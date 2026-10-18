@@ -244,6 +244,7 @@ function EventCard({
     <li
       ref={ref}
       className={classes}
+      data-event-id={event.id}
       style={{
         top: toPx(times.startMinute - range.startMinute),
         height: drawnHeight - 2,

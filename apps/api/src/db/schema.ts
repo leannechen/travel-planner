@@ -89,10 +89,23 @@ export const todos = pgTable("todos", {
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });
 
+// A standalone Markdown entry of a Trip's notes list. `updatedAt` changes when the text is edited,
+// not when the Note is pinned.
+export const notes = pgTable("notes", {
+  id: uuid().primaryKey().defaultRandom(),
+  tripId: uuid()
+    .notNull()
+    .references(() => trips.id, { onDelete: "cascade" }),
+  body: text().notNull(),
+  pinned: boolean().notNull().default(false),
+  updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+});
+
 export const tripsRelations = relations(trips, ({ many }) => ({
   days: many(days),
   events: many(events),
   todos: many(todos),
+  notes: many(notes),
 }));
 export const daysRelations = relations(days, ({ one, many }) => ({
   trip: one(trips, { fields: [days.tripId], references: [trips.id] }),
@@ -105,4 +118,7 @@ export const eventsRelations = relations(events, ({ one }) => ({
 export const todosRelations = relations(todos, ({ one }) => ({
   trip: one(trips, { fields: [todos.tripId], references: [trips.id] }),
   event: one(events, { fields: [todos.eventId], references: [events.id] }),
+}));
+export const notesRelations = relations(notes, ({ one }) => ({
+  trip: one(trips, { fields: [notes.tripId], references: [trips.id] }),
 }));

@@ -1,6 +1,7 @@
 import {
   createDayInputSchema,
   createEventInputSchema,
+  createNoteInputSchema,
   createTodoInputSchema,
   createTripInputSchema,
   deletedEventSchema,
@@ -8,6 +9,7 @@ import {
   reorderDaysInputSchema,
   restoreDayInputSchema,
   updateEventInputSchema,
+  updateNoteInputSchema,
   updateTodoInputSchema,
 } from "@travel-planner/shared";
 import type { HealthResponse, Me } from "@travel-planner/shared";
@@ -18,10 +20,12 @@ import { DEV_USER_ID } from "./dev-user";
 import {
   addEvent,
   addHeldEvent,
+  addNote,
   addTodo,
   createTrip,
   deleteDay,
   deleteEvent,
+  deleteNote,
   deleteTodo,
   insertDay,
   listTrips,
@@ -29,6 +33,7 @@ import {
   restoreDay,
   restoreEvent,
   updateEvent,
+  updateNote,
   updateTodo,
 } from "./trips";
 
@@ -36,6 +41,7 @@ const tripParamsSchema = z.object({ tripId: z.uuid() });
 const eventIdParamsSchema = z.object({ tripId: z.uuid(), eventId: z.uuid() });
 const dayParamsSchema = z.object({ tripId: z.uuid(), dayId: z.uuid() });
 const todoParamsSchema = z.object({ tripId: z.uuid(), todoId: z.uuid() });
+const noteParamsSchema = z.object({ tripId: z.uuid(), noteId: z.uuid() });
 const areaParamsSchema = z.object({ tripId: z.uuid(), area: holdingAreaSchema });
 
 const LODGING_ERROR = "A Lodging needs at least one night, and every night must fall on a Day of the Trip";
@@ -171,6 +177,37 @@ export function createApp(db: Db) {
     const { tripId, todoId } = todoParamsSchema.parse(req.params);
     if (!(await deleteTodo(db, DEV_USER_ID, tripId, todoId))) {
       res.status(404).json({ error: "Todo not found" });
+      return;
+    }
+    res.status(204).end();
+  });
+
+  app.post("/api/trips/:tripId/notes", async (req, res) => {
+    const { tripId } = tripParamsSchema.parse(req.params);
+    const input = createNoteInputSchema.parse(req.body);
+    const result = await addNote(db, DEV_USER_ID, tripId, input);
+    if (!result) {
+      res.status(404).json({ error: "Trip not found" });
+      return;
+    }
+    res.status(201).json(result);
+  });
+
+  app.patch("/api/trips/:tripId/notes/:noteId", async (req, res) => {
+    const { tripId, noteId } = noteParamsSchema.parse(req.params);
+    const input = updateNoteInputSchema.parse(req.body);
+    const result = await updateNote(db, DEV_USER_ID, tripId, noteId, input);
+    if (!result) {
+      res.status(404).json({ error: "Note not found" });
+      return;
+    }
+    res.json(result);
+  });
+
+  app.delete("/api/trips/:tripId/notes/:noteId", async (req, res) => {
+    const { tripId, noteId } = noteParamsSchema.parse(req.params);
+    if (!(await deleteNote(db, DEV_USER_ID, tripId, noteId))) {
+      res.status(404).json({ error: "Note not found" });
       return;
     }
     res.status(204).end();

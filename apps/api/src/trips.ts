@@ -11,6 +11,9 @@ import {
   removeId,
   type Stay,
   type CreateEventInput,
+  type CreateNoteInput,
+  type Note,
+  type UpdateNoteInput,
   type CreateTodoInput,
   type CreateTripInput,
   type DeletedEvent,
@@ -23,7 +26,7 @@ import {
 } from "@travel-planner/shared";
 import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import type { Db } from "./db/client";
-import { days, events, todos, trips, users } from "./db/schema";
+import { days, events, notes, todos, trips, users } from "./db/schema";
 
 function toEvent(row: Pick<typeof events.$inferSelect, keyof Event>): Event {
   return {
@@ -48,6 +51,10 @@ function toEvent(row: Pick<typeof events.$inferSelect, keyof Event>): Event {
 
 function toTodo(row: typeof todos.$inferSelect): Todo {
   return { id: row.id, eventId: row.eventId, text: row.text, done: row.done, createdBy: row.createdBy };
+}
+
+function toNote(row: typeof notes.$inferSelect): Note {
+  return { id: row.id, body: row.body, pinned: row.pinned, updatedAt: row.updatedAt.toISOString() };
 }
 
 const todoOrder = [asc(todos.createdAt), asc(todos.id)];
@@ -118,10 +125,15 @@ export async function listTrips(db: Db, ownerId: string): Promise<Trip[]> {
         orderBy: todoOrder,
         columns: { id: true, eventId: true, text: true, done: true, createdBy: true },
       },
+      notes: {
+        orderBy: [desc(notes.updatedAt), asc(notes.id)],
+        columns: { id: true, body: true, pinned: true, updatedAt: true },
+      },
     },
   });
-  return rows.map(({ events: held, ...trip }) => ({
+  return rows.map(({ events: held, notes: noteRows, ...trip }) => ({
     ...trip,
+    notes: noteRows.map((n) => ({ ...n, updatedAt: n.updatedAt.toISOString() })),
     backlog: held.filter((e) => e.holding === "backlog"),
     archive: held.filter((e) => e.holding === "archive"),
   }));
@@ -138,6 +150,7 @@ export async function createTrip(db: Db, ownerId: string, input: CreateTripInput
       backlog: [],
       archive: [],
       todos: [],
+      notes: [],
     };
   });
 }
@@ -658,4 +671,39 @@ async function restoreEventInTransaction(
     }
     return toEvent(row!);
   });
+}
+
+// Notes: each function returns undefined when the Trip is not owned by this user (or the Note is
+// not in it).
+
+export async function addNote(db: Db, ownerId: string, tripId: string, input: CreateNoteInput): Promise<Note | undefined> {
+  if (!(await ownsTrip(db, ownerId, tripId))) return undefined;
+  const [row] = await db.insert(notes).values({ tripId, body: input.body }).returning();
+  return toNote(row!);
+}
+
+// Editing the text moves the Note to the top of the list; pinning does not.
+export async function updateNote(
+  db: Db,
+  ownerId: string,
+  tripId: string,
+  noteId: string,
+  input: UpdateNoteInput,
+): Promise<Note | undefined> {
+  if (!(await ownsTrip(db, ownerId, tripId))) return undefined;
+  const [row] = await db
+    .update(notes)
+    .set({ ...input, ...(input.body !== undefined ? { updatedAt: sql`now()` } : {}) })
+    .where(and(eq(notes.id, noteId), eq(notes.tripId, tripId)))
+    .returning();
+  return row && toNote(row);
+}
+
+export async function deleteNote(db: Db, ownerId: string, tripId: string, noteId: string): Promise<true | undefined> {
+  if (!(await ownsTrip(db, ownerId, tripId))) return undefined;
+  const rows = await db
+    .delete(notes)
+    .where(and(eq(notes.id, noteId), eq(notes.tripId, tripId)))
+    .returning({ id: notes.id });
+  return rows.length > 0 ? true : undefined;
 }

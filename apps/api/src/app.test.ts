@@ -1,4 +1,4 @@
-import { daySchema, dayDeletionSchema, deletedEventSchema, eventSchema, healthResponseSchema, tripSchema } from "@travel-planner/shared";
+import { daySchema, dayDeletionSchema, deletedEventSchema, eventSchema, healthResponseSchema, noteSchema, tripSchema } from "@travel-planner/shared";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { trips, users, days, events } from "./db/schema";
@@ -1287,5 +1287,92 @@ describe("restoring a Day after one of its moved Events was deleted", () => {
 
     expect(res.status).toBe(201);
     expect(dayDeletionSchema.parse(await res.json()).days[1]!.events.map((e) => e.id)).toEqual([nara.id]);
+  });
+});
+
+describe("Notes", () => {
+  async function listedNotes(tripId: string) {
+    const all = z.array(tripSchema).parse(await (await fetch(`${app.baseUrl}/api/trips`)).json());
+    return all.find((t) => t.id === tripId)!.notes;
+  }
+
+  async function addNote(tripId: string, body: string) {
+    const res = await post(`/api/trips/${tripId}/notes`, { body });
+    return { res, json: (await res.json()) as unknown };
+  }
+
+  it("starts a Trip with no Notes", async () => {
+    const { trip } = await createTrip("Kyoto");
+    expect(trip.notes).toEqual([]);
+  });
+
+  it("adds a Note, unpinned, and lists it with the Trip", async () => {
+    const { trip } = await createTrip("Kyoto");
+    const { res, json } = await addNote(trip.id, "# Day 1–3 Kyoto\n- Day 4–5 Osaka");
+    expect(res.status).toBe(201);
+    expect(noteSchema.parse(json)).toMatchObject({ body: "# Day 1–3 Kyoto\n- Day 4–5 Osaka", pinned: false });
+    expect(await listedNotes(trip.id)).toEqual([json]);
+  });
+
+  it("rejects an empty or too long Note", async () => {
+    const { trip } = await createTrip("Kyoto");
+    expect((await addNote(trip.id, "  \n ")).res.status).toBe(400);
+    expect((await addNote(trip.id, "x".repeat(20001))).res.status).toBe(400);
+  });
+
+  it("lists the most recently edited Note first", async () => {
+    const { trip } = await createTrip("Kyoto");
+    const a = noteSchema.parse((await addNote(trip.id, "first")).json);
+    const b = noteSchema.parse((await addNote(trip.id, "second")).json);
+    expect((await listedNotes(trip.id)).map((n) => n.id)).toEqual([b.id, a.id]);
+
+    await send("PATCH", `/api/trips/${trip.id}/notes/${a.id}`, { body: "first, edited" });
+
+    expect((await listedNotes(trip.id)).map((n) => n.id)).toEqual([a.id, b.id]);
+  });
+
+  it("pins and unpins without counting as an edit", async () => {
+    const { trip } = await createTrip("Kyoto");
+    const a = noteSchema.parse((await addNote(trip.id, "first")).json);
+    await addNote(trip.id, "second");
+
+    const res = await send("PATCH", `/api/trips/${trip.id}/notes/${a.id}`, { pinned: true });
+    const pinned = noteSchema.parse(await res.json());
+
+    expect(pinned).toEqual({ ...a, pinned: true });
+    expect((await send("PATCH", `/api/trips/${trip.id}/notes/${a.id}`, { pinned: false })).status).toBe(200);
+  });
+
+  it("lets an existing Note be cleared, and refuses an empty change", async () => {
+    const { trip } = await createTrip("Kyoto");
+    const a = noteSchema.parse((await addNote(trip.id, "first")).json);
+    const path = `/api/trips/${trip.id}/notes/${a.id}`;
+    expect(noteSchema.parse(await (await send("PATCH", path, { body: "" })).json()).body).toBe("");
+    expect((await send("PATCH", path, {})).status).toBe(400);
+  });
+
+  it("deletes a Note", async () => {
+    const { trip } = await createTrip("Kyoto");
+    const a = noteSchema.parse((await addNote(trip.id, "first")).json);
+    const path = `/api/trips/${trip.id}/notes/${a.id}`;
+    expect((await send("DELETE", path)).status).toBe(204);
+    expect(await listedNotes(trip.id)).toEqual([]);
+    expect((await send("DELETE", path)).status).toBe(404);
+  });
+
+  it("does not reach a Note through another Trip", async () => {
+    const { trip } = await createTrip("Kyoto");
+    const { trip: other } = await createTrip("Osaka");
+    const a = noteSchema.parse((await addNote(trip.id, "mine")).json);
+    const path = `/api/trips/${other.id}/notes/${a.id}`;
+    expect((await send("PATCH", path, { pinned: true })).status).toBe(404);
+    expect((await send("DELETE", path)).status).toBe(404);
+    expect(await listedNotes(trip.id)).toHaveLength(1);
+  });
+
+  it("returns 404 for someone else's Trip", async () => {
+    const [other] = await app.db.insert(users).values({}).returning();
+    const [theirs] = await app.db.insert(trips).values({ ownerId: other!.id, title: "Theirs" }).returning();
+    expect((await addNote(theirs!.id, "Mine now")).res.status).toBe(404);
   });
 });

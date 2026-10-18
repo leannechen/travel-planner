@@ -758,3 +758,128 @@ main.has-panel {
   border-color: #c8372d;
   color: #fff;
 }
+
+.trip-head {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.trip-head button[aria-pressed="true"] {
+  background: var(--pri-tint);
+  border-color: var(--pri);
+}
+
+.notes-panel {
+  position: fixed;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  width: 22.5rem;
+  max-height: calc(100vh - 2rem);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 8px 28px rgba(14, 21, 38, 0.25);
+}
+
+.notes-panel header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.notes-panel header h3 {
+  margin: 0;
+}
+
+.notes-panel header button,
+.note-actions button {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.notes-body {
+  overflow-y: auto;
+  padding: 0.75rem;
+}
+
+.notes-body h4 {
+  margin: 0.75rem 0 0.25rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.notes-body ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.note-new {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.25rem;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.note.editing {
+  border-color: var(--pri);
+}
+
+.note.editing .md-editor {
+  flex: 1;
+  min-width: 0;
+}
+
+.note-main {
+  display: grid;
+  flex: 1;
+  gap: 0.15rem;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.note-main span {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.note-actions {
+  display: flex;
+}
+
+@media (max-width: 640px) {
+  /* A floating panel cannot sit anywhere on a phone: it becomes a full-height sheet. */
+  .notes-panel {
+    inset: 0 !important;
+    width: auto;
+    max-height: none;
+    border-radius: 0;
+  }
+}

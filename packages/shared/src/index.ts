@@ -90,6 +90,18 @@ export const todoSchema = z.object({
 });
 export type Todo = z.infer<typeof todoSchema>;
 
+export const MAX_NOTE_LENGTH = 20000;
+
+// A standalone Markdown entry of a Trip's notes list (PRD §5.1). `updatedAt` is when its text was
+// last edited; pinning does not change it.
+export const noteSchema = z.object({
+  id: z.uuid(),
+  body: z.string().max(MAX_NOTE_LENGTH),
+  pinned: z.boolean(),
+  updatedAt: z.iso.datetime(),
+});
+export type Note = z.infer<typeof noteSchema>;
+
 export const daySchema = z.object({
   id: z.uuid(),
   position: z.number().int().positive(),
@@ -104,6 +116,7 @@ export const tripSchema = z.object({
   archive: z.array(eventSchema),
   // Trip Todos and Event Todos together.
   todos: z.array(todoSchema),
+  notes: z.array(noteSchema),
 });
 
 export const createTripInputSchema = z.object({ title });
@@ -181,6 +194,7 @@ export * from "./day-order";
 export * from "./event-list";
 export * from "./event-save";
 export * from "./lodging-range";
+export * from "./notes";
 export * from "./time-edit";
 export * from "./time-layout";
 export * from "./todo-removal";
@@ -201,3 +215,13 @@ export type DeletedEvent = z.infer<typeof deletedEventSchema>;
 
 export const meSchema = z.object({ id: z.uuid() });
 export type Me = z.infer<typeof meSchema>;
+
+// A new Note needs some text; an existing one may be cleared.
+export const createNoteInputSchema = z.object({ body: z.string().max(MAX_NOTE_LENGTH).refine((v) => v.trim() !== "", "A Note needs some text") });
+export const updateNoteInputSchema = z
+  .object({ body: z.string().max(MAX_NOTE_LENGTH).optional(), pinned: z.boolean().optional() })
+  .refine((input) => input.body !== undefined || input.pinned !== undefined, {
+    message: "Provide at least one field to change",
+  });
+export type CreateNoteInput = z.infer<typeof createNoteInputSchema>;
+export type UpdateNoteInput = z.infer<typeof updateNoteInputSchema>;

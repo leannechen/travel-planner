@@ -41,6 +41,8 @@ type Props = {
   onMove: (eventId: string, move: EventMove) => void;
   // The page shows one toast at a time; a new one replaces the old.
   onToast: (toast: Toasted | undefined) => void;
+  notesOpen: boolean;
+  onToggleNotes: () => void;
   onAddTodo: (text: string, eventId: string | null) => Promise<void>;
   onToggleTodo: (todo: Todo) => void;
   onDeleteTodo: (todo: Todo) => void;
@@ -67,7 +69,7 @@ function dropTargetAt(root: HTMLElement, x: number, y: number, draggedId: string
   return undefined;
 }
 
-export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectEvent, onCreateAt, onAddToBacklog, onMove, onToast, onAddTodo, onToggleTodo, onDeleteTodo }: Props) {
+export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectEvent, onCreateAt, onAddToBacklog, onMove, onToast, notesOpen, onToggleNotes, onAddTodo, onToggleTodo, onDeleteTodo }: Props) {
   const root = useRef<HTMLElement>(null);
   const [error, setError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
@@ -182,7 +184,12 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
 
   return (
     <article ref={root}>
-      <h2>{trip.title}</h2>
+      <div className="trip-head">
+        <h2>{trip.title}</h2>
+        <button type="button" aria-pressed={notesOpen} title="Notes (Alt+Shift+N)" onClick={onToggleNotes}>
+          Notes <span className="count">{trip.notes.length}</span>
+        </button>
+      </div>
       {error && <p role="alert">{error}</p>}
       <DragDropProvider
         sensors={sensors}

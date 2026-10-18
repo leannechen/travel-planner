@@ -2,7 +2,7 @@
 
 Product rules are in [`PRD.md`](./PRD.md); vocabulary in [`CONTEXT.md`](../CONTEXT.md); decisions in [`docs/adr/`](./adr/). This file orders the work and tracks status. It changes often; the PRD should not.
 
-**Current step: 10 (Notes).** Steps 0 to 9 are done. The final design is in [`docs/design/`](./design/); a few designer fixes are pending and do not block step 0.
+**Current step: 11 (Keyboard operation).** Steps 0 to 10 are done. The final design is in [`docs/design/`](./design/); a few designer fixes are pending and do not block step 0.
 
 ## Working agreement
 
@@ -41,7 +41,7 @@ Each step lists what it needs from earlier steps and when it is done.
 
 - [x] **8. Backlog and Archive.** Events without a start time; schedule through the Day and start-time fields; desktop drag between areas and Days. Deleting a Day that has Events becomes allowed: a confirmation dialog states how many Events move to the Backlog, with an Undo toast (design 13). An empty Day is deleted at once, also with the toast. The Todo and Leg lines of the dialog come with steps 9 and 15. *Needs:* 5.
 - [x] **9. Todos.** Trip Todos and Event Todos; deleting or archiving an Event deletes its Todos with the confirmation and count, "do not remind me again", and an undo window for deletion. Deleting an Event (from the edit panel) arrives here. Todos can be added, ticked and deleted; renaming a Todo has an API but no UI yet. "Do not remind me again" is kept in the browser until accounts exist (step 18). *Needs:* 8.
-- [ ] **10. Notes.** Floating Notes panel with Markdown, pinning and ordering by last edit. *Needs:* 1.
+- [x] **10. Notes.** Floating Notes panel with Markdown, pinning and ordering by last edit. A Note can also be deleted (with a confirmation). The panel opens from a Notes button on each Trip and with Alt+Shift+N, a placeholder because browsers keep Ctrl+Shift+N; step 11 settles the shortcut. The panel is draggable and its position is remembered in the browser; it becomes a full-height sheet on narrow screens (refined in step 13). *Needs:* 1.
 
 ### Experience
 

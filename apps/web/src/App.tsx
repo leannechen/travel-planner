@@ -10,6 +10,7 @@ import {
   upsertEvent,
   type Areas,
   type DeletedEvent,
+  type Note,
   type Todo,
   type TodoDeletionSummary,
 } from "@travel-planner/shared";
@@ -18,18 +19,22 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   addEvent,
   addHeldEvent,
+  addNote,
   addTodo,
   createTrip,
   deleteEvent,
+  deleteNote,
   deleteTodo,
   getMe,
   listTrips,
   restoreEvent,
   updateEvent,
+  updateNote,
   updateTodo,
 } from "./api";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { EventPanel } from "./EventPanel";
+import { NotesPanel } from "./NotesPanel";
 import { Toast } from "./Toast";
 import { TitleForm } from "./TitleForm";
 import { TripCard, type EventMove, type Toasted } from "./TripCard";
@@ -81,6 +86,9 @@ export function App() {
   const [meId, setMeId] = useState<string | undefined>();
   const [removal, setRemoval] = useState<Removal | undefined>();
   const [toast, setToast] = useState<Toasted | undefined>();
+  // The Trip whose Notes panel is open. The shortcut opens it for the Trip being worked on.
+  const [notesTripId, setNotesTripId] = useState<string | undefined>();
+  const lastNotesTripId = useRef<string | undefined>(undefined);
   const dismissToast = useCallback(() => setToast(undefined), []);
   // Changes when the user picks something else, so the panel starts fresh. It stays the same when
   // a new Event is saved, so the panel keeps its fields and focus.
@@ -110,6 +118,10 @@ export function App() {
     setTrips((current) =>
       current?.map((trip) => (trip.id === tripId ? { ...trip, ...change(trip) } : trip)),
     );
+  }
+
+  function setTripNotes(tripId: string, change: (notes: Note[]) => Note[]) {
+    setTrips((current) => current?.map((trip) => (trip.id === tripId ? { ...trip, notes: change(trip.notes) } : trip)));
   }
 
   function setTripTodos(tripId: string, change: (todos: Todo[]) => Todo[]) {
@@ -239,6 +251,48 @@ export function App() {
       setTripTodos(tripId, (todos) => [...todos, todo]);
     });
 
+  const handleAddNote = (tripId: string, body: string) =>
+    failing(async () => {
+      const note = await addNote(tripId, body);
+      setTripNotes(tripId, (notes) => [note, ...notes]);
+    });
+
+  const handleUpdateNote = (tripId: string, noteId: string, input: { body?: string; pinned?: boolean }) =>
+    failing(async () => {
+      const note = await updateNote(tripId, noteId, input);
+      setTripNotes(tripId, (notes) => notes.map((n) => (n.id === note.id ? note : n)));
+    });
+
+  const handleDeleteNote = (tripId: string, noteId: string) =>
+    failing(async () => {
+      await deleteNote(tripId, noteId);
+      setTripNotes(tripId, (notes) => notes.filter((n) => n.id !== noteId));
+    });
+
+  function toggleNotes(tripId: string) {
+    lastNotesTripId.current = tripId;
+    setNotesTripId((open) => (open === tripId ? undefined : tripId));
+  }
+
+  // Alt+Shift+N opens or closes the Notes panel from anywhere. (A placeholder: browsers keep
+  // Ctrl+Shift+N for themselves; the shortcut set is settled in step 11.)
+  const shortcut = useRef<() => void>(() => undefined);
+  shortcut.current = () => {
+    if (notesTripId) return setNotesTripId(undefined);
+    const target = selection?.tripId ?? lastNotesTripId.current ?? trips?.[0]?.id;
+    if (target) toggleNotes(target);
+  };
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code === "KeyN" && e.altKey && e.shiftKey && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        shortcut.current();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   const handleToggleTodo = (tripId: string, todo: Todo) =>
     failing(async () => {
       const saved = await updateTodo(tripId, todo.id, { done: !todo.done });
@@ -319,6 +373,8 @@ export function App() {
             draft={mine && "draft" in mine ? mine.draft : undefined}
             onMove={(eventId, move) => handleMove(trip.id, eventId, move)}
             onToast={setToast}
+            notesOpen={notesTripId === trip.id}
+            onToggleNotes={() => toggleNotes(trip.id)}
             onAddTodo={(text, eventId) => handleAddTodo(trip.id, text, eventId)}
             onToggleTodo={(todo) => handleToggleTodo(trip.id, todo)}
             onDeleteTodo={(todo) => handleDeleteTodo(trip.id, todo)}
@@ -359,6 +415,17 @@ export function App() {
           onToggleTodo={(todo) => handleToggleTodo(selectedTrip.id, todo)}
           onDeleteTodo={(todo) => handleDeleteTodo(selectedTrip.id, todo)}
           onDelete={(event) => handleDeleteEvent(selectedTrip.id, event)}
+        />
+      )}
+      {notesTripId && trips?.some((t) => t.id === notesTripId) && (
+        <NotesPanel
+          // Another Trip's Notes start fresh.
+          key={notesTripId}
+          notes={trips.find((t) => t.id === notesTripId)!.notes}
+          onAdd={(body) => handleAddNote(notesTripId, body)}
+          onUpdate={(noteId, input) => handleUpdateNote(notesTripId, noteId, input)}
+          onDelete={(noteId) => handleDeleteNote(notesTripId, noteId)}
+          onClose={() => setNotesTripId(undefined)}
         />
       )}
       {removal && (

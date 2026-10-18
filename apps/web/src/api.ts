@@ -4,6 +4,7 @@ import {
   deletedEventSchema,
   eventSchema,
   meSchema,
+  noteSchema,
   todoSchema,
   tripSchema,
   type CreateEventInput,
@@ -12,6 +13,7 @@ import {
   type HoldingArea,
   type RestoreDayInput,
   type UpdateEventInput,
+  type UpdateNoteInput,
   type UpdateTodoInput,
 } from "@travel-planner/shared";
 import { z } from "zod";
@@ -86,3 +88,16 @@ export const deleteEvent = (tripId: string, eventId: string) =>
 
 export const restoreEvent = (tripId: string, deleted: DeletedEvent) =>
   request(`/api/trips/${tripId}/events/restore`, eventSchema, deleted);
+
+export const addNote = (tripId: string, body: string) => request(`/api/trips/${tripId}/notes`, noteSchema, { body });
+
+export const updateNote = (tripId: string, noteId: string, input: UpdateNoteInput) =>
+  request(`/api/trips/${tripId}/notes/${noteId}`, noteSchema, input, "PATCH");
+
+export async function deleteNote(tripId: string, noteId: string): Promise<void> {
+  const res = await fetch(`/api/trips/${tripId}/notes/${noteId}`, { method: "DELETE" });
+  if (!res.ok) {
+    const detail = (await res.json().catch(() => undefined)) as { error?: string } | undefined;
+    throw new Error(detail?.error ?? `Request failed: ${res.status}`);
+  }
+}

@@ -9,6 +9,8 @@ import {
   TRANSPORT_LABELS,
   typedDuration,
   planEventSave,
+  showsBookingLink,
+  showsContact,
   type EventFields,
   type CreateEventInput,
   type Day,
@@ -16,7 +18,10 @@ import {
   type UpdateEventInput,
 } from "@travel-planner/shared";
 import { KIND_NAMES, KindIcon, TRANSPORT_LABEL_NAMES } from "./kinds";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from "react";
+
+// The editor is large, so it is loaded when the first panel opens, not with the page.
+const MarkdownEditor = lazy(() => import("./MarkdownEditor").then((m) => ({ default: m.MarkdownEditor })));
 
 type Status = { kind: "idle" } | { kind: "saving" } | { kind: "saved" } | { kind: "error"; message: string };
 
@@ -36,6 +41,10 @@ function fieldsDuration(fields: EventFields) {
   const arrival = parseTime(fields.arrival);
   return start === undefined || arrival === undefined ? undefined : durationBetween(start, arrival);
 }
+
+const isWebLink = (text: string) => /^https?:\/\//i.test(text.trim()) && URL.canParse(text.trim());
+const hasContact = (event: { phone: string | null; email: string | null; website: string | null }) =>
+  Boolean(event.phone || event.email || event.website);
 
 type Props = {
   days: Day[];
@@ -60,6 +69,11 @@ export function EventPanel({ days, event, newEvent, onCreate, onUpdate, onDraftC
     nights: null,
     checkInMinute: null,
     checkOutMinute: null,
+    description: null,
+    phone: null,
+    email: null,
+    website: null,
+    bookingUrl: null,
     ...newEvent!,
   };
   const [fields, setFields] = useState<EventFields>({
@@ -70,6 +84,11 @@ export function EventPanel({ days, event, newEvent, onCreate, onUpdate, onDraftC
     nights: String(initial.nights ?? 1),
     checkIn: initial.checkInMinute === null ? "" : formatMinute(initial.checkInMinute),
     checkOut: initial.checkOutMinute === null ? "" : formatMinute(initial.checkOutMinute),
+    description: initial.description ?? "",
+    phone: initial.phone ?? "",
+    email: initial.email ?? "",
+    website: initial.website ?? "",
+    bookingUrl: initial.bookingUrl ?? "",
     ...timeFields(initial.startMinute, initial.durationMinutes),
   });
   const [status, setStatus] = useState<Status>({ kind: "idle" });
@@ -321,6 +340,55 @@ export function EventPanel({ days, event, newEvent, onCreate, onUpdate, onDraftC
             )}
           </>
         )}
+        {showsBookingLink(fields.kind) && (
+          <label>
+            Booking link
+            <input
+              type="url"
+              value={fields.bookingUrl}
+              onChange={(e) => change({ bookingUrl: e.target.value })}
+              onBlur={commit}
+            />
+            {isWebLink(fields.bookingUrl) && (
+              <a href={fields.bookingUrl.trim()} target="_blank" rel="noreferrer">
+                Open link
+              </a>
+            )}
+          </label>
+        )}
+        {showsContact(fields.kind) && (
+          <details className="contact" open={hasContact(initial)}>
+            <summary>Contact</summary>
+            <label>
+              Phone
+              <input type="tel" value={fields.phone} onChange={(e) => change({ phone: e.target.value })} onBlur={commit} />
+            </label>
+            <label>
+              Email
+              <input type="email" value={fields.email} onChange={(e) => change({ email: e.target.value })} onBlur={commit} />
+            </label>
+            <label>
+              Website
+              <input type="url" value={fields.website} onChange={(e) => change({ website: e.target.value })} onBlur={commit} />
+              {isWebLink(fields.website) && (
+                <a href={fields.website.trim()} target="_blank" rel="noreferrer">
+                  Open website
+                </a>
+              )}
+            </label>
+          </details>
+        )}
+        <div className="field">
+          <span>Description</span>
+          <Suspense fallback={<div className="md-editor-loading">Loading editor…</div>}>
+            <MarkdownEditor
+              label="Description"
+              value={initial.description ?? ""}
+              onChange={(description) => change({ description })}
+              onBlur={commit}
+            />
+          </Suspense>
+        </div>
         {/* Lets Enter submit from any field without a visible button. */}
         <button type="submit" hidden />
       </form>

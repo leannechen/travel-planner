@@ -29,6 +29,11 @@ function toEvent(row: typeof events.$inferSelect): Event {
     nights: row.nights,
     checkInMinute: row.checkInMinute,
     checkOutMinute: row.checkOutMinute,
+    description: row.description,
+    phone: row.phone,
+    email: row.email,
+    website: row.website,
+    bookingUrl: row.bookingUrl,
   };
 }
 
@@ -43,6 +48,11 @@ const eventColumns = {
   nights: true,
   checkInMinute: true,
   checkOutMinute: true,
+  description: true,
+  phone: true,
+  email: true,
+  website: true,
+  bookingUrl: true,
 } as const;
 
 export async function listTrips(db: Db, ownerId: string): Promise<Trip[]> {

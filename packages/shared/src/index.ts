@@ -24,6 +24,33 @@ export const TRANSPORT_LABELS = ["flight", "train", "ferry", "bus", "other"] as 
 export const kindSchema = z.enum(EVENT_KINDS);
 export const transportLabelSchema = z.enum(TRANSPORT_LABELS);
 
+// Description, contacts and the booking link. Values are trimmed and a blank one means none.
+export const MAX_DESCRIPTION_LENGTH = 10000;
+const blankToNull = (value: string) => (value === "" ? null : value);
+const optionalText = (max: number) => z.string().trim().max(max).transform(blankToNull).nullable();
+const isWebUrl = (value: string) => /^https?:\/\//i.test(value) && URL.canParse(value);
+const optionalWebUrl = z
+  .string()
+  .trim()
+  .max(2000)
+  .refine((value) => value === "" || isWebUrl(value), "Enter a link starting with http:// or https://")
+  .transform(blankToNull)
+  .nullable();
+const optionalEmail = z
+  .string()
+  .trim()
+  .max(254)
+  .refine((value) => value === "" || z.email().safeParse(value).success, "Enter a valid email address")
+  .transform(blankToNull)
+  .nullable();
+export const detailSchemas = {
+  description: optionalText(MAX_DESCRIPTION_LENGTH),
+  phone: optionalText(50),
+  email: optionalEmail,
+  website: optionalWebUrl,
+  bookingUrl: optionalWebUrl,
+};
+
 const nightsField = z.number().int().min(1).max(MAX_NIGHTS).nullable();
 
 export const eventSchema = z.object({
@@ -39,6 +66,7 @@ export const eventSchema = z.object({
   nights: nightsField,
   checkInMinute: startMinute.nullable(),
   checkOutMinute: startMinute.nullable(),
+  ...detailSchemas,
 });
 
 export const daySchema = z.object({
@@ -61,6 +89,11 @@ export const createEventInputSchema = z.object({
   nights: nightsField.default(null),
   checkInMinute: startMinute.nullable().default(null),
   checkOutMinute: startMinute.nullable().default(null),
+  description: detailSchemas.description.default(null),
+  phone: detailSchemas.phone.default(null),
+  email: detailSchemas.email.default(null),
+  website: detailSchemas.website.default(null),
+  bookingUrl: detailSchemas.bookingUrl.default(null),
   startMinute: startMinute.default(DEFAULT_START_MINUTE),
   durationMinutes: durationMinutes.default(DEFAULT_DURATION_MINUTES),
 });
@@ -82,6 +115,11 @@ export const updateEventInputSchema = z
     nights: nightsField.optional(),
     checkInMinute: startMinute.nullable().optional(),
     checkOutMinute: startMinute.nullable().optional(),
+    description: detailSchemas.description.optional(),
+    phone: detailSchemas.phone.optional(),
+    email: detailSchemas.email.optional(),
+    website: detailSchemas.website.optional(),
+    bookingUrl: detailSchemas.bookingUrl.optional(),
     dayId: z.uuid().optional(),
     startMinute: startMinute.optional(),
     durationMinutes: durationMinutes.optional(),

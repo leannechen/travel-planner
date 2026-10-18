@@ -50,6 +50,13 @@
       "when": 1792315758133,
       "tag": "0006_lodging_has_nights",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792316733724,
+      "tag": "0007_event_details",
+      "breakpoints": true
     }
   ]
 }

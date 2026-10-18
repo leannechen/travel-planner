@@ -13,8 +13,23 @@ const saved: Event = {
   nights: null,
   checkInMinute: null,
   checkOutMinute: null,
+  description: null,
+  phone: null,
+  email: null,
+  website: null,
+  bookingUrl: null,
 };
-const noExtras = { transportLabel: null, nights: null, checkInMinute: null, checkOutMinute: null };
+const noExtras = {
+  transportLabel: null,
+  nights: null,
+  checkInMinute: null,
+  checkOutMinute: null,
+  description: null,
+  phone: null,
+  email: null,
+  website: null,
+  bookingUrl: null,
+};
 const fields = {
   title: "Lunch",
   dayId: "d1",
@@ -26,6 +41,11 @@ const fields = {
   nights: "1",
   checkIn: "",
   checkOut: "",
+  description: "",
+  phone: "",
+  email: "",
+  website: "",
+  bookingUrl: "",
 };
 
 describe("planEventSave for a new Event", () => {
@@ -140,6 +160,11 @@ describe("planEventSave for Lodging", () => {
         nights: 3,
         checkInMinute: 900,
         checkOutMinute: 660,
+        description: null,
+        phone: null,
+        email: null,
+        website: null,
+        bookingUrl: null,
       },
     });
   });
@@ -172,5 +197,48 @@ describe("planEventSave for Lodging", () => {
       patch: { kind: "lodging", nights: 1, checkInMinute: 720 },
     });
     expect(planEventSave({ ...fields, nights: "5", checkIn: "09:00" }, saved)).toEqual({ kind: "nothing" });
+  });
+});
+
+describe("planEventSave for Description and contacts", () => {
+  it("creates with trimmed values, and null for blank ones", () => {
+    const plan = planEventSave(
+      { ...fields, title: "Cafe", description: "**Quiet** spot", phone: " +81 3 1234 ", email: "hi@cafe.example", website: "https://cafe.example", bookingUrl: " " },
+      undefined,
+    );
+    expect(plan).toMatchObject({
+      kind: "create",
+      input: { description: "**Quiet** spot", phone: "+81 3 1234", email: "hi@cafe.example", website: "https://cafe.example", bookingUrl: null },
+    });
+  });
+
+  it("sends only the details that changed, and null to clear one", () => {
+    const withDetails = { ...saved, phone: "123", description: "old" };
+    expect(planEventSave({ ...fields, phone: "123", description: "new" }, withDetails)).toEqual({
+      kind: "update",
+      patch: { description: "new" },
+    });
+    expect(planEventSave({ ...fields, phone: "", description: "old" }, withDetails)).toEqual({
+      kind: "update",
+      patch: { phone: null },
+    });
+  });
+
+  it("rejects a link that is not http or https, and a bad email", () => {
+    for (const bad of [{ website: "javascript:alert(1)" }, { website: "cafe.example" }, { bookingUrl: "ftp://x.example" }, { email: "not an email" }]) {
+      expect(planEventSave({ ...fields, ...bad }, saved).kind).toBe("error");
+    }
+  });
+
+  it("rejects a Description that is too long", () => {
+    expect(planEventSave({ ...fields, description: "x".repeat(10001) }, saved).kind).toBe("error");
+    expect(planEventSave({ ...fields, description: "x".repeat(10000) }, saved).kind).toBe("update");
+  });
+
+  it("leaves the fields a kind does not show as they are", () => {
+    // Transport has a booking link but no contact; an Attraction has contact but no booking link.
+    const transport = { ...saved, kind: "transport" as const, phone: "123" };
+    expect(planEventSave({ ...fields, kind: "transport", phone: "999", email: "bad", arrival: "13:00" }, transport)).toEqual({ kind: "nothing" });
+    expect(planEventSave({ ...fields, kind: "attraction", bookingUrl: "bad" }, { ...saved, kind: "attraction" })).toEqual({ kind: "nothing" });
   });
 });

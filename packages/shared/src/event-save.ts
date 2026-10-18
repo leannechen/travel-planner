@@ -1,6 +1,6 @@
 import { parseTime } from "./time-layout";
 import { durationBetween } from "./transport";
-import { DEFAULT_DURATION_MINUTES, DEFAULT_START_MINUTE, MAX_DURATION_MINUTES, MAX_NIGHTS, TRANSPORT_LABELS } from "./index";
+import { detailSchemas, DEFAULT_DURATION_MINUTES, DEFAULT_START_MINUTE, MAX_DURATION_MINUTES, MAX_NIGHTS, TRANSPORT_LABELS } from "./index";
 import type { CreateEventInput, Event, UpdateEventInput } from "./index";
 
 // What the edit panel holds as text. `arrival` is used for Transport events, where the duration
@@ -17,6 +17,31 @@ export type EventFields = {
   nights: string;
   checkIn: string;
   checkOut: string;
+  description: string;
+  phone: string;
+  email: string;
+  website: string;
+  bookingUrl: string;
+};
+
+type DetailKey = keyof typeof detailSchemas;
+
+// Which kinds show which detail field (PRD §3.2). A field a kind does not show keeps its value.
+export const showsContact = (kind: Event["kind"]) => kind !== "transport";
+export const showsBookingLink = (kind: Event["kind"]) => kind !== "attraction";
+const showsDetail = (kind: Event["kind"], key: DetailKey) =>
+  key === "phone" || key === "email" || key === "website"
+    ? showsContact(kind)
+    : key === "bookingUrl"
+      ? showsBookingLink(kind)
+      : true;
+
+const DETAIL_ERRORS: Record<DetailKey, string> = {
+  description: "The Description is too long",
+  phone: "The phone number is too long",
+  email: "Enter a valid email address",
+  website: "Enter a website starting with http:// or https://",
+  bookingUrl: "Enter a booking link starting with http:// or https://",
 };
 
 export type SavePlan =
@@ -57,11 +82,33 @@ export function planEventSave(fields: EventFields, saved: Event | undefined): Sa
   // Lodging fields are only sent while the Event is a Lodging; otherwise they stay as they are.
   const stay = lodging ?? { nights: null, checkInMinute: null, checkOutMinute: null };
 
+  // The details this kind shows, normalized (trimmed, blank as null); the others stay as they are.
+  const details: Partial<Record<DetailKey, string | null>> = {};
+  for (const key of Object.keys(detailSchemas) as DetailKey[]) {
+    if (!showsDetail(fields.kind, key)) continue;
+    const parsed = detailSchemas[key].safeParse(fields[key]);
+    if (!parsed.success) return { kind: "error", message: DETAIL_ERRORS[key] };
+    details[key] = parsed.data;
+  }
+
   if (!saved) {
     return {
       kind: "create",
       dayId: fields.dayId,
-      input: { title, kind: fields.kind, startMinute, durationMinutes, transportLabel, ...stay },
+      input: {
+        title,
+        kind: fields.kind,
+        startMinute,
+        durationMinutes,
+        transportLabel,
+        ...stay,
+        description: null,
+        phone: null,
+        email: null,
+        website: null,
+        bookingUrl: null,
+        ...details,
+      },
     };
   }
 
@@ -76,6 +123,9 @@ export function planEventSave(fields: EventFields, saved: Event | undefined): Sa
     if (lodging.nights !== saved.nights) patch.nights = lodging.nights;
     if (lodging.checkInMinute !== saved.checkInMinute) patch.checkInMinute = lodging.checkInMinute;
     if (lodging.checkOutMinute !== saved.checkOutMinute) patch.checkOutMinute = lodging.checkOutMinute;
+  }
+  for (const [key, value] of Object.entries(details) as [DetailKey, string | null][]) {
+    if (value !== saved[key]) patch[key] = value;
   }
   return Object.keys(patch).length === 0 ? { kind: "nothing" } : { kind: "update", patch };
 }

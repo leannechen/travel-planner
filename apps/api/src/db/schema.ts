@@ -47,6 +47,12 @@ export const events = pgTable(
     nights: integer(),
     checkInMinute: integer(),
     checkOutMinute: integer(),
+    // Shown for the kinds that have them, kept when the kind changes.
+    description: text(),
+    phone: text(),
+    email: text(),
+    website: text(),
+    bookingUrl: text(),
     startMinute: integer().notNull().default(540),
     durationMinutes: integer().notNull().default(60),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),

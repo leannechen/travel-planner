@@ -700,3 +700,66 @@ describe("Lodging", () => {
     expect(await lodgingOf(trip.id)).toMatchObject({ position: 1, nights: 2, dayId: ids[1] });
   });
 });
+
+describe("Description and contacts", () => {
+  async function newEvent(body: Record<string, unknown> = {}) {
+    const { trip } = await createTrip("Kyoto");
+    const res = await post(`/api/trips/${trip.id}/days/${trip.days[0]!.id}/events`, { title: "Cafe", ...body });
+    return { trip, res };
+  }
+
+  it("stores the Description and contacts, trimmed", async () => {
+    const { res } = await newEvent({
+      description: "  **Quiet** spot\n\n- [ ] ask for a window seat ",
+      phone: " +81 3 1234 5678 ",
+      email: "hi@cafe.example",
+      website: "https://cafe.example/menu",
+      bookingUrl: "http://booking.example/r/1",
+    });
+    expect(res.status).toBe(201);
+    expect(eventSchema.parse(await res.json())).toMatchObject({
+      description: "**Quiet** spot\n\n- [ ] ask for a window seat",
+      phone: "+81 3 1234 5678",
+      email: "hi@cafe.example",
+      website: "https://cafe.example/menu",
+      bookingUrl: "http://booking.example/r/1",
+    });
+  });
+
+  it("has none by default", async () => {
+    const { res } = await newEvent();
+    expect(eventSchema.parse(await res.json())).toMatchObject({
+      description: null,
+      phone: null,
+      email: null,
+      website: null,
+      bookingUrl: null,
+    });
+  });
+
+  it("rejects links that are not http or https, a bad email and values that are too long", async () => {
+    for (const bad of [
+      { website: "javascript:alert(1)" },
+      { website: "cafe.example" },
+      { bookingUrl: "ftp://files.example" },
+      { bookingUrl: "https://" + "a".repeat(2000) },
+      { email: "not an email" },
+      { description: "x".repeat(10001) },
+      { phone: "1".repeat(51) },
+    ]) {
+      expect((await newEvent(bad)).res.status).toBe(400);
+    }
+  });
+
+  it("changes and clears a value, and keeps it when the kind changes", async () => {
+    const { trip, res } = await newEvent({ phone: "123", description: "Notes" });
+    const event = eventSchema.parse(await res.json());
+    const patch = async (body: unknown) =>
+      eventSchema.parse(await (await send("PATCH", `/api/trips/${trip.id}/events/${event.id}`, body)).json());
+
+    expect(await patch({ phone: "456" })).toMatchObject({ phone: "456", description: "Notes" });
+    expect(await patch({ kind: "transport" })).toMatchObject({ phone: "456", description: "Notes" });
+    expect(await patch({ phone: "" })).toMatchObject({ phone: null });
+    expect(await patch({ description: null })).toMatchObject({ description: null });
+  });
+});

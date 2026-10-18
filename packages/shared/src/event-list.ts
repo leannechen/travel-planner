@@ -33,6 +33,16 @@ function upsertHeld(list: Event[], event: Event, area: Event["holding"]): Event[
   return existing === -1 ? [...list, event] : list.map((e) => (e.id === event.id ? event : e));
 }
 
+// The board without `eventId`, wherever that Event was.
+export function removeEvent(areas: Areas, eventId: string): Areas {
+  const without = (events: Event[]) => events.filter((e) => e.id !== eventId);
+  return {
+    days: areas.days.map((day) => (day.events.some((e) => e.id === eventId) ? { ...day, events: without(day.events) } : day)),
+    backlog: without(areas.backlog),
+    archive: without(areas.archive),
+  };
+}
+
 // Every Event of the board, wherever it is.
 export function allEvents(areas: Areas): Event[] {
   return [...areas.days.flatMap((d) => d.events), ...areas.backlog, ...areas.archive];

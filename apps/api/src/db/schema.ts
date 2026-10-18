@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { check, integer, pgEnum, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { boolean, check, integer, pgEnum, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: uuid().primaryKey().defaultRandom(),
@@ -73,7 +73,27 @@ export const events = pgTable(
   ],
 );
 
-export const tripsRelations = relations(trips, ({ many }) => ({ days: many(days), events: many(events) }));
+// A Todo of a Trip (`eventId` null) or of one Event. An Event's Todos go with it when it is deleted
+// (cascade) and are deleted by the code when it is archived (PRD §5).
+export const todos = pgTable("todos", {
+  id: uuid().primaryKey().defaultRandom(),
+  tripId: uuid()
+    .notNull()
+    .references(() => trips.id, { onDelete: "cascade" }),
+  eventId: uuid().references(() => events.id, { onDelete: "cascade" }),
+  text: text().notNull(),
+  done: boolean().notNull().default(false),
+  createdBy: uuid()
+    .notNull()
+    .references(() => users.id),
+  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+});
+
+export const tripsRelations = relations(trips, ({ many }) => ({
+  days: many(days),
+  events: many(events),
+  todos: many(todos),
+}));
 export const daysRelations = relations(days, ({ one, many }) => ({
   trip: one(trips, { fields: [days.tripId], references: [trips.id] }),
   events: many(events),
@@ -81,4 +101,8 @@ export const daysRelations = relations(days, ({ one, many }) => ({
 export const eventsRelations = relations(events, ({ one }) => ({
   day: one(days, { fields: [events.dayId], references: [days.id] }),
   trip: one(trips, { fields: [events.tripId], references: [trips.id] }),
+}));
+export const todosRelations = relations(todos, ({ one }) => ({
+  trip: one(trips, { fields: [todos.tripId], references: [trips.id] }),
+  event: one(events, { fields: [todos.eventId], references: [events.id] }),
 }));

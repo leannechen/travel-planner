@@ -1,13 +1,18 @@
 import {
   daySchema,
   dayDeletionSchema,
+  deletedEventSchema,
   eventSchema,
+  meSchema,
+  todoSchema,
   tripSchema,
   type CreateEventInput,
   type CreateTripInput,
+  type DeletedEvent,
   type HoldingArea,
   type RestoreDayInput,
   type UpdateEventInput,
+  type UpdateTodoInput,
 } from "@travel-planner/shared";
 import { z } from "zod";
 
@@ -57,3 +62,27 @@ export const restoreDay = (tripId: string, input: RestoreDayInput) =>
 
 export const updateEvent = (tripId: string, eventId: string, input: UpdateEventInput) =>
   request(`/api/trips/${tripId}/events/${eventId}`, eventSchema, input, "PATCH");
+
+export const getMe = () => request("/api/me", meSchema);
+
+export const addTodo = (tripId: string, text: string, eventId: string | null) =>
+  request(`/api/trips/${tripId}/todos`, todoSchema, { text, eventId });
+
+export const updateTodo = (tripId: string, todoId: string, input: UpdateTodoInput) =>
+  request(`/api/trips/${tripId}/todos/${todoId}`, todoSchema, input, "PATCH");
+
+// The server answers 204 with no body.
+export async function deleteTodo(tripId: string, todoId: string): Promise<void> {
+  const res = await fetch(`/api/trips/${tripId}/todos/${todoId}`, { method: "DELETE" });
+  if (!res.ok) {
+    const detail = (await res.json().catch(() => undefined)) as { error?: string } | undefined;
+    throw new Error(detail?.error ?? `Request failed: ${res.status}`);
+  }
+}
+
+// Deletes an Event with its Todos; the answer is what restoreEvent needs to undo it.
+export const deleteEvent = (tripId: string, eventId: string) =>
+  request(`/api/trips/${tripId}/events/${eventId}`, deletedEventSchema, undefined, "DELETE");
+
+export const restoreEvent = (tripId: string, deleted: DeletedEvent) =>
+  request(`/api/trips/${tripId}/events/restore`, eventSchema, deleted);

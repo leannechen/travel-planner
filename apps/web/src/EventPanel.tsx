@@ -17,8 +17,10 @@ import {
   type CreateEventInput,
   type Day,
   type Event,
+  type Todo,
   type UpdateEventInput,
 } from "@travel-planner/shared";
+import { TodoList } from "./TodoList";
 import { KIND_NAMES, KindIcon, TRANSPORT_LABEL_NAMES } from "./kinds";
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from "react";
 
@@ -62,12 +64,31 @@ type Props = {
   // Reports the values being typed for a new Event, so the placeholder follows them.
   onDraftChange: (draft: { dayId: string; startMinute: number; durationMinutes: number; kind: Event["kind"] }) => void;
   onClose: () => void;
+  // Only for a saved Event; a new one has neither Todos nor anything to delete yet.
+  todos: Todo[];
+  onAddTodo: (text: string, eventId: string) => Promise<void>;
+  onToggleTodo: (todo: Todo) => void;
+  onDeleteTodo: (todo: Todo) => void;
+  onDelete: (event: Event) => void;
 };
 
 
 // Edits one Event. Fields are saved when the user leaves them or presses Enter, not on every
 // keystroke. A new Event is created once it has a title. Remount it (key) for another Event.
-export function EventPanel({ days, event, newEvent, onCreate, onUpdate, onDraftChange, onClose }: Props) {
+export function EventPanel({
+  days,
+  event,
+  newEvent,
+  onCreate,
+  onUpdate,
+  onDraftChange,
+  onClose,
+  todos,
+  onAddTodo,
+  onToggleTodo,
+  onDeleteTodo,
+  onDelete,
+}: Props) {
   const initial = event ?? {
     title: "",
     kind: "attraction" as const,
@@ -203,6 +224,11 @@ export function EventPanel({ days, event, newEvent, onCreate, onUpdate, onDraftC
           ? await onUpdate(current!.id, plan.patch)
           : await onCreate(plan.input, plan.dayId);
       setStatus({ kind: "saved" });
+      // A move to the Archive the user declined leaves the Event where it was; show that.
+      const result = saved.current;
+      if (plan.kind === "update" && plan.patch.area && result && result.holding !== plan.patch.area) {
+        change({ dayId: placeOf(result) });
+      }
     } catch (err) {
       setStatus({ kind: "error", message: err instanceof Error ? err.message : "Something went wrong" });
     }
@@ -422,6 +448,26 @@ export function EventPanel({ days, event, newEvent, onCreate, onUpdate, onDraftC
         <button type="submit" hidden />
       </form>
       {status.kind === "error" && <p role="alert">{status.message}</p>}
+      {event && event.holding !== "archive" && (
+        <section className="event-todos">
+          <h4>
+            Event Todos <span className="count">{todos.length}</span>
+          </h4>
+          <TodoList
+            todos={todos}
+            label="Event Todos"
+            addLabel="Add an Event Todo"
+            onAdd={(text) => onAddTodo(text, event.id)}
+            onToggle={onToggleTodo}
+            onDelete={onDeleteTodo}
+          />
+        </section>
+      )}
+      {event && (
+        <button type="button" className="danger delete-event" onClick={() => onDelete(event)}>
+          Delete Event
+        </button>
+      )}
     </aside>
   );
 }

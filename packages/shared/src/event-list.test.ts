@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { upsertEvent } from "./event-list";
+import { removeEvent, upsertEvent } from "./event-list";
 import type { Areas } from "./event-list";
 import type { Day, Event } from "./index";
 
@@ -84,5 +84,23 @@ describe("upsertEvent", () => {
     const areas = board([], [held("a", "backlog"), held("b", "backlog")]);
     const result = upsertEvent(areas, held("a", "backlog", "renamed"));
     expect(result.backlog.map((e) => e.title)).toEqual(["renamed", "b"]);
+  });
+});
+
+describe("removeEvent", () => {
+  it("removes an Event from a Day, the Backlog or the Archive, and leaves the rest", () => {
+    const a = ev("a", "d1", 540);
+    const b = ev("b", "d1", 600);
+    const areas = board([day("d1", 1, [a, b])], [held("x", "backlog")], [held("y", "archive")]);
+
+    expect(removeEvent(areas, "a").days[0]!.events).toEqual([b]);
+    expect(removeEvent(areas, "x").backlog).toEqual([]);
+    expect(removeEvent(areas, "y").archive).toEqual([]);
+    expect(removeEvent(areas, "x").days[0]).toBe(areas.days[0]);
+  });
+
+  it("changes nothing for an unknown id", () => {
+    const areas = board([day("d1", 1, [ev("a", "d1", 540)])]);
+    expect(removeEvent(areas, "zzz")).toEqual(areas);
   });
 });

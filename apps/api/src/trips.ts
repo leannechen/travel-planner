@@ -11,7 +11,11 @@ import {
   removeId,
   type Stay,
   type CreateEventInput,
+  type CreateTodoInput,
   type CreateTripInput,
+  type DeletedEvent,
+  type Todo,
+  type UpdateTodoInput,
   type Day,
   type Event,
   type Trip,
@@ -19,7 +23,7 @@ import {
 } from "@travel-planner/shared";
 import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import type { Db } from "./db/client";
-import { days, events, trips } from "./db/schema";
+import { days, events, todos, trips, users } from "./db/schema";
 
 function toEvent(row: Pick<typeof events.$inferSelect, keyof Event>): Event {
   return {
@@ -41,6 +45,12 @@ function toEvent(row: Pick<typeof events.$inferSelect, keyof Event>): Event {
     bookingUrl: row.bookingUrl,
   };
 }
+
+function toTodo(row: typeof todos.$inferSelect): Todo {
+  return { id: row.id, eventId: row.eventId, text: row.text, done: row.done, createdBy: row.createdBy };
+}
+
+const todoOrder = [asc(todos.createdAt), asc(todos.id)];
 
 const eventColumns = {
   id: true,
@@ -104,6 +114,10 @@ export async function listTrips(db: Db, ownerId: string): Promise<Trip[]> {
         orderBy: arrivalOrder,
         columns: eventColumns,
       },
+      todos: {
+        orderBy: todoOrder,
+        columns: { id: true, eventId: true, text: true, done: true, createdBy: true },
+      },
     },
   });
   return rows.map(({ events: held, ...trip }) => ({
@@ -123,6 +137,7 @@ export async function createTrip(db: Db, ownerId: string, input: CreateTripInput
       days: [{ id: day!.id, position: day!.position, events: [] }],
       backlog: [],
       archive: [],
+      todos: [],
     };
   });
 }
@@ -200,7 +215,7 @@ export async function updateEvent(
     if (!trip) return undefined;
 
     const [current] = await tx
-      .select({ id: events.id, kind: events.kind, nights: events.nights, dayId: events.dayId })
+      .select({ id: events.id, kind: events.kind, nights: events.nights, dayId: events.dayId, holding: events.holding })
       .from(events)
       .where(and(eq(events.id, eventId), eq(events.tripId, tripId)))
       // So two updates of one Event run one after another, each checking the latest values.
@@ -225,6 +240,10 @@ export async function updateEvent(
     }
 
     const { area, ...fields } = input;
+    // An Event's Todos are deleted when it is archived, and not brought back (PRD §5).
+    if (area === "archive" && current.holding !== "archive") {
+      await tx.delete(todos).where(eq(todos.eventId, eventId));
+    }
     const place = area ? { dayId: null, holding: area } : input.dayId ? { holding: null } : {};
     const [event] = await tx
       .update(events)
@@ -463,5 +482,159 @@ async function restoreInTransaction(
       }
     }
     return { days: await loadDays(tx, tripId), backlog: await loadBacklog(tx, tripId) };
+  });
+}
+
+// Every Todo function returns undefined when the Trip is not owned by this user (or the Todo or
+// Event is not in it).
+
+// Adds a Trip Todo, or an Event Todo when `eventId` is set. An archived Event has no Todos
+// (they are deleted on archiving), so it is refused with "archived".
+export async function addTodo(
+  db: Db,
+  ownerId: string,
+  tripId: string,
+  input: CreateTodoInput,
+): Promise<Todo | undefined | "archived"> {
+  return db.transaction(async (tx) => {
+    const [trip] = await tx
+      .select({ id: trips.id })
+      .from(trips)
+      .where(and(eq(trips.id, tripId), eq(trips.ownerId, ownerId)))
+      .for("share");
+    if (!trip) return undefined;
+    if (input.eventId) {
+      const [event] = await tx
+        .select({ holding: events.holding })
+        .from(events)
+        .where(and(eq(events.id, input.eventId), eq(events.tripId, tripId)));
+      if (!event) return undefined;
+      if (event.holding === "archive") return "archived";
+    }
+    const [row] = await tx
+      .insert(todos)
+      .values({ tripId, eventId: input.eventId, text: input.text, createdBy: ownerId })
+      .returning();
+    return toTodo(row!);
+  });
+}
+
+async function ownsTrip(db: Db, ownerId: string, tripId: string) {
+  const [trip] = await db
+    .select({ id: trips.id })
+    .from(trips)
+    .where(and(eq(trips.id, tripId), eq(trips.ownerId, ownerId)));
+  return !!trip;
+}
+
+export async function updateTodo(
+  db: Db,
+  ownerId: string,
+  tripId: string,
+  todoId: string,
+  input: UpdateTodoInput,
+): Promise<Todo | undefined> {
+  if (!(await ownsTrip(db, ownerId, tripId))) return undefined;
+  const [row] = await db
+    .update(todos)
+    .set(input)
+    .where(and(eq(todos.id, todoId), eq(todos.tripId, tripId)))
+    .returning();
+  return row && toTodo(row);
+}
+
+export async function deleteTodo(db: Db, ownerId: string, tripId: string, todoId: string): Promise<true | undefined> {
+  if (!(await ownsTrip(db, ownerId, tripId))) return undefined;
+  const rows = await db
+    .delete(todos)
+    .where(and(eq(todos.id, todoId), eq(todos.tripId, tripId)))
+    .returning({ id: todos.id });
+  return rows.length > 0 ? true : undefined;
+}
+
+// Deletes an Event with its Todos and returns both as they were, so the deletion can be undone.
+export async function deleteEvent(
+  db: Db,
+  ownerId: string,
+  tripId: string,
+  eventId: string,
+): Promise<DeletedEvent | undefined> {
+  return db.transaction(async (tx) => {
+    const [trip] = await tx
+      .select({ id: trips.id })
+      .from(trips)
+      .where(and(eq(trips.id, tripId), eq(trips.ownerId, ownerId)))
+      .for("share");
+    if (!trip) return undefined;
+    const [event] = await tx
+      .select(eventColumnsSelect)
+      .from(events)
+      .where(and(eq(events.id, eventId), eq(events.tripId, tripId)))
+      .for("update");
+    if (!event) return undefined;
+    const gone = await tx.select().from(todos).where(eq(todos.eventId, eventId)).orderBy(...todoOrder);
+    // The Todos are deleted with the Event (cascade).
+    await tx.delete(events).where(eq(events.id, eventId));
+    return { event: toEvent(event), todos: gone.map(toTodo) };
+  });
+}
+
+// Undoes deleteEvent: the Event comes back with its old id, and its Todos with it. It returns to
+// its Day, or to the Backlog when the Day is gone or a stay's nights no longer fit, so undo never
+// fails for that reason. Placed Events are trusted to be what deleteEvent returned.
+export async function restoreEvent(
+  db: Db,
+  ownerId: string,
+  tripId: string,
+  input: DeletedEvent,
+): Promise<Event | undefined | "invalid" | "exists"> {
+  const { event, todos: restored } = input;
+  const consistent =
+    restored.every((t) => t.eventId === event.id) &&
+    new Set(restored.map((t) => t.id)).size === restored.length &&
+    // An archived Event has no Todos.
+    (event.holding !== "archive" || restored.length === 0);
+  if (!consistent) return (await ownsTrip(db, ownerId, tripId)) ? "invalid" : undefined;
+
+  return db.transaction(async (tx) => {
+    // The shared lock keeps the Day from being deleted while the Event is put back on it.
+    const [trip] = await tx
+      .select({ id: trips.id })
+      .from(trips)
+      .where(and(eq(trips.id, tripId), eq(trips.ownerId, ownerId)))
+      .for("share");
+    if (!trip) return undefined;
+
+    const [taken] = await tx.select({ id: events.id }).from(events).where(eq(events.id, event.id));
+    if (taken) return "exists";
+    if (restored.length > 0) {
+      const ids = restored.map((t) => t.id);
+      const clash = await tx.select({ id: todos.id }).from(todos).where(inArray(todos.id, ids));
+      const creators = await tx
+        .select({ id: users.id })
+        .from(users)
+        .where(inArray(users.id, [...new Set(restored.map((t) => t.createdBy))]));
+      if (clash.length > 0 || creators.length !== new Set(restored.map((t) => t.createdBy)).size) return "invalid";
+    }
+
+    let dayId = event.dayId;
+    if (dayId) {
+      const [day] = await tx
+        .select({ id: days.id })
+        .from(days)
+        .where(and(eq(days.id, dayId), eq(days.tripId, tripId)));
+      if (!day || (event.kind === "lodging" && !(await stayFits(tx, tripId, dayId, event.nights)))) dayId = null;
+    }
+    const place = dayId ? { dayId, holding: null } : { dayId: null, holding: event.holding ?? ("backlog" as const) };
+    const [row] = await tx
+      .insert(events)
+      .values({ ...event, tripId, ...place })
+      .returning();
+    if (restored.length > 0) {
+      // One timestamp apart, so they come back in the order they had.
+      const base = Date.now();
+      await tx.insert(todos).values(restored.map((t, i) => ({ ...t, tripId, createdAt: new Date(base + i) })));
+    }
+    return toEvent(row!);
   });
 }

@@ -1,22 +1,41 @@
 import {
   createDayInputSchema,
   createEventInputSchema,
+  createTodoInputSchema,
   createTripInputSchema,
+  deletedEventSchema,
   holdingAreaSchema,
   reorderDaysInputSchema,
   restoreDayInputSchema,
   updateEventInputSchema,
+  updateTodoInputSchema,
 } from "@travel-planner/shared";
-import type { HealthResponse } from "@travel-planner/shared";
+import type { HealthResponse, Me } from "@travel-planner/shared";
 import express from "express";
 import { z, ZodError } from "zod";
 import type { Db } from "./db/client";
 import { DEV_USER_ID } from "./dev-user";
-import { addEvent, addHeldEvent, createTrip, deleteDay, insertDay, listTrips, reorderDays, restoreDay, updateEvent } from "./trips";
+import {
+  addEvent,
+  addHeldEvent,
+  addTodo,
+  createTrip,
+  deleteDay,
+  deleteEvent,
+  deleteTodo,
+  insertDay,
+  listTrips,
+  reorderDays,
+  restoreDay,
+  restoreEvent,
+  updateEvent,
+  updateTodo,
+} from "./trips";
 
 const tripParamsSchema = z.object({ tripId: z.uuid() });
 const eventIdParamsSchema = z.object({ tripId: z.uuid(), eventId: z.uuid() });
 const dayParamsSchema = z.object({ tripId: z.uuid(), dayId: z.uuid() });
+const todoParamsSchema = z.object({ tripId: z.uuid(), todoId: z.uuid() });
 const areaParamsSchema = z.object({ tripId: z.uuid(), area: holdingAreaSchema });
 
 const LODGING_ERROR = "A Lodging needs at least one night, and every night must fall on a Day of the Trip";
@@ -27,6 +46,11 @@ export function createApp(db: Db) {
 
   app.get("/api/health", (_req, res) => {
     const body: HealthResponse = { status: "ok" };
+    res.json(body);
+  });
+
+  app.get("/api/me", (_req, res) => {
+    const body: Me = { id: DEV_USER_ID };
     res.json(body);
   });
 
@@ -86,6 +110,70 @@ export function createApp(db: Db) {
       return;
     }
     res.json(result);
+  });
+
+  app.delete("/api/trips/:tripId/events/:eventId", async (req, res) => {
+    const { tripId, eventId } = eventIdParamsSchema.parse(req.params);
+    const result = await deleteEvent(db, DEV_USER_ID, tripId, eventId);
+    if (!result) {
+      res.status(404).json({ error: "Event not found" });
+      return;
+    }
+    res.json(result);
+  });
+
+  app.post("/api/trips/:tripId/events/restore", async (req, res) => {
+    const { tripId } = tripParamsSchema.parse(req.params);
+    const input = deletedEventSchema.parse(req.body);
+    const result = await restoreEvent(db, DEV_USER_ID, tripId, input);
+    if (!result) {
+      res.status(404).json({ error: "Trip not found" });
+      return;
+    }
+    if (result === "exists") {
+      res.status(409).json({ error: "That Event already exists" });
+      return;
+    }
+    if (result === "invalid") {
+      res.status(400).json({ error: "The Event cannot be restored with these Todos" });
+      return;
+    }
+    res.status(201).json(result);
+  });
+
+  app.post("/api/trips/:tripId/todos", async (req, res) => {
+    const { tripId } = tripParamsSchema.parse(req.params);
+    const input = createTodoInputSchema.parse(req.body);
+    const result = await addTodo(db, DEV_USER_ID, tripId, input);
+    if (!result) {
+      res.status(404).json({ error: "Event not found" });
+      return;
+    }
+    if (result === "archived") {
+      res.status(409).json({ error: "An archived Event has no Todos" });
+      return;
+    }
+    res.status(201).json(result);
+  });
+
+  app.patch("/api/trips/:tripId/todos/:todoId", async (req, res) => {
+    const { tripId, todoId } = todoParamsSchema.parse(req.params);
+    const input = updateTodoInputSchema.parse(req.body);
+    const result = await updateTodo(db, DEV_USER_ID, tripId, todoId, input);
+    if (!result) {
+      res.status(404).json({ error: "Todo not found" });
+      return;
+    }
+    res.json(result);
+  });
+
+  app.delete("/api/trips/:tripId/todos/:todoId", async (req, res) => {
+    const { tripId, todoId } = todoParamsSchema.parse(req.params);
+    if (!(await deleteTodo(db, DEV_USER_ID, tripId, todoId))) {
+      res.status(404).json({ error: "Todo not found" });
+      return;
+    }
+    res.status(204).end();
   });
 
   app.post("/api/trips/:tripId/days", async (req, res) => {

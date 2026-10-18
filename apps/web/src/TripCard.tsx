@@ -14,6 +14,7 @@ import {
   type DayDeletionPlan,
   type Event,
   type HoldingArea,
+  type Todo,
   type Trip,
 } from "@travel-planner/shared";
 import { useCallback, useRef, useState } from "react";
@@ -24,6 +25,7 @@ import { endGesture } from "./gesture";
 import { HoldingAreas } from "./HoldingAreas";
 import { LodgingBanners, staysOf } from "./LodgingBanners";
 import { Toast } from "./Toast";
+import { TodosPanel } from "./TodosPanel";
 
 // What a move changes: the time, and/or the place (a Day id in `dayId`, or a holding area).
 export type EventMove = Partial<Pick<Event, "startMinute" | "durationMinutes" | "dayId" | "holding">>;
@@ -38,6 +40,9 @@ type Props = {
   onCreateAt: (dayId: string, startMinute: number) => void;
   onAddToBacklog: () => void;
   onMove: (eventId: string, move: EventMove) => void;
+  onAddTodo: (text: string, eventId: string | null) => Promise<void>;
+  onToggleTodo: (todo: Todo) => void;
+  onDeleteTodo: (todo: Todo) => void;
 };
 
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
@@ -61,7 +66,7 @@ function dropTargetAt(root: HTMLElement, x: number, y: number, draggedId: string
   return undefined;
 }
 
-export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectEvent, onCreateAt, onAddToBacklog, onMove }: Props) {
+export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectEvent, onCreateAt, onAddToBacklog, onMove, onAddTodo, onToggleTodo, onDeleteTodo }: Props) {
   const root = useRef<HTMLElement>(null);
   const [error, setError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
@@ -274,6 +279,7 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
             })}
             <div style={{ gridColumn: 2 + lastPosition * 2, gridRow: 1 }}>{insertButton(lastPosition + 1)}</div>
           </div>
+          <TodosPanel trip={trip} onSelectEvent={onSelectEvent} onAdd={onAddTodo} onToggle={onToggleTodo} onDelete={onDeleteTodo} />
         </div>
       </DragDropProvider>
       {deleting && (
@@ -287,6 +293,7 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
             <strong>{plural(deleting.plan.moved.length, "Event")}</strong> will move to the Backlog.
           </p>
           <ul>
+            <li>{deleting.plan.moved.length === 1 ? "Its Todos are kept." : "Their Todos are kept."}</li>
             {deleting.day.position < lastPosition && (
               <li>
                 Later Days move up: Day {deleting.day.position + 1} becomes Day {deleting.day.position}.

@@ -78,6 +78,18 @@ export const eventSchema = z.object({
   ...detailSchemas,
 });
 
+const todoText = z.string().trim().min(1, "Todo text is required").max(500);
+
+// A to-do item of a Trip (`eventId` null) or of one Event.
+export const todoSchema = z.object({
+  id: z.uuid(),
+  eventId: z.uuid().nullable(),
+  text: todoText,
+  done: z.boolean(),
+  createdBy: z.uuid(),
+});
+export type Todo = z.infer<typeof todoSchema>;
+
 export const daySchema = z.object({
   id: z.uuid(),
   position: z.number().int().positive(),
@@ -90,6 +102,8 @@ export const tripSchema = z.object({
   days: z.array(daySchema),
   backlog: z.array(eventSchema),
   archive: z.array(eventSchema),
+  // Trip Todos and Event Todos together.
+  todos: z.array(todoSchema),
 });
 
 export const createTripInputSchema = z.object({ title });
@@ -169,4 +183,21 @@ export * from "./event-save";
 export * from "./lodging-range";
 export * from "./time-edit";
 export * from "./time-layout";
+export * from "./todo-removal";
 export * from "./transport";
+
+export const createTodoInputSchema = z.object({ text: todoText, eventId: z.uuid().nullable().default(null) });
+export const updateTodoInputSchema = z
+  .object({ text: todoText.optional(), done: z.boolean().optional() })
+  .refine((input) => input.text !== undefined || input.done !== undefined, {
+    message: "Provide at least one field to change",
+  });
+export type CreateTodoInput = z.infer<typeof createTodoInputSchema>;
+export type UpdateTodoInput = z.infer<typeof updateTodoInputSchema>;
+
+// A deleted Event with its Todos as they were; also what restoring it (undo) sends back.
+export const deletedEventSchema = z.object({ event: eventSchema, todos: z.array(todoSchema) });
+export type DeletedEvent = z.infer<typeof deletedEventSchema>;
+
+export const meSchema = z.object({ id: z.uuid() });
+export type Me = z.infer<typeof meSchema>;

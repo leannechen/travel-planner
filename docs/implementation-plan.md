@@ -2,7 +2,7 @@
 
 Product rules are in [`PRD.md`](./PRD.md); vocabulary in [`CONTEXT.md`](../CONTEXT.md); decisions in [`docs/adr/`](./adr/). This file orders the work and tracks status. It changes often; the PRD should not.
 
-**Current step: 9 (Todos).** Steps 0 to 8 are done. The final design is in [`docs/design/`](./design/); a few designer fixes are pending and do not block step 0.
+**Current step: 10 (Notes).** Steps 0 to 9 are done. The final design is in [`docs/design/`](./design/); a few designer fixes are pending and do not block step 0.
 
 ## Working agreement
 
@@ -40,7 +40,7 @@ Each step lists what it needs from earlier steps and when it is done.
 ### Holding areas and Todos
 
 - [x] **8. Backlog and Archive.** Events without a start time; schedule through the Day and start-time fields; desktop drag between areas and Days. Deleting a Day that has Events becomes allowed: a confirmation dialog states how many Events move to the Backlog, with an Undo toast (design 13). An empty Day is deleted at once, also with the toast. The Todo and Leg lines of the dialog come with steps 9 and 15. *Needs:* 5.
-- [ ] **9. Todos.** Trip Todos and Event Todos; deleting or archiving an Event deletes its Todos with the confirmation and count, "do not remind me again", and an undo window for deletion. *Needs:* 8.
+- [x] **9. Todos.** Trip Todos and Event Todos; deleting or archiving an Event deletes its Todos with the confirmation and count, "do not remind me again", and an undo window for deletion. Deleting an Event (from the edit panel) arrives here. Todos can be added, ticked and deleted; renaming a Todo has an API but no UI yet. "Do not remind me again" is kept in the browser until accounts exist (step 18). *Needs:* 8.
 - [ ] **10. Notes.** Floating Notes panel with Markdown, pinning and ordering by last edit. *Needs:* 1.
 
 ### Experience
@@ -79,6 +79,8 @@ Each step lists what it needs from earlier steps and when it is done.
 - [ ] **27. Deploy.** Docker image on fly.io, production Postgres, environment configuration. *Needs:* 18.
 
 ## Known issues (not scheduled)
+
+- **Todo counts can be stale.** The deletion dialog counts Todos from what the browser has loaded; a Todo added by someone else a moment before is deleted without being counted. Revisit with live collaboration (step 21).
 
 - **Drag shows the old time.** While an Event is dragged (for example from Day 1 09:00 towards Day 2 10:00), the card keeps its old time until it is dropped, which can suggest the target is wrong. Show the time of the current drop position on the card during the drag. Best done together with a browser check of dragging, which the automated browser could not do in step 8.
 

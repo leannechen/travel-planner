@@ -4,7 +4,7 @@ This folder is the **final** design for Travel Planner. It replaces the earlier 
 
 - **Design name:** Travel Planner — High Fidelity
 - **Date:** 2026-10-17
-- **Fidelity:** all 41 screens are high fidelity. There are no wireframe-only screens left. Some dialog backdrops are still simplified (see the "Design notes" asides inside the screens).
+- **Fidelity:** all 42 screens are high fidelity. There are no wireframe-only screens left. Some dialog backdrops are still simplified (see the "Design notes" asides inside the screens).
 - **Order and names:** The two-digit number in each image name is the screen order.
 
 ## Layout
@@ -77,6 +77,7 @@ All images in `png/` are exported at **2x** (twice the CSS pixel width and heigh
 | 39 | `png/39-logout.webp` | `source/Logout.dc.html` | 2340x1956 | Log out — Landing with “You’re logged out” toast |
 | 40 | `png/40-session-expired.png` | `source/SessionExpired.dc.html` | 2340x1956 | Session expired while editing — read-only Trip and banner |
 | 41 | `png/41-invite-editor.webp` | `source/InviteEditor.dc.html` | 2340x1956 | Invited Editor from an email link, logged out |
+| 42 | `png/42-notes-panel.png` | `source/NotesStates.dc.html` | 1960x2920 | Notes panel — new Note, list, open Note; desktop and phone, light and dark (current Notes design; replaces 17) |
 
 ## Notes
 

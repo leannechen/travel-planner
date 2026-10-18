@@ -39,6 +39,14 @@ describe("neighbour", () => {
     expect(neighbour(areas, "c", "right")).toBeUndefined();
     expect(neighbour(areas, "b1", "left")).toBeUndefined();
   });
+  it("leaves the collapsed Archive out, but works inside it", () => {
+    const withArchive: Areas = { ...areas, archive: [ev("x", 600), ev("y", 660)] };
+    expect(neighbour(withArchive, "b1", "right")?.id).toBe("a");
+    expect(neighbour(withArchive, "a", "left")?.id).toBe("b1");
+    expect(neighbour(withArchive, "x", "down")?.id).toBe("y");
+    expect(neighbour(withArchive, "x", "right")?.id).toBe("a");
+    expect(neighbour(withArchive, "x", "left")?.id).toBe("b1");
+  });
   it("starts over when the current Event is gone", () => {
     expect(neighbour(areas, "gone", "down")?.id).toBe("b1");
   });

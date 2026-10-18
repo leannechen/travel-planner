@@ -1,20 +1,25 @@
 // Pure rules for moving the selection with the arrow keys, and the list of shortcuts shown in
-// tooltips and the cheat sheet. Columns are in the order they are drawn: Backlog, Archive, then the
-// Days left to right.
+// tooltips and the cheat sheet. Columns are the Backlog, then the Days left to right. The Archive
+// is collapsed by default and drawn under the Backlog, so it only takes part when the selected
+// Event is already in it (it then sits next to the Backlog).
 
 import type { Areas } from "./event-list";
 import type { Event } from "./index";
 
 export type Direction = "up" | "down" | "left" | "right";
 
-const columns = (areas: Areas): Event[][] => [areas.backlog, areas.archive, ...areas.days.map((d) => d.events)];
+const columns = (areas: Areas, currentId: string | undefined): Event[][] => [
+  areas.backlog,
+  ...(areas.archive.some((e) => e.id === currentId) ? [areas.archive] : []),
+  ...areas.days.map((d) => d.events),
+];
 
 // The Event the arrow key leads to, or `undefined` when there is none in that direction. With no
 // current selection any arrow selects the first Event on the board. Up and down walk one column;
 // left and right go to the nearest column that has Events, picking the Event whose start time is
 // closest to the current one (the first of them on a tie).
 export function neighbour(areas: Areas, currentId: string | undefined, direction: Direction): Event | undefined {
-  const all = columns(areas);
+  const all = columns(areas, currentId);
   if (!currentId) return all.find((c) => c.length > 0)?.[0];
   const col = all.findIndex((c) => c.some((e) => e.id === currentId));
   if (col === -1) return all.find((c) => c.length > 0)?.[0];

@@ -216,9 +216,23 @@ export function App() {
     return event;
   }
 
+  const deleting = useRef(new Set<string>());
+
   async function handleDeleteEvent(tripId: string, event: Event) {
     const trip = tripsRef.current?.find((t) => t.id === tripId);
-    if (!trip || !(await confirmRemoval(trip, event, "delete"))) return;
+    // A second press while the first delete is still running does nothing.
+    if (!trip || deleting.current.has(event.id)) return;
+    deleting.current.add(event.id);
+    try {
+      await removeConfirmedEvent(trip, event);
+    } finally {
+      deleting.current.delete(event.id);
+    }
+  }
+
+  async function removeConfirmedEvent(trip: Trip, event: Event) {
+    const tripId = trip.id;
+    if (!(await confirmRemoval(trip, event, "delete"))) return;
     setSaveError(undefined);
     // Older saves of this Event still in flight must not put it back on the board.
     beginSave(event.id);
@@ -354,10 +368,14 @@ export function App() {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const target = e.target instanceof HTMLElement ? e.target : undefined;
     if (
-      target?.closest("input, textarea, select, [contenteditable]") ||
+      target?.closest("input, textarea, select, [contenteditable], .notes-panel, .event-panel") ||
       document.querySelector("dialog[open]")
     )
       return;
+    if (e.key === "?") {
+      e.preventDefault();
+      return setSheetOpen(true);
+    }
     const trip = workingTrip();
     if (!trip) return;
     const current =
@@ -366,10 +384,6 @@ export function App() {
         : undefined;
     const handled = () => e.preventDefault();
 
-    if (e.key === "?") {
-      handled();
-      return setSheetOpen(true);
-    }
     if (e.key === "Escape") {
       if (selection) select(undefined);
       return;
@@ -413,23 +427,22 @@ export function App() {
     if (e.shiftKey) return;
     // Enter on a focused button keeps its own meaning, except on an Event card.
     if (e.key === "Enter") {
-      if (
-        !current ||
-        (target?.closest("button, a, summary") &&
-          !target.closest("[data-event-id]"))
-      )
-        return;
+      // Only the selected Event's own card is taken over; other buttons keep their click.
+      const own = target?.closest("[data-event-id]")?.getAttribute("data-event-id") === current?.id && !target?.closest(".holding-action");
+      if (!current || (target?.closest("button, a, summary") && !own)) return;
       handled();
       return document
         .querySelector<HTMLInputElement>('.event-panel [data-field="title"]')
         ?.focus();
     }
+    // Holding a key down must not repeat a create or a delete.
+    if (e.repeat && (e.key === "Delete" || e.key === "Backspace" || e.code === "KeyN" || e.code === "KeyB")) return;
     if (e.key === "Delete" || e.key === "Backspace") {
       if (!current) return;
       handled();
       return void handleDeleteEvent(trip.id, current);
     }
-    if (e.key === "n") {
+    if (e.code === "KeyN") {
       const dayId =
         current?.dayId ??
         (selection &&
@@ -447,7 +460,7 @@ export function App() {
           durationMinutes: DEFAULT_DURATION_MINUTES,
         },
       });
-    } else if (e.key === "b") {
+    } else if (e.code === "KeyB") {
       handled();
       select({
         tripId: trip.id,

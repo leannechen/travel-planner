@@ -28,16 +28,18 @@ function savePosition(position: Point) {
 
 type Props = {
   notes: Note[];
-  onAdd: (body: string) => Promise<void>;
+  onAdd: (body: string) => Promise<Note>;
   onUpdate: (noteId: string, input: { body?: string; pinned?: boolean }) => Promise<void>;
   onDelete: (noteId: string) => Promise<void>;
   onClose: () => void;
+  // Filled with the panel's own close, which saves first; the shortcut and the Notes button use it.
+  closeRef: { current: (() => void) | undefined };
 };
 
 // The Trip's Notes in a floating panel: a field for a new Note on top, then pinned Notes, then the
 // rest by most recent edit. The header can be dragged; the position is remembered. Text is saved
 // when a field is left, or when the panel is closed.
-export function NotesPanel({ notes, onAdd, onUpdate, onDelete, onClose }: Props) {
+export function NotesPanel({ notes, onAdd, onUpdate, onDelete, onClose, closeRef }: Props) {
   const panel = useRef<HTMLElement>(null);
   const [position, setPosition] = useState<Point>(() => readPosition() ?? { x: Math.max(0, window.innerWidth - WIDTH - 16), y: 72 });
   const [editingId, setEditingId] = useState<string | undefined>();
@@ -47,8 +49,22 @@ export function NotesPanel({ notes, onAdd, onUpdate, onDelete, onClose }: Props)
   const edited = useRef<{ id: string; body: string } | undefined>(undefined);
   // Changes after a Note is created, which empties the new-Note field.
   const [draftKey, setDraftKey] = useState(0);
-  const adding = useRef(false);
-  const { pinned, recent } = orderNotes(notes);
+  // The save of the new-Note field that is running, so a second flush waits for it.
+  const draftFlush = useRef<Promise<boolean> | undefined>(undefined);
+  // The text last sent for each Note, so leaving a field twice does not send it twice.
+  const sentBodies = useRef(new Map<string, string>());
+  // While a Note is being edited the list keeps the order the user saw: saving it would move it to
+  // the top, and moving the focused Note's element in the page drops its caret.
+  const frozenOrder = useRef<string[] | undefined>(undefined);
+  const ordered = orderNotes(notes);
+  const keepSeen = (list: Note[]) => {
+    const seen = frozenOrder.current;
+    if (!seen) return list;
+    const rank = (n: Note) => seen.indexOf(n.id);
+    return [...list].sort((a, b) => rank(a) - rank(b));
+  };
+  const pinned = keepSeen(ordered.pinned);
+  const recent = keepSeen(ordered.recent);
 
   const size = () => {
     const box = panel.current?.getBoundingClientRect();
@@ -61,43 +77,73 @@ export function NotesPanel({ notes, onAdd, onUpdate, onDelete, onClose }: Props)
     const onResize = () => setPosition((p) => clampPosition(p, size(), viewport()));
     onResize();
     window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+    // The panel also grows by itself (more Notes, a Note opened for editing).
+    const observer = new ResizeObserver(onResize);
+    if (panel.current) observer.observe(panel.current);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      observer.disconnect();
+    };
   }, []);
 
-  async function flushDraft() {
-    const body = draft.current;
-    if (body.trim() === "" || adding.current) return;
-    adding.current = true;
-    try {
-      await onAdd(body);
-      draft.current = "";
-      setDraftKey((k) => k + 1);
-    } catch {
-      // The caller shows the error; the text stays in the field.
-    } finally {
-      adding.current = false;
-    }
+  // Saves the new-Note field: creates the Note, and if more was typed while that was running,
+  // updates the Note just created, until the field and the Note agree. Then the field is emptied.
+  // Answers whether everything was saved.
+  function flushDraft(): Promise<boolean> {
+    if (draftFlush.current) return draftFlush.current;
+    const run = (async () => {
+      try {
+        let id: string | undefined;
+        let sent = "";
+        while (draft.current.trim() !== "" && draft.current !== sent) {
+          const body = draft.current;
+          if (id) await onUpdate(id, { body });
+          else id = (await onAdd(body)).id;
+          sent = body;
+        }
+        if (id) {
+          draft.current = "";
+          setDraftKey((k) => k + 1);
+        }
+        return true;
+      } catch {
+        // The caller shows the error; the text stays in the field.
+        return false;
+      } finally {
+        draftFlush.current = undefined;
+      }
+    })();
+    draftFlush.current = run;
+    return run;
   }
 
-  async function flushEdit() {
+  async function flushEdit(): Promise<boolean> {
     const current = edited.current;
     const original = current && notes.find((n) => n.id === current.id);
-    if (!current || !original || current.body === original.body) return;
+    if (!current || !original) return true;
+    if (current.body === (sentBodies.current.get(current.id) ?? original.body)) return true;
+    sentBodies.current.set(current.id, current.body);
     try {
       await onUpdate(current.id, { body: current.body });
+      return true;
     } catch {
-      // The caller shows the error.
+      // The caller shows the error; the text stays in the editor.
+      sentBodies.current.delete(current.id);
+      return false;
     }
   }
 
+  // Saves what is typed, then closes. When a save fails the panel stays open with the text.
   async function close() {
-    await Promise.all([flushDraft(), flushEdit()]);
-    onClose();
+    const saved = await Promise.all([flushDraft(), flushEdit()]);
+    if (saved.every(Boolean)) onClose();
   }
+  closeRef.current = () => void close();
 
   function startEditing(note: Note) {
     if (editingId === note.id) return;
     void flushEdit();
+    frozenOrder.current ??= [...pinned, ...recent].map((n) => n.id);
     edited.current = { id: note.id, body: note.body };
     setEditingId(note.id);
   }
@@ -187,7 +233,8 @@ export function NotesPanel({ notes, onAdd, onUpdate, onDelete, onClose }: Props)
               key={draftKey}
               label="New Note"
               value=""
-              autoFocus
+              // Only when the panel opens: a field emptied after a save must not take the focus.
+              autoFocus={draftKey === 0}
               onChange={(body) => (draft.current = body)}
               onBlur={() => void flushDraft()}
             />

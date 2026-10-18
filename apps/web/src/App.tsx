@@ -89,6 +89,8 @@ export function App() {
   // The Trip whose Notes panel is open. The shortcut opens it for the Trip being worked on.
   const [notesTripId, setNotesTripId] = useState<string | undefined>();
   const lastNotesTripId = useRef<string | undefined>(undefined);
+  // The open panel's own close, which saves what is typed first.
+  const closeNotes = useRef<(() => void) | undefined>(undefined);
   const dismissToast = useCallback(() => setToast(undefined), []);
   // Changes when the user picks something else, so the panel starts fresh. It stays the same when
   // a new Event is saved, so the panel keeps its fields and focus.
@@ -255,6 +257,7 @@ export function App() {
     failing(async () => {
       const note = await addNote(tripId, body);
       setTripNotes(tripId, (notes) => [note, ...notes]);
+      return note;
     });
 
   const handleUpdateNote = (tripId: string, noteId: string, input: { body?: string; pinned?: boolean }) =>
@@ -271,14 +274,15 @@ export function App() {
 
   function toggleNotes(tripId: string) {
     lastNotesTripId.current = tripId;
-    setNotesTripId((open) => (open === tripId ? undefined : tripId));
+    if (notesTripId === tripId) return closeNotes.current?.();
+    setNotesTripId(tripId);
   }
 
   // Alt+Shift+N opens or closes the Notes panel from anywhere. (A placeholder: browsers keep
   // Ctrl+Shift+N for themselves; the shortcut set is settled in step 11.)
   const shortcut = useRef<() => void>(() => undefined);
   shortcut.current = () => {
-    if (notesTripId) return setNotesTripId(undefined);
+    if (notesTripId) return closeNotes.current?.();
     const target = selection?.tripId ?? lastNotesTripId.current ?? trips?.[0]?.id;
     if (target) toggleNotes(target);
   };
@@ -426,6 +430,7 @@ export function App() {
           onUpdate={(noteId, input) => handleUpdateNote(notesTripId, noteId, input)}
           onDelete={(noteId) => handleDeleteNote(notesTripId, noteId)}
           onClose={() => setNotesTripId(undefined)}
+          closeRef={closeNotes}
         />
       )}
       {removal && (

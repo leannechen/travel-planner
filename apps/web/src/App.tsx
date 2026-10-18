@@ -546,13 +546,12 @@ export function App() {
 
   return (
     <>
-    <Sidebar onShowShortcuts={() => setSheetOpen(true)} />
     <main className={selectedTrip ? "has-panel" : undefined}>
       <h1>{t("app.title")}</h1>
       <TitleForm label={t("app.tripTitle")} submitLabel={t("app.createTrip")} onSubmit={handleCreateTrip} />
       {error && <p role="alert">{error}</p>}
       {saveError && <p role="alert">{saveError}</p>}
-      {trips?.map((trip) => {
+      {trips?.map((trip, index) => {
         const mine = selection?.tripId === trip.id ? selection : undefined;
         return (
           <TripCard
@@ -566,6 +565,8 @@ export function App() {
             notesOpen={notesTripId === trip.id}
             onToggleNotes={() => toggleNotes(trip.id)}
             onShowShortcuts={() => setSheetOpen(true)}
+            // The switches are shown once, under the first Trip, until Trip management (step 25).
+            footer={index === 0 ? <Sidebar onShowShortcuts={() => setSheetOpen(true)} /> : undefined}
             onAddTodo={(text, eventId) => handleAddTodo(trip.id, text, eventId)}
             onToggleTodo={(todo) => handleToggleTodo(trip.id, todo)}
             onDeleteTodo={(todo) => handleDeleteTodo(trip.id, todo)}

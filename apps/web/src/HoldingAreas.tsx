@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import { KindIcon } from "./kinds";
 import { gestureJustEnded } from "./gesture";
 import { useT } from "./preferences";
+import type { ReactNode } from "react";
 import { tip } from "./shortcuts";
 
 // "1h 30m", "45m", "2h".
@@ -62,11 +63,13 @@ type Props = {
   onSelectEvent: (eventId: string) => void;
   onAddToBacklog: () => void;
   onMoveTo: (eventId: string, area: HoldingArea) => void;
+  // Fills the bottom of the column.
+  footer?: ReactNode;
 };
 
 // The Backlog (Events still being considered) and the Archive (Events given up on), side by side
 // with the Days. Both are collapsible and both accept dragged Events.
-export function HoldingAreas({ backlog, archive, selectedEventId, dropTarget, onSelectEvent, onAddToBacklog, onMoveTo }: Props) {
+export function HoldingAreas({ backlog, archive, selectedEventId, dropTarget, onSelectEvent, onAddToBacklog, onMoveTo, footer }: Props) {
   const t = useT();
   const area = (name: HoldingArea) => (dropTarget === name ? "holding-area drop-target" : "holding-area");
   return (
@@ -131,6 +134,7 @@ export function HoldingAreas({ backlog, archive, selectedEventId, dropTarget, on
           </ul>
         )}
       </details>
+      {footer}
     </aside>
   );
 }

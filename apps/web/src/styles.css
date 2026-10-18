@@ -1,110 +1,475 @@
-/* Minimal layout for the time axis. Colors follow the design tokens in docs/design/source/hf.css;
-   the full visual design is applied in step 12b. */
+/* Travel Planner styles. Tokens and components follow docs/design/source/hf.css (final design).
+   Desktop first; the phone layout is step 13. */
 :root {
+  /* surfaces and text */
   --bg: #f2f6fc;
   --surface: #ffffff;
+  --surface2: #f7f9fd;
   --border: #dfe6f2;
+  --border2: #c8d3e6;
   --text: #16223b;
   --muted: #5b6a86;
+  /* brand */
   --pri: #2373f4;
+  --pri-strong: #1b5fd9;
   --pri-tint: #e7f0ff;
-  /* One color per Event kind (from the design tokens). */
-  --attraction-bar: #2f7bff;
-  --attraction-tint: #e3edff;
-  --meal-bar: #f46a1c;
-  --meal-tint: #ffe8d9;
-  --lodging-bar: #8a5cf6;
-  --lodging-tint: #ece4ff;
-  --transport-bar: #12ae72;
-  --transport-tint: #d9f5e8;
+  --pri-ink: #1450b8;
+  --onpri: #ffffff;
+  --focus: 0 0 0 3px rgba(35, 115, 244, 0.32);
+  /* status */
+  --ok: #1a7f37;
+  --danger: #c0392b;
+  --danger-tint: #fdeceb;
+  --warn: #7a3d00;
+  --warnbg: #fff1c9;
+  --warnb: #f2b705;
+  /* Event kinds: rail, tint, ink (icons and text on the tint) */
+  --a-bar: #2f7bff;
+  --a-tint: #e3edff;
+  --a-ink: #1f5fd6;
+  --t-bar: #12ae72;
+  --t-tint: #d9f5e8;
+  --t-ink: #0a7a4f;
+  --m-bar: #f46a1c;
+  --m-tint: #ffe8d9;
+  --m-ink: #c4490a;
+  --l-bar: #8a5cf6;
+  --l-tint: #ece4ff;
+  --l-ink: #6b3fd4;
+  /* schedule */
+  --card: #ffffff;
+  --cardbd: #d3dcec;
+  --axisbg: #f5f8fd;
+  --grid: #e6ecf6;
+  --grid2: #f0f4fa;
+  /* elevation */
+  --sh-card: 0 1px 2px rgba(22, 34, 59, 0.08), 0 3px 10px rgba(22, 34, 59, 0.07);
+  --sh-pop: 0 8px 24px rgba(22, 34, 59, 0.16), 0 1px 3px rgba(22, 34, 59, 0.1);
+  --sh-dlg: 0 24px 64px rgba(22, 34, 59, 0.32);
+  /* space (4-pt) and radius */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --r-xs: 5px;
+  --r-sm: 7px;
+  --r-md: 9px;
+  --r-lg: 12px;
+  --r-xl: 14px;
+  --font: "Inter", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --font-head: "Nunito", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
 }
 
 /* Dark colors apply when the system asks for dark and the user has not chosen light, or when the
-   user chose dark in the sidebar (data-theme on the page). */
+   user chose dark in the sidebar (data-theme on the page). CSS cannot share the list between a
+   media query and an attribute selector, so it is written twice. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
     --bg: #0e1526;
     --surface: #141d33;
+    --surface2: #18233d;
     --border: #25304d;
+    --border2: #33415f;
     --text: #e8edf8;
     --muted: #95a3c0;
-    --pri: #578ef5;
-    --pri-tint: #1b2a4d;
-    --attraction-bar: #6aa8ff;
-    --attraction-tint: rgba(106, 168, 255, 0.2);
-    --meal-bar: #ff9a55;
-    --meal-tint: rgba(255, 154, 85, 0.2);
-    --lodging-bar: #b494ff;
-    --lodging-tint: rgba(180, 148, 255, 0.2);
-    --transport-bar: #3fd99a;
-    --transport-tint: rgba(63, 217, 154, 0.18);
+    --pri: #5b94f7;
+    --pri-strong: #3d7bf0;
+    --pri-tint: #1b2c52;
+    --pri-ink: #b9d0ff;
+    --onpri: #0b1530;
+    --focus: 0 0 0 3px rgba(91, 148, 247, 0.4);
+    --ok: #5fd68a;
+    --danger: #ff8a7e;
+    --danger-tint: #3a1c1c;
+    --warn: #ffe08a;
+    --warnbg: #3a2f0e;
+    --a-bar: #6aa8ff;
+    --a-tint: rgba(106, 168, 255, 0.2);
+    --a-ink: #9cc4ff;
+    --t-bar: #3fd99a;
+    --t-tint: rgba(63, 217, 154, 0.18);
+    --t-ink: #7be8bb;
+    --m-bar: #ff9a55;
+    --m-tint: rgba(255, 154, 85, 0.2);
+    --m-ink: #ffb784;
+    --l-bar: #b494ff;
+    --l-tint: rgba(180, 148, 255, 0.2);
+    --l-ink: #c9b5ff;
+    --card: #1e2a47;
+    --cardbd: #33415f;
+    --axisbg: #0f182c;
+    --grid: #1f2a46;
+    --grid2: #18223c;
+    --sh-card: 0 1px 2px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.35);
+    --sh-pop: 0 10px 28px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.4);
+    --sh-dlg: 0 24px 64px rgba(0, 0, 0, 0.6);
   }
 }
 
-/* Same as the media query above. */
 :root[data-theme="dark"] {
   color-scheme: dark;
-  /* The same colors as above: CSS cannot share them between a media query and an attribute. */
   --bg: #0e1526;
   --surface: #141d33;
+  --surface2: #18233d;
   --border: #25304d;
+  --border2: #33415f;
   --text: #e8edf8;
   --muted: #95a3c0;
-  --pri: #578ef5;
-  --pri-tint: #1b2a4d;
-  --attraction-bar: #6aa8ff;
-  --attraction-tint: rgba(106, 168, 255, 0.2);
-  --meal-bar: #ff9a55;
-  --meal-tint: rgba(255, 154, 85, 0.2);
-  --lodging-bar: #b494ff;
-  --lodging-tint: rgba(180, 148, 255, 0.2);
-  --transport-bar: #3fd99a;
-  --transport-tint: rgba(63, 217, 154, 0.18);
+  --pri: #5b94f7;
+  --pri-strong: #3d7bf0;
+  --pri-tint: #1b2c52;
+  --pri-ink: #b9d0ff;
+  --onpri: #0b1530;
+  --focus: 0 0 0 3px rgba(91, 148, 247, 0.4);
+  --ok: #5fd68a;
+  --danger: #ff8a7e;
+  --danger-tint: #3a1c1c;
+  --warn: #ffe08a;
+  --warnbg: #3a2f0e;
+  --a-bar: #6aa8ff;
+  --a-tint: rgba(106, 168, 255, 0.2);
+  --a-ink: #9cc4ff;
+  --t-bar: #3fd99a;
+  --t-tint: rgba(63, 217, 154, 0.18);
+  --t-ink: #7be8bb;
+  --m-bar: #ff9a55;
+  --m-tint: rgba(255, 154, 85, 0.2);
+  --m-ink: #ffb784;
+  --l-bar: #b494ff;
+  --l-tint: rgba(180, 148, 255, 0.2);
+  --l-ink: #c9b5ff;
+  --card: #1e2a47;
+  --cardbd: #33415f;
+  --axisbg: #0f182c;
+  --grid: #1f2a46;
+  --grid2: #18223c;
+  --sh-card: 0 1px 2px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.35);
+  --sh-pop: 0 10px 28px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.4);
+  --sh-dlg: 0 24px 64px rgba(0, 0, 0, 0.6);
 }
 
 :root[data-theme="light"] {
   color-scheme: light;
 }
 
+/* ---------- base ---------- */
+* {
+  box-sizing: border-box;
+}
+
 body {
-  margin: 1rem 1rem 1rem 4.5rem;
-  font-family: Inter, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  margin: 0;
   background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  line-height: 1.4;
+  font-feature-settings: "tnum";
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-head);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 0;
+  box-shadow: var(--focus);
+}
+
+/* Plain buttons (those without a class of their own) look like the design's secondary button. */
+button:where(:not([class])),
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--border2);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+button:where(:not([class])):hover,
+.btn:hover {
+  background: var(--surface2);
+  border-color: var(--muted);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn[aria-pressed="true"] {
+  background: var(--pri-tint);
+  border-color: var(--pri);
+  color: var(--pri-ink);
+}
+
+/* Icon button */
+.ib {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--muted);
+}
+
+.ib:hover:not(:disabled) {
+  background: var(--surface2);
   color: var(--text);
 }
 
-.trip-layout {
-  display: flex;
-  gap: 1rem;
-  align-items: flex-start;
+.kbd {
+  display: inline-block;
+  padding: 0 5px;
+  border: 1px solid var(--border2);
+  border-bottom-width: 2px;
+  border-radius: var(--r-xs);
+  background: var(--surface2);
+  color: var(--muted);
+  font: 500 11px/16px var(--font);
 }
 
-.trip-layout > .days-grid {
-  flex: 1;
+.count {
+  padding: 1px 8px;
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.hint {
+  color: var(--muted);
+}
+
+/* Text fields */
+input:where(:not([type="checkbox"]):not([type="radio"])),
+select,
+textarea {
   min-width: 0;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--border2);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text);
 }
 
+textarea {
+  height: auto;
+  padding: 8px 10px;
+}
+
+input:where(:not([type="checkbox"]):not([type="radio"])):hover,
+select:hover {
+  border-color: var(--muted);
+}
+
+input:where(:not([type="checkbox"]):not([type="radio"])):focus,
+select:focus,
+textarea:focus {
+  border-color: var(--pri);
+  box-shadow: var(--focus);
+}
+
+input[type="checkbox"] {
+  appearance: none;
+  position: relative;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 2px 0 0;
+  border: 1.5px solid var(--border2);
+  border-radius: 5px;
+  background: var(--surface);
+}
+
+input[type="checkbox"]:checked {
+  border-color: var(--pri-strong);
+  background: var(--pri-strong);
+}
+
+input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  top: 1px;
+  left: 4px;
+  width: 4px;
+  height: 8px;
+  border: solid var(--onpri);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* Event kinds */
+.kind-attraction {
+  --bar: var(--a-bar);
+  --tint: var(--a-tint);
+  --ink: var(--a-ink);
+}
+
+.kind-meal {
+  --bar: var(--m-bar);
+  --tint: var(--m-tint);
+  --ink: var(--m-ink);
+}
+
+.kind-transport {
+  --bar: var(--t-bar);
+  --tint: var(--t-tint);
+  --ink: var(--t-ink);
+}
+
+.kind-lodging {
+  --bar: var(--l-bar);
+  --tint: var(--l-tint);
+  --ink: var(--l-ink);
+}
+
+/* ---------- page and workspace ---------- */
+main > h1 {
+  margin: 0;
+  padding: 12px 16px 0;
+  font-size: 26px;
+  line-height: 32px;
+  font-weight: 800;
+}
+
+main > form {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+}
+
+main > [role="alert"] {
+  margin: 0 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--danger);
+  border-radius: var(--r-md);
+  background: var(--danger-tint);
+  color: var(--danger);
+}
+
+.workspace {
+  margin-bottom: 24px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 56px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.topbar h2 {
+  margin: 0;
+  padding: 0 10px;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.logo {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #2373f4, #65d0f4);
+  color: #fff;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.workspace > [role="alert"] {
+  margin: 8px 16px;
+  color: var(--danger);
+}
+
+/* Left column (Backlog, Archive, switches), the Days, and the Todos on the right. */
+.trip-layout {
+  display: grid;
+  grid-template-columns: 264px minmax(0, 1fr) 272px;
+  align-items: stretch;
+  min-height: 640px;
+}
+
+main.has-panel {
+  /* The Event panel covers the Todos column: 26rem panel, 272px (17rem) Todos. */
+  margin-right: 9rem;
+}
+
+/* ---------- Days ---------- */
 .days-grid {
   display: grid;
-  column-gap: 0.5rem;
   align-items: start;
   overflow-x: auto;
+  background: var(--surface);
+}
+
+.day-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 52px;
+  padding: 0 8px 0 12px;
+  border-bottom: 1px solid var(--border);
 }
 
 .day-head h3 {
-  margin: 0.25rem 0;
+  flex: 1;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
 }
 
-.event-form {
+.day-head > div {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-  margin: 0.5rem 0;
 }
 
-.event-form input[type="number"] {
-  width: 4.5rem;
+.insert-day {
+  width: 24px;
+  margin: 14px 0 0;
+  height: 24px;
+  border: 1px dashed var(--border2);
+  border-radius: 50%;
 }
 
 .hour-labels,
@@ -113,14 +478,14 @@ body {
 }
 
 .hour-labels {
-  width: 3rem;
+  width: 52px;
 }
 
 .hour-labels span {
   position: absolute;
-  right: 0.25rem;
+  right: 8px;
   transform: translateY(-50%);
-  font-size: 0.75rem;
+  font-size: 11px;
   color: var(--muted);
 }
 
@@ -128,30 +493,129 @@ body {
   margin: 0;
   padding: 0;
   list-style: none;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  background: var(--axisbg);
+  border-left: 1px solid var(--border);
+  cursor: copy;
 }
 
 .hour-line {
   position: absolute;
   left: 0;
   right: 0;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--grid);
 }
 
+.day-timeline.drop-target,
+.holding-area.drop-target {
+  outline: 2px dashed var(--pri);
+  outline-offset: -2px;
+  background: var(--pri-tint);
+}
+
+/* A stay's banner sits above the time axis, so it never overlaps Events. */
+.lodging-banners {
+  display: grid;
+  align-content: start;
+}
+
+.lodging-banner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  height: 28px;
+  padding: 0 10px 0 18px;
+  overflow: hidden;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  font-size: 12px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.lodging-banner::before {
+  content: "";
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  left: 8px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--bar);
+}
+
+.lodging-banner svg,
+.event-card strong svg,
+.holding-main strong svg {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  padding: 3px;
+  border-radius: 7px;
+  background: var(--tint);
+  color: var(--ink);
+}
+
+.lodging-banner.selected {
+  box-shadow: inset 0 0 0 2px var(--pri);
+}
+
+.lodging-banner .banner-title {
+  flex: none;
+  max-width: 60%;
+  overflow: hidden;
+  font-weight: 700;
+  text-overflow: ellipsis;
+}
+
+.lodging-banner .banner-note {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+}
+
+.lodging-banner.check-out {
+  background: transparent;
+}
+
+.lodging-banner.check-out::before {
+  width: 0;
+  border-left: 3px dashed var(--bar);
+  border-radius: 0;
+  background: none;
+}
+
+/* ---------- Event cards ---------- */
 .event-card {
   position: absolute;
-  box-sizing: border-box;
-  padding: 0;
   /* The resize handles sit on the card's edges; the button inside clips the text. */
   overflow: visible;
-  background: var(--tint);
-  border: 1px solid var(--bar);
-  border-left-width: 4px;
-  border-radius: 4px;
-  font-size: 0.8125rem;
+  border: 1px solid var(--cardbd);
+  border-radius: var(--r-md);
+  background: var(--card);
+  box-shadow: var(--sh-card);
+  font-size: 12px;
   line-height: 1.25;
+}
+
+.event-card::before {
+  content: "";
+  position: absolute;
+  top: 7px;
+  bottom: 7px;
+  left: 8px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--bar);
+}
+
+.event-card:hover {
+  border-color: var(--bar);
 }
 
 .event-card strong,
@@ -159,100 +623,68 @@ body {
   display: block;
 }
 
+.event-card strong {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .event-card span {
+  margin-top: 2px;
+  overflow: hidden;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .event-card > button {
   display: block;
-  box-sizing: border-box;
   width: 100%;
   height: 100%;
-  padding: 0.125rem 0.375rem;
+  padding: 6px 10px 6px 18px;
   overflow: hidden;
-  background: none;
   border: 0;
+  background: none;
   color: inherit;
-  font: inherit;
   text-align: left;
   touch-action: none;
   cursor: grab;
 }
 
 .event-card.selected {
-  outline: 2px solid var(--pri);
-  z-index: 1;
-}
-
-.new-event {
-  position: absolute;
-  left: 0;
-  right: 0;
-  box-sizing: border-box;
-  padding: 0.125rem 0.375rem;
-  overflow: hidden;
-  border: 1px dashed var(--pri);
-  border-radius: 4px;
-  background: var(--pri-tint);
-  color: var(--pri);
-  font-size: 0.8125rem;
-}
-
-.day-timeline {
-  cursor: copy;
-}
-
-main.has-panel {
-  margin-right: 22rem;
-}
-
-.event-panel {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 20rem;
-  box-sizing: border-box;
-  padding: 1rem;
-  overflow-y: auto;
-  background: var(--surface);
-  border-left: 1px solid var(--border);
-}
-
-.event-panel .panel-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  min-height: 1.5rem;
-}
-
-.event-panel .panel-status {
-  color: var(--muted);
-  font-size: 0.8125rem;
-}
-
-.event-panel form {
-  display: grid;
-  gap: 0.75rem;
-  margin-top: 0.75rem;
-}
-
-.event-panel label {
-  display: grid;
-  gap: 0.25rem;
-  font-size: 0.8125rem;
-  color: var(--muted);
+  z-index: 4;
+  outline: 2px solid var(--card);
+  box-shadow: 0 0 0 4px var(--pri), var(--sh-card);
 }
 
 .event-card.dragging {
-  z-index: 2;
-  opacity: 0.85;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 5;
+  opacity: 0.9;
+  box-shadow: 0 18px 40px rgba(22, 34, 59, 0.3);
 }
 
 .event-card.dragging > button {
   cursor: grabbing;
+}
+
+.new-event {
+  position: absolute;
+  left: 5px;
+  right: 5px;
+  padding: 4px 10px;
+  overflow: hidden;
+  border: 1.5px dashed var(--pri);
+  border-radius: var(--r-md);
+  background: var(--pri-tint);
+  color: var(--pri-ink);
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .resize-handle {
@@ -268,11 +700,12 @@ main.has-panel {
   content: "";
   position: absolute;
   left: 50%;
-  width: 24px;
-  height: 4px;
-  margin-left: -12px;
-  border-radius: 2px;
-  background: var(--pri);
+  width: 30px;
+  height: 8px;
+  margin-left: -15px;
+  border: 2px solid var(--pri);
+  border-radius: 4px;
+  background: var(--surface);
 }
 
 .resize-handle.top {
@@ -280,7 +713,7 @@ main.has-panel {
 }
 
 .resize-handle.top::after {
-  top: 2px;
+  top: 0;
 }
 
 .resize-handle.bottom {
@@ -288,59 +721,344 @@ main.has-panel {
 }
 
 .resize-handle.bottom::after {
-  bottom: 2px;
+  bottom: 0;
 }
 
-.kind-attraction {
-  --bar: var(--attraction-bar);
-  --tint: var(--attraction-tint);
+/* ---------- left column: Backlog and Archive ---------- */
+.holding-areas {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
 }
 
-.kind-meal {
-  --bar: var(--meal-bar);
-  --tint: var(--meal-tint);
+.holding-area {
+  padding: 0 0 8px;
 }
 
-.kind-transport {
-  --bar: var(--transport-bar);
-  --tint: var(--transport-tint);
+.holding-area + .holding-area {
+  margin-top: auto;
+  border-top: 1px solid var(--border);
 }
 
-.event-card strong svg {
+.holding-area summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 12px;
+  cursor: pointer;
+}
+
+.holding-area summary h3 {
+  flex: 1;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.holding-area .hint {
+  font-size: 12px;
+}
+
+.holding-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--border2);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.holding-area ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 4px 12px;
+  list-style: none;
+}
+
+.holding-empty {
+  margin: 4px 12px;
+  padding: 10px;
+  border: 1px dashed var(--border2);
+  border-radius: var(--r-md);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.holding-card {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px 8px 18px;
+  overflow: hidden;
+  border: 1px solid var(--cardbd);
+  border-radius: 10px;
+  background: var(--card);
+  box-shadow: var(--sh-card);
+}
+
+.holding-card::before {
+  content: "";
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: 8px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--bar);
+}
+
+.holding-card.selected {
+  box-shadow: 0 0 0 3px var(--pri), var(--sh-card);
+}
+
+.holding-card.dragging {
+  z-index: 3;
+  opacity: 0.9;
+  box-shadow: 0 18px 40px rgba(22, 34, 59, 0.3);
+}
+
+.holding-main {
+  display: grid;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: grab;
+}
+
+.holding-main strong {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 700;
+}
+
+.holding-main span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.holding-action {
+  justify-self: end;
+  height: 26px;
+  padding: 0 9px;
+  border: 1px solid var(--border2);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  font-size: 12px;
+}
+
+.holding-action:hover {
+  background: var(--surface2);
+}
+
+/* The language and theme switches at the bottom of the left column. */
+.sidebar {
+  padding: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.sidebar-more {
+  display: none;
+}
+
+.sidebar-controls {
+  display: grid;
+  gap: 8px;
+}
+
+.sidebar-controls label {
+  display: block;
+}
+
+.sidebar-controls label span {
+  display: none;
+}
+
+.sidebar select {
+  width: 100%;
+}
+
+.theme-switch {
+  display: flex;
+  gap: 2px;
+  height: 34px;
+  padding: 3px;
+  border: 1px solid var(--border2);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+.theme-switch button {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--muted);
+}
+
+.theme-switch button[aria-pressed="true"] {
+  background: var(--pri-tint);
+  color: var(--pri-ink);
+}
+
+.sidebar-shortcuts {
+  justify-content: flex-start;
+  border-color: transparent;
+  color: var(--muted);
+}
+
+.sidebar-shortcuts span {
   display: inline;
-  margin-right: 0.25rem;
-  vertical-align: -2px;
-  color: var(--bar);
+}
+
+/* ---------- Event panel ---------- */
+.event-panel {
+  position: fixed;
+  z-index: 7;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 26rem;
+  padding: 16px;
+  overflow-y: auto;
+  border-left: 1px solid var(--border2);
+  background: var(--surface);
+  box-shadow: var(--sh-pop);
+}
+
+.event-panel .panel-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 30px;
+}
+
+.event-panel .panel-status {
+  color: var(--ok);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.event-panel form {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.event-panel label,
+.event-panel .field > span {
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.event-panel label input,
+.event-panel label select {
+  height: 36px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.event-panel label input[type="number"] {
+  width: 100%;
+}
+
+.event-panel .hint {
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.event-panel .field {
+  display: grid;
+  gap: 4px;
+}
+
+.event-panel a {
+  color: var(--pri-ink);
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.event-panel details.contact {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border2);
+  border-radius: var(--r-md);
+}
+
+.event-panel details.contact summary {
+  cursor: pointer;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .kind-switch {
   display: flex;
-  gap: 0.25rem;
+  flex-wrap: wrap;
+  gap: 6px;
   margin: 0;
   padding: 0;
   border: 0;
 }
 
-.kind-switch label {
+.kind-switch legend {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.event-panel .kind-switch label {
   position: relative;
   display: flex;
-  flex: 1;
   align-items: center;
-  justify-content: center;
-  gap: 0.25rem;
-  padding: 0.375rem 0.25rem;
-  border: 1px solid var(--border);
-  border-radius: 4px;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px 0 10px;
+  border: 1px solid var(--border2);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
   cursor: pointer;
 }
 
-.kind-switch label:has(input:checked) {
+.event-panel .kind-switch label:has(input:checked) {
+  border: 2px solid var(--bar);
   background: var(--tint);
-  border-color: var(--bar);
+  font-weight: 700;
 }
 
-.kind-switch label:has(input:focus-visible) {
-  outline: 2px solid var(--pri);
+.event-panel .kind-switch label:has(input:focus-visible) {
+  box-shadow: var(--focus);
 }
 
 .kind-switch input {
@@ -348,86 +1066,230 @@ main.has-panel {
   opacity: 0;
 }
 
-.event-panel .hint {
+.event-todos {
+  margin-top: 16px;
+}
+
+.event-todos h4,
+.todos-panel h4 {
+  margin: 12px 0 4px;
+  color: var(--muted);
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.delete-event {
+  margin-top: 16px;
+}
+
+.delete-event.danger {
+  border-color: var(--danger);
+  background: transparent;
+  color: var(--danger);
+}
+
+/* ---------- Todos ---------- */
+.todos-panel {
+  border-left: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.todos-panel > h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  margin: 0;
+  padding: 0 12px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.todos-panel > section {
+  padding: 0 12px;
+}
+
+.todos-panel h4 {
+  display: flex;
+  align-items: center;
+  margin: 12px 0 4px;
+}
+
+.todos-panel h4 button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+}
+
+.todos-panel h4 button:hover {
+  text-decoration: underline;
+}
+
+.todo-list ul {
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.todo-list li {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 0;
+  font-size: 13px;
+}
+
+.todo-list li label {
+  display: flex;
+  flex: 1;
+  align-items: flex-start;
+  gap: 9px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.todo-list li.done span {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.todo-delete {
+  border: 0;
+  background: none;
   color: var(--muted);
 }
 
-.kind-lodging {
-  --bar: var(--lodging-bar);
-  --tint: var(--lodging-tint);
-}
-
-.kind-switch {
-  flex-wrap: wrap;
-}
-
-.kind-switch label {
-  flex: 1 1 40%;
-}
-
-/* A stay's banner sits above the time axis, so it never overlaps Events. */
-.lodging-banners {
-  display: grid;
-  gap: 2px;
-  align-content: start;
-}
-
-.lodging-banner {
+.todo-add {
   display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  box-sizing: border-box;
-  width: 100%;
-  padding: 0.25rem 0.375rem;
-  background: var(--tint);
-  border: 0;
-  border-left: 4px solid var(--bar);
-  border-radius: 4px;
-  color: inherit;
-  font: inherit;
-  font-size: 0.8125rem;
-  text-align: left;
-  cursor: pointer;
+  gap: 6px;
+  margin: 8px 0 12px;
 }
 
-.lodging-banner.selected {
-  outline: 2px solid var(--pri);
-}
-
-.lodging-banner .banner-title {
+.todo-add input {
   flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+}
+
+/* ---------- Dialogs, toast ---------- */
+.confirm-dialog {
+  max-width: 28rem;
+  padding: 20px 22px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--sh-dlg);
+  color: var(--text);
+}
+
+.confirm-dialog::backdrop {
+  background: rgba(14, 21, 38, 0.5);
+}
+
+.confirm-dialog h2 {
+  margin: 0 0 6px;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.dialog-actions button {
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--border2);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  font-weight: 500;
+}
+
+.dialog-actions .danger {
+  border-color: var(--danger);
+  background: var(--danger);
+  color: #fff;
   font-weight: 600;
 }
 
-.lodging-banner .banner-note {
+.dialog-actions .primary {
+  border-color: var(--pri-strong);
+  background: var(--pri-strong);
+  color: var(--onpri);
+  font-weight: 600;
+}
+
+.dialog-reminder {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 12px;
+}
+
+.dialog-reminder input {
+  margin: 0;
+}
+
+.toast {
+  position: fixed;
+  z-index: 10;
+  bottom: 24px;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 12px 10px 16px;
+  border-radius: var(--r-md);
+  background: #16223b;
+  box-shadow: var(--sh-pop);
+  color: #fff;
   white-space: nowrap;
+  transform: translateX(-50%);
 }
 
-.lodging-banner.check-out {
-  border-left-style: dashed;
+:root[data-theme="dark"] .toast {
+  background: #e8edf8;
+  color: #0e1526;
 }
 
-.event-panel .field {
-  display: grid;
-  gap: 0.25rem;
-  font-size: 0.8125rem;
+.toast button {
+  padding: 4px 8px;
+  border: 0;
+  border-radius: var(--r-xs);
+  background: none;
+  color: #9cc2ff;
+  font-weight: 700;
 }
 
-.event-panel details.contact {
-  display: grid;
-  gap: 0.5rem;
-  font-size: 0.8125rem;
+:root[data-theme="dark"] .toast button {
+  color: #1b5fd9;
 }
 
-.event-panel details.contact summary {
-  cursor: pointer;
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .toast {
+    background: #e8edf8;
+    color: #0e1526;
+  }
+
+  :root:not([data-theme="light"]) .toast button {
+    color: #1b5fd9;
+  }
 }
 
+/* ---------- editor ---------- */
 .md-editor .ProseMirror {
   box-sizing: border-box;
   min-height: 6rem;
@@ -435,14 +1297,16 @@ main.has-panel {
   overflow-y: auto;
   padding: 0.5rem;
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 4px;
+  border: 1px solid var(--border2);
+  border-radius: var(--r-md);
   font-size: 0.875rem;
   line-height: 1.45;
 }
 
 .md-editor .ProseMirror:focus-visible {
-  outline: 2px solid var(--pri);
+  outline: 0;
+  border-color: var(--pri);
+  box-shadow: var(--focus);
 }
 
 .md-editor .ProseMirror > :first-child {
@@ -501,7 +1365,7 @@ main.has-panel {
 
 .md-editor .ProseMirror code {
   padding: 0 0.25rem;
-  background: var(--bg);
+  background: var(--surface2);
   border-radius: 3px;
 }
 
@@ -519,286 +1383,7 @@ main.has-panel {
   border: 1px solid var(--border);
 }
 
-/* Backlog and Archive */
-.holding-areas {
-  flex: 0 0 15rem;
-  display: grid;
-  gap: 0.75rem;
-}
-
-.holding-area {
-  padding: 0.5rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-}
-
-.holding-area.drop-target,
-.day-timeline.drop-target {
-  outline: 2px dashed var(--pri);
-  outline-offset: -2px;
-  background: var(--pri-tint);
-}
-
-.holding-area summary {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-}
-
-.holding-area summary h3 {
-  flex: 1;
-  margin: 0;
-  font-size: 1rem;
-}
-
-.holding-area .count,
-.holding-area .hint {
-  font-size: 0.8125rem;
-  font-weight: normal;
-  color: var(--muted);
-}
-
-.holding-area ul {
-  display: grid;
-  gap: 0.5rem;
-  margin: 0.5rem 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.holding-empty {
-  margin: 0.5rem 0 0;
-  padding: 0.5rem;
-  border: 1px dashed var(--border);
-  border-radius: 6px;
-  font-size: 0.8125rem;
-  color: var(--muted);
-}
-
-.holding-card {
-  display: grid;
-  gap: 0.25rem;
-  padding: 0.375rem 0.5rem;
-  background: var(--tint);
-  border: 1px solid var(--bar);
-  border-left-width: 4px;
-  border-radius: 4px;
-}
-
-.holding-card.selected {
-  outline: 2px solid var(--pri);
-}
-
-.holding-card.dragging {
-  z-index: 3;
-  opacity: 0.85;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.holding-main {
-  display: grid;
-  gap: 0.125rem;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: grab;
-}
-
-.holding-main strong {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.holding-main span {
-  font-size: 0.8125rem;
-  color: var(--muted);
-}
-
-.holding-action {
-  justify-self: end;
-}
-
-/* Confirmation dialog and toast */
-.confirm-dialog {
-  max-width: 28rem;
-  padding: 1.25rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--text);
-}
-
-.confirm-dialog::backdrop {
-  background: rgba(14, 21, 38, 0.5);
-}
-
-.confirm-dialog h2 {
-  margin-top: 0;
-}
-
-.dialog-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  margin-top: 1rem;
-}
-
-.dialog-actions .danger {
-  background: #c8372d;
-  border-color: #c8372d;
-  color: #fff;
-}
-
-.toast {
-  position: fixed;
-  left: 50%;
-  bottom: 1.5rem;
-  transform: translateX(-50%);
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  background: #16223b;
-  color: #fff;
-}
-
-.toast button {
-  border: 0;
-  background: none;
-  color: #8fb8ff;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.dialog-actions .primary {
-  background: var(--pri);
-  border-color: var(--pri);
-  color: #fff;
-}
-
-.dialog-reminder {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-top: 0.75rem;
-  color: var(--muted);
-  font-size: 0.9rem;
-}
-
-.todos-panel {
-  flex: 0 0 15rem;
-  padding: 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-}
-
-.todos-panel h3,
-.event-todos h4 {
-  margin: 0 0 0.5rem;
-}
-
-.todos-panel h4 {
-  margin: 0.75rem 0 0.25rem;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--muted);
-}
-
-.todos-panel h4 button {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: inherit;
-  font: inherit;
-  text-transform: inherit;
-  letter-spacing: inherit;
-  cursor: pointer;
-}
-
-.todos-panel h4 button:hover {
-  text-decoration: underline;
-}
-
-.todo-list ul {
-  margin: 0 0 0.5rem;
-  padding: 0;
-  list-style: none;
-}
-
-.todo-list li {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0.2rem 0;
-}
-
-.todo-list li label {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-  flex: 1;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.todo-list li.done span {
-  color: var(--muted);
-  text-decoration: line-through;
-}
-
-.todo-delete {
-  border: 0;
-  background: none;
-  color: var(--muted);
-  cursor: pointer;
-}
-
-.todo-add {
-  display: flex;
-  gap: 0.4rem;
-}
-
-.todo-add input {
-  flex: 1;
-  min-width: 0;
-}
-
-.event-todos {
-  margin-top: 1rem;
-}
-
-.delete-event {
-  margin-top: 1rem;
-}
-
-.delete-event.danger {
-  background: #c8372d;
-  border-color: #c8372d;
-  color: #fff;
-}
-
-.trip-head {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.trip-head button[aria-pressed="true"] {
-  background: var(--pri-tint);
-  border-color: var(--pri);
-}
-
+/* ---------- Notes panel ---------- */
 .notes-panel {
   position: fixed;
   z-index: 8;
@@ -806,18 +1391,19 @@ main.has-panel {
   flex-direction: column;
   width: 22.5rem;
   max-height: calc(100vh - 2rem);
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border2);
+  border-radius: var(--r-xl);
   background: var(--surface);
-  box-shadow: 0 8px 28px rgba(14, 21, 38, 0.25);
+  box-shadow: var(--sh-pop);
 }
 
 .notes-panel header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
+  gap: 8px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--border);
   cursor: grab;
   touch-action: none;
@@ -826,7 +1412,7 @@ main.has-panel {
 
 .notes-toolbar {
   display: flex;
-  gap: 0.35rem;
+  gap: 6px;
 }
 
 .notes-grip {
@@ -837,13 +1423,18 @@ main.has-panel {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 2rem;
-  min-height: 2rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface);
+  min-width: 30px;
+  min-height: 30px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--muted);
+}
+
+.notes-panel header button:hover:not(:disabled) {
+  background: var(--surface2);
   color: var(--text);
-  cursor: pointer;
 }
 
 .notes-panel header button:disabled {
@@ -855,33 +1446,27 @@ main.has-panel {
   display: flex;
   flex-direction: column;
   min-height: 12rem;
+  padding: 12px;
   overflow-y: auto;
-  padding: 0.75rem;
 }
 
 .notes-body textarea {
   flex: 1;
   min-height: 12rem;
-  padding: 0.5rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--text);
-  font: inherit;
+  padding: 10px;
+  border-radius: var(--r-md);
+  font-size: 13px;
+  line-height: 1.55;
   resize: vertical;
 }
 
-.notes-body textarea:focus {
-  outline: 2px solid var(--pri);
-  outline-offset: -1px;
-}
-
 .notes-status {
-  margin: 0.25rem 0 0;
   min-height: 1.2em;
+  margin: 4px 0 0;
+  color: var(--ok);
+  font-size: 12px;
+  font-weight: 600;
   text-align: right;
-  color: var(--muted);
-  font-size: 0.8rem;
 }
 
 .notes-list {
@@ -889,7 +1474,7 @@ main.has-panel {
   padding: 0;
   list-style: none;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--r-md);
 }
 
 .notes-list li {
@@ -903,30 +1488,70 @@ main.has-panel {
 }
 
 .notes-list li button {
-  min-height: 2.25rem;
-  padding: 0 0.5rem;
+  min-height: 36px;
+  padding: 0 8px;
   border: 0;
   background: none;
   color: var(--muted);
-  cursor: pointer;
 }
 
 .notes-list .note-title {
   flex: 1;
   min-width: 0;
   overflow: hidden;
+  color: var(--text);
+  font-weight: 500;
   text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--text);
-  font: inherit;
 }
 
 .notes-list .pin.pinned {
-  color: var(--pri);
   background: var(--pri-tint);
+  color: var(--pri);
 }
 
+/* ---------- shortcut sheet ---------- */
+.shortcut-sheet dl {
+  margin: 0;
+}
+
+.shortcut-sheet dl > div {
+  display: flex;
+  gap: 16px;
+  padding: 4px 0;
+}
+
+.shortcut-sheet dt {
+  flex: 0 0 11rem;
+}
+
+.shortcut-sheet dd {
+  margin: 0;
+}
+
+.shortcut-sheet h3 {
+  margin: 12px 0 4px;
+  color: var(--muted);
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.shortcut-sheet kbd {
+  display: inline-block;
+  padding: 0 5px;
+  border: 1px solid var(--border2);
+  border-bottom-width: 2px;
+  border-radius: var(--r-xs);
+  background: var(--surface2);
+  color: var(--muted);
+  font: 500 11px/16px var(--font);
+}
+
+/* ---------- phone (refined in step 13) ---------- */
 @media (max-width: 640px) {
   /* A floating panel cannot sit anywhere on a phone: it is a full-width bottom sheet. */
   .notes-panel {
@@ -943,150 +1568,62 @@ main.has-panel {
   }
 }
 
-.shortcut-sheet dl {
-  margin: 0;
-}
-
-.shortcut-sheet dl > div {
-  display: flex;
-  gap: 1rem;
-  padding: 0.25rem 0;
-}
-
-.shortcut-sheet dt {
-  flex: 0 0 11rem;
-}
-
-.shortcut-sheet dd {
-  margin: 0;
-}
-
-.shortcut-sheet h3 {
-  margin: 0.75rem 0 0.25rem;
-  font-size: 0.85rem;
-  color: var(--muted, inherit);
-}
-
-.shortcut-sheet kbd {
-  padding: 0.1rem 0.4rem;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--surface);
-  font: inherit;
-  font-size: 0.85rem;
-}
-
-/* The side panel covers the Todos instead of squeezing the Days. */
-main.has-panel .trip-layout {
-  position: relative;
-}
-
-main.has-panel .todos-panel {
-  position: absolute;
-  top: 0;
-  left: 100%;
-  width: 15rem;
-  /* Past the gap between the Days and the side panel, so it is fully covered. */
-  margin-left: 4rem;
-}
-
-/* The slim left sidebar: the switches sit at the bottom; on a phone they are behind a button. */
-.sidebar {
-  position: fixed;
-  z-index: 9;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  width: 3.5rem;
-  box-sizing: border-box;
-  padding: 0.5rem;
-  background: var(--surface);
-  border-right: 1px solid var(--border);
-}
-
-.sidebar-more {
-  display: none;
-}
-
-.sidebar-controls {
-  display: grid;
-  gap: 0.5rem;
-}
-
-.sidebar-controls label {
-  display: grid;
-  gap: 0.125rem;
-  font-size: 0.6875rem;
-  color: var(--muted);
-}
-
-/* The slim desktop sidebar shows icons and the language code; the texts appear in the phone menu. */
-.sidebar-shortcuts span,
-.sidebar-controls label span {
-  display: none;
-}
-
 @media (max-width: 40rem) {
-  .sidebar-shortcuts span,
-  .sidebar-controls label span {
-    display: inline;
-  }
-}
-
-.sidebar select {
-  width: 100%;
-  min-width: 0;
-}
-
-.theme-switch {
-  display: grid;
-  gap: 0.25rem;
-}
-
-.theme-switch button[aria-pressed="true"] {
-  background: var(--pri-tint);
-  border-color: var(--pri);
-}
-
-@media (max-width: 40rem) {
-  body {
-    margin-left: 1rem;
+  main.has-panel {
+    margin-right: 0;
   }
 
+  .trip-layout {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .event-panel {
+    width: 100%;
+  }
+
+  /* On a phone the switches are behind a "..." button at the bottom right. */
   .sidebar {
-    top: auto;
-    right: 0.5rem;
-    bottom: 0.5rem;
-    left: auto;
-    width: auto;
+    position: fixed;
+    z-index: 9;
+    right: 8px;
+    bottom: 8px;
+    margin: 0;
     padding: 0;
-    background: none;
     border: 0;
-    align-items: flex-end;
   }
 
   .sidebar-more {
     display: inline-flex;
-    width: 2.75rem;
-    height: 2.75rem;
     align-items: center;
     justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 1px solid var(--border2);
     border-radius: 50%;
+    background: var(--surface);
+    box-shadow: var(--sh-pop);
   }
 
   .sidebar-controls {
     display: none;
-    margin-bottom: 0.5rem;
-    padding: 0.75rem;
-    border: 1px solid var(--border);
-    border-radius: 8px;
+    position: absolute;
+    right: 0;
+    bottom: 52px;
+    width: 14rem;
+    padding: 12px;
+    border: 1px solid var(--border2);
+    border-radius: 10px;
     background: var(--surface);
+    box-shadow: var(--sh-pop);
   }
 
   .sidebar.open .sidebar-controls {
     display: grid;
+  }
+
+  .sidebar-controls label span {
+    display: inline;
   }
 }

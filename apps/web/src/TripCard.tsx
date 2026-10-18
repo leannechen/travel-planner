@@ -17,7 +17,8 @@ import {
   type Todo,
   type Trip,
 } from "@travel-planner/shared";
-import { useRef, useState } from "react";
+import { ChevronLeft, ChevronRight, CircleHelp, Map as MapIcon, Plus, Trash2 } from "lucide-react";
+import { useRef, useState, type ReactNode } from "react";
 import { deleteDay, insertDay, reorderDays, restoreDay } from "./api";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { accessibility, DayTimeline, HourLabels, PX_PER_HOUR, sensors, type EventTimes } from "./DayTimeline";
@@ -25,7 +26,7 @@ import { endGesture } from "./gesture";
 import { HoldingAreas } from "./HoldingAreas";
 import { LodgingBanners, staysOf } from "./LodgingBanners";
 import { TodosPanel } from "./TodosPanel";
-import { tip } from "./shortcuts";
+import { keyOf, tip } from "./shortcuts";
 import { useT } from "./preferences";
 
 // What a move changes: the time, and/or the place (a Day id in `dayId`, or a holding area).
@@ -46,6 +47,8 @@ type Props = {
   notesOpen: boolean;
   onToggleNotes: () => void;
   onShowShortcuts: () => void;
+  // Shown at the bottom of the left column (the language and theme switches).
+  footer?: ReactNode;
   onAddTodo: (text: string, eventId: string | null) => Promise<void>;
   onToggleTodo: (todo: Todo) => void;
   onDeleteTodo: (todo: Todo) => void;
@@ -70,7 +73,7 @@ function dropTargetAt(root: HTMLElement, x: number, y: number, draggedId: string
   return undefined;
 }
 
-export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectEvent, onCreateAt, onAddToBacklog, onMove, onToast, notesOpen, onToggleNotes, onShowShortcuts, onAddTodo, onToggleTodo, onDeleteTodo }: Props) {
+export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectEvent, onCreateAt, onAddToBacklog, onMove, onToast, notesOpen, onToggleNotes, onShowShortcuts, footer, onAddTodo, onToggleTodo, onDeleteTodo }: Props) {
   const t = useT();
   const root = useRef<HTMLElement>(null);
   const [error, setError] = useState<string | undefined>();
@@ -158,8 +161,15 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
 
   function insertButton(position: number) {
     return (
-      <button type="button" disabled={busy} onClick={() => changeDays(() => insertDay(trip.id, position))}>
-        {t("day.insert", { n: position })}
+      <button
+        type="button"
+        className="ib insert-day"
+        disabled={busy}
+        aria-label={t("day.insert", { n: position })}
+        title={t("day.insert", { n: position })}
+        onClick={() => changeDays(() => insertDay(trip.id, position))}
+      >
+        <Plus size={14} aria-hidden="true" />
       </button>
     );
   }
@@ -185,14 +195,19 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
   const deleting = pendingDelete;
 
   return (
-    <article ref={root}>
-      <div className="trip-head">
+    <article ref={root} className="workspace">
+      <div className="topbar">
+        <span className="logo" aria-hidden="true">
+          <MapIcon size={18} />
+        </span>
         <h2>{trip.title}</h2>
-        <button type="button" aria-pressed={notesOpen} title={tip(t("notes.title"), "notes")} onClick={onToggleNotes}>
+        <span className="spacer" />
+        <button type="button" className="btn" aria-pressed={notesOpen} title={tip(t("notes.title"), "notes")} onClick={onToggleNotes}>
           {t("notes.title")} <span className="count">{trip.notes.length}</span>
+          <kbd className="kbd">{keyOf("notes")}</kbd>
         </button>
-        <button type="button" title={tip(t("shortcuts.title"), "help")} aria-label={t("shortcuts.title")} onClick={onShowShortcuts}>
-          ?
+        <button type="button" className="ib" title={tip(t("shortcuts.title"), "help")} aria-label={t("shortcuts.title")} onClick={onShowShortcuts}>
+          <CircleHelp size={16} aria-hidden="true" />
         </button>
       </div>
       {error && <p role="alert">{error}</p>}
@@ -222,6 +237,7 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
             onSelectEvent={onSelectEvent}
             onAddToBacklog={onAddToBacklog}
             onMoveTo={(eventId, area: HoldingArea) => onMove(eventId, { holding: area })}
+            footer={footer}
           />
           <div className="days-grid" style={{ gridTemplateColumns: columns }}>
             <div className="axis-cell" style={{ gridColumn: 1, gridRow: 3 }}>
@@ -244,24 +260,44 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
                   <div>
                     <button
                       type="button"
+                      className="ib"
+                      aria-label={t("day.earlier")}
+                      title={t("day.earlier")}
                       disabled={busy || day.position === 1}
                       onClick={() => changeDays(() => reorderDays(trip.id, moveBy(dayIds, day.id, -1)))}
                     >
-                      {t("day.earlier")}
+                      <ChevronLeft size={16} aria-hidden="true" />
                     </button>
                     <button
                       type="button"
+                      className="ib"
+                      aria-label={t("day.later")}
+                      title={t("day.later")}
                       disabled={busy || day.position === lastPosition}
                       onClick={() => changeDays(() => reorderDays(trip.id, moveBy(dayIds, day.id, 1)))}
                     >
-                      {t("day.later")}
+                      <ChevronRight size={16} aria-hidden="true" />
                     </button>
-                    <button type="button" disabled={busy || lastPosition === 1} onClick={() => requestDelete(day)}>
-                      {t("day.delete")}
+                    <button
+                      type="button"
+                      className="ib"
+                      aria-label={t("day.delete")}
+                      title={t("day.delete")}
+                      disabled={busy || lastPosition === 1}
+                      onClick={() => requestDelete(day)}
+                    >
+                      <Trash2 size={15} aria-hidden="true" />
                     </button>
                   </div>
-                  <button type="button" disabled={busy} title={tip(t("day.addEvent"), "new-event")} onClick={() => onCreateAt(day.id, DEFAULT_START_MINUTE)}>
-                    {t("day.addEvent")}
+                  <button
+                    type="button"
+                    className="ib"
+                    disabled={busy}
+                    aria-label={t("day.addEvent")}
+                    title={tip(t("day.addEvent"), "new-event")}
+                    onClick={() => onCreateAt(day.id, DEFAULT_START_MINUTE)}
+                  >
+                    <Plus size={16} aria-hidden="true" />
                   </button>
                 </section>,
                 <div key={`banners-${day.id}`} style={{ gridColumn: dayColumn, gridRow: 2 }}>

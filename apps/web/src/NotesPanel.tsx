@@ -1,5 +1,19 @@
-import { clampPosition, noteTitle, orderNotes, type Note, type Point } from "@travel-planner/shared";
-import { GripHorizontal, List, Pin, Plus, Trash2, X } from "lucide-react";
+import {
+  clampPosition,
+  noteTitle,
+  orderNotes,
+  type Note,
+  type Point,
+} from "@travel-planner/shared";
+import {
+  ArrowLeft,
+  GripHorizontal,
+  List,
+  Pin,
+  Plus,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 const POSITION_KEY = "travel-planner.notes-position";
@@ -10,8 +24,12 @@ const AUTOSAVE_MS = 800;
 
 function readPosition(): Point | undefined {
   try {
-    const value = JSON.parse(localStorage.getItem(POSITION_KEY) ?? "null") as Partial<Point> | null;
-    return typeof value?.x === "number" && typeof value.y === "number" ? { x: value.x, y: value.y } : undefined;
+    const value = JSON.parse(
+      localStorage.getItem(POSITION_KEY) ?? "null",
+    ) as Partial<Point> | null;
+    return typeof value?.x === "number" && typeof value.y === "number"
+      ? { x: value.x, y: value.y }
+      : undefined;
   } catch {
     return undefined;
   }
@@ -29,7 +47,8 @@ type Where = { tripId: string; view: "new" | "list" | "note"; noteId?: string };
 
 function readSession(): Where | undefined {
   try {
-    return JSON.parse(sessionStorage.getItem(SESSION_KEY) ?? "null") as Where | undefined;
+    return JSON.parse(sessionStorage.getItem(SESSION_KEY) ?? "null") as
+      Where | undefined;
   } catch {
     return undefined;
   }
@@ -48,7 +67,8 @@ function startingPoint(tripId: string, notes: Note[]): Where {
   const last = readSession();
   if (!last) return { tripId, view: "new" };
   if (last.tripId !== tripId) return { tripId, view: "list" };
-  if (last.view === "note" && !notes.some((n) => n.id === last.noteId)) return { tripId, view: "list" };
+  if (last.view === "note" && !notes.some((n) => n.id === last.noteId))
+    return { tripId, view: "list" };
   return last;
 }
 
@@ -56,7 +76,10 @@ type Props = {
   tripId: string;
   notes: Note[];
   onAdd: (body: string) => Promise<Note>;
-  onUpdate: (noteId: string, input: { body?: string; pinned?: boolean }) => Promise<void>;
+  onUpdate: (
+    noteId: string,
+    input: { body?: string; pinned?: boolean },
+  ) => Promise<void>;
   // Deletes a Note and offers Undo; the page shows the toast.
   onDelete: (note: Note) => Promise<void>;
   onClose: () => void;
@@ -67,18 +90,42 @@ type Props = {
 // The Trip's Notes in a floating panel with three states: a new Note, the list, one open Note.
 // The text is plain Markdown as typed. It is saved shortly after typing stops, and when the user
 // leaves the field, the Note or the panel.
-export function NotesPanel({ tripId, notes, onAdd, onUpdate, onDelete, onClose, closeRef }: Props) {
+export function NotesPanel({
+  tripId,
+  notes,
+  onAdd,
+  onUpdate,
+  onDelete,
+  onClose,
+  closeRef,
+}: Props) {
   const panel = useRef<HTMLElement>(null);
-  const [position, setPosition] = useState<Point>(() => readPosition() ?? { x: Math.max(0, window.innerWidth - WIDTH - 16), y: 72 });
+  const [position, setPosition] = useState<Point>(
+    () =>
+      readPosition() ?? {
+        x: Math.max(0, window.innerWidth - WIDTH - 16),
+        y: 72,
+      },
+  );
 
   const [where] = useState(() => startingPoint(tripId, notes));
-  const [view, setView] = useState<"edit" | "list">(where.view === "list" ? "list" : "edit");
+  const [view, setView] = useState<"edit" | "list">(
+    where.view === "list" ? "list" : "edit",
+  );
   // The Note in the field: none while it is new and not saved yet.
-  const [currentId, setCurrentId] = useState<string | undefined>(where.view === "note" ? where.noteId : undefined);
-  const [text, setText] = useState(() => (where.view === "note" ? (notes.find((n) => n.id === where.noteId)?.body ?? "") : ""));
+  const [currentId, setCurrentId] = useState<string | undefined>(
+    where.view === "note" ? where.noteId : undefined,
+  );
+  const [text, setText] = useState(() =>
+    where.view === "note"
+      ? (notes.find((n) => n.id === where.noteId)?.body ?? "")
+      : "",
+  );
   // Changes when another Note (or a new one) is put in the field, so the field starts fresh.
   const [fieldKey, setFieldKey] = useState(0);
-  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">(
+    "idle",
+  );
 
   // The same values readable from saves that run later.
   const textRef = useRef(text);
@@ -93,11 +140,15 @@ export function NotesPanel({ tripId, notes, onAdd, onUpdate, onDelete, onClose, 
     const box = panel.current?.getBoundingClientRect();
     return { width: box?.width ?? WIDTH, height: box?.height ?? 200 };
   };
-  const viewport = () => ({ width: window.innerWidth, height: window.innerHeight });
+  const viewport = () => ({
+    width: window.innerWidth,
+    height: window.innerHeight,
+  });
 
   // Keeps the panel in view when the window gets smaller, and when the panel grows.
   useEffect(() => {
-    const keepInView = () => setPosition((p) => clampPosition(p, size(), viewport()));
+    const keepInView = () =>
+      setPosition((p) => clampPosition(p, size(), viewport()));
     keepInView();
     window.addEventListener("resize", keepInView);
     const observer = new ResizeObserver(keepInView);
@@ -109,7 +160,11 @@ export function NotesPanel({ tripId, notes, onAdd, onUpdate, onDelete, onClose, 
   }, []);
 
   useEffect(() => {
-    writeSession({ tripId, view: view === "list" ? "list" : currentId ? "note" : "new", noteId: currentId });
+    writeSession({
+      tripId,
+      view: view === "list" ? "list" : currentId ? "note" : "new",
+      noteId: currentId,
+    });
   }, [tripId, view, currentId]);
 
   useEffect(() => () => clearTimeout(timer.current), []);
@@ -196,7 +251,11 @@ export function NotesPanel({ tripId, notes, onAdd, onUpdate, onDelete, onClose, 
     const grab = { x: e.clientX - position.x, y: e.clientY - position.y };
     let latest = position;
     const move = (ev: PointerEvent) => {
-      latest = clampPosition({ x: ev.clientX - grab.x, y: ev.clientY - grab.y }, size(), viewport());
+      latest = clampPosition(
+        { x: ev.clientX - grab.x, y: ev.clientY - grab.y },
+        size(),
+        viewport(),
+      );
       setPosition(latest);
     };
     const end = () => {
@@ -225,15 +284,45 @@ export function NotesPanel({ tripId, notes, onAdd, onUpdate, onDelete, onClose, 
     >
       <header onPointerDown={dragStart}>
         <div className="notes-toolbar">
-          <button type="button" aria-label="New Note" title="New Note" disabled={emptyNew} onClick={() => void openField()}>
-            <Plus size={16} aria-hidden="true" />
-          </button>
-          <button type="button" aria-label="All Notes" title="All Notes" disabled={view === "list"} onClick={() => void showList()}>
-            <List size={16} aria-hidden="true" />
-          </button>
+          {view === "edit" && currentId ? (
+            <button
+              type="button"
+              aria-label="Back to all Notes"
+              title="Back to all Notes"
+              onClick={() => void showList()}
+            >
+              <ArrowLeft size={16} aria-hidden="true" />
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                aria-label="New Note"
+                title="New Note"
+                disabled={emptyNew}
+                onClick={() => void openField()}
+              >
+                <Plus size={16} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                aria-label="All Notes"
+                title="All Notes"
+                disabled={view === "list"}
+                onClick={() => void showList()}
+              >
+                <List size={16} aria-hidden="true" />
+              </button>
+            </>
+          )}
         </div>
         <GripHorizontal className="notes-grip" size={16} aria-hidden="true" />
-        <button type="button" aria-label="Close Notes" title="Close (Esc)" onClick={() => void close()}>
+        <button
+          type="button"
+          aria-label="Close Notes"
+          title="Close (Esc)"
+          onClick={() => void close()}
+        >
           <X size={16} aria-hidden="true" />
         </button>
       </header>
@@ -243,7 +332,9 @@ export function NotesPanel({ tripId, notes, onAdd, onUpdate, onDelete, onClose, 
           <textarea
             key={fieldKey}
             aria-label={currentId ? "Note" : "New Note"}
-            placeholder={"Write a Note… Markdown works.\nNotes save automatically."}
+            placeholder={
+              "Write a Note… Markdown works.\nNotes save automatically."
+            }
             autoFocus
             value={text}
             maxLength={20000}
@@ -258,12 +349,18 @@ export function NotesPanel({ tripId, notes, onAdd, onUpdate, onDelete, onClose, 
       ) : (
         <div className="notes-body">
           {notes.length === 0 ? (
-            <p className="holding-empty">No Notes yet. Use + to write the first one.</p>
+            <p className="holding-empty">
+              No Notes yet. Use + to write the first one.
+            </p>
           ) : (
             <ul className="notes-list">
               {[...pinned, ...recent].map((note) => (
                 <li key={note.id}>
-                  <button type="button" className="note-title" onClick={() => void openField(note)}>
+                  <button
+                    type="button"
+                    className="note-title"
+                    onClick={() => void openField(note)}
+                  >
                     {noteTitle(note.body)}
                   </button>
                   <button
@@ -272,9 +369,17 @@ export function NotesPanel({ tripId, notes, onAdd, onUpdate, onDelete, onClose, 
                     aria-label={note.pinned ? "Unpin Note" : "Pin Note"}
                     aria-pressed={note.pinned}
                     title={note.pinned ? "Unpin" : "Pin"}
-                    onClick={() => void onUpdate(note.id, { pinned: !note.pinned }).catch(() => undefined)}
+                    onClick={() =>
+                      void onUpdate(note.id, { pinned: !note.pinned }).catch(
+                        () => undefined,
+                      )
+                    }
                   >
-                    <Pin size={14} aria-hidden="true" fill={note.pinned ? "currentColor" : "none"} />
+                    <Pin
+                      size={14}
+                      aria-hidden="true"
+                      fill={note.pinned ? "currentColor" : "none"}
+                    />
                   </button>
                   <button
                     type="button"

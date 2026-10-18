@@ -36,6 +36,13 @@
       "when": 1792313069192,
       "tag": "0004_max_duration_1439",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792315473840,
+      "tag": "0005_lodging",
+      "breakpoints": true
     }
   ]
 }

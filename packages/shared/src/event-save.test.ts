@@ -10,7 +10,11 @@ const saved: Event = {
   startMinute: 720,
   durationMinutes: 60,
   transportLabel: null,
+  nights: null,
+  checkInMinute: null,
+  checkOutMinute: null,
 };
+const noExtras = { transportLabel: null, nights: null, checkInMinute: null, checkOutMinute: null };
 const fields = {
   title: "Lunch",
   dayId: "d1",
@@ -19,6 +23,9 @@ const fields = {
   duration: "60",
   arrival: "13:00",
   transportLabel: "",
+  nights: "1",
+  checkIn: "",
+  checkOut: "",
 };
 
 describe("planEventSave for a new Event", () => {
@@ -30,7 +37,7 @@ describe("planEventSave for a new Event", () => {
     expect(planEventSave({ ...fields, title: "  Dinner ", dayId: "d2", start: "18:30", duration: "90" }, undefined)).toEqual({
       kind: "create",
       dayId: "d2",
-      input: { title: "Dinner", kind: "meal", startMinute: 1110, durationMinutes: 90, transportLabel: null },
+      input: { title: "Dinner", kind: "meal", startMinute: 1110, durationMinutes: 90, ...noExtras },
     });
   });
 
@@ -73,7 +80,7 @@ describe("planEventSave with kinds", () => {
     expect(planEventSave({ ...transport, title: "Night ferry" }, undefined)).toEqual({
       kind: "create",
       dayId: "d1",
-      input: { title: "Night ferry", kind: "transport", startMinute: 1380, durationMinutes: 150, transportLabel: "ferry" },
+      input: { title: "Night ferry", kind: "transport", startMinute: 1380, durationMinutes: 150, ...noExtras, transportLabel: "ferry" },
     });
   });
 
@@ -113,5 +120,57 @@ describe("planEventSave with kinds", () => {
     expect(
       planEventSave({ ...fields, kind: "transport", arrival: "14:15" }, existing),
     ).toEqual({ kind: "update", patch: { durationMinutes: 135 } });
+  });
+});
+
+describe("planEventSave for Lodging", () => {
+  const lodging = { ...fields, kind: "lodging" as const, nights: "3", checkIn: "15:00", checkOut: "11:00" };
+  const savedLodging: Event = { ...saved, kind: "lodging", nights: 3, checkInMinute: 900, checkOutMinute: 660 };
+
+  it("creates a stay with its nights and optional times", () => {
+    expect(planEventSave({ ...lodging, title: "Hotel" }, undefined)).toEqual({
+      kind: "create",
+      dayId: "d1",
+      input: {
+        title: "Hotel",
+        kind: "lodging",
+        startMinute: 720,
+        durationMinutes: 60,
+        transportLabel: null,
+        nights: 3,
+        checkInMinute: 900,
+        checkOutMinute: 660,
+      },
+    });
+  });
+
+  it("leaves the check-in and check-out times empty when blank", () => {
+    const plan = planEventSave({ ...lodging, title: "Hotel", checkIn: "", checkOut: " " }, undefined);
+    expect(plan).toMatchObject({ kind: "create", input: { checkInMinute: null, checkOutMinute: null } });
+  });
+
+  it("rejects bad nights and bad times", () => {
+    for (const bad of [{ nights: "" }, { nights: "0" }, { nights: "1.5" }, { nights: "366" }, { checkIn: "25:00" }, { checkOut: "x" }]) {
+      expect(planEventSave({ ...lodging, ...bad }, savedLodging).kind).toBe("error");
+    }
+  });
+
+  it("ignores the hidden start and duration fields", () => {
+    expect(planEventSave({ ...lodging, start: "", duration: "nonsense" }, savedLodging)).toEqual({ kind: "nothing" });
+  });
+
+  it("sends only what changed", () => {
+    expect(planEventSave({ ...lodging, nights: "4", checkOut: "" }, savedLodging)).toEqual({
+      kind: "update",
+      patch: { nights: 4, checkOutMinute: null },
+    });
+  });
+
+  it("sends the Lodging fields when an Event becomes a Lodging, and not for other kinds", () => {
+    expect(planEventSave({ ...fields, kind: "lodging", nights: "1", checkIn: "12:00" }, saved)).toEqual({
+      kind: "update",
+      patch: { kind: "lodging", nights: 1, checkInMinute: 720 },
+    });
+    expect(planEventSave({ ...fields, nights: "5", checkIn: "09:00" }, saved)).toEqual({ kind: "nothing" });
   });
 });

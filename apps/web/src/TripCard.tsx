@@ -1,6 +1,7 @@
 import { axisRange, DEFAULT_START_MINUTE, moveBy, type Day, type Trip } from "@travel-planner/shared";
 import { useState } from "react";
 import { deleteDay, insertDay, reorderDays } from "./api";
+import { LodgingBanners, staysOf } from "./LodgingBanners";
 import { DayTimeline, HourLabels, type EventTimes } from "./DayTimeline";
 
 type Props = {
@@ -35,7 +36,10 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
   const dayIds = trip.days.map((d) => d.id);
   const lastPosition = trip.days.length;
   // One range for every Day, so the Days line up side by side.
-  const range = axisRange(trip.days.flatMap((d) => d.events));
+  // A stay is drawn as a banner above the axis, not on it.
+  const onAxis = (day: Day) => day.events.filter((e) => e.kind !== "lodging");
+  const range = axisRange(trip.days.flatMap(onAxis));
+  const stays = staysOf(trip.days);
 
   function insertButton(position: number) {
     return (
@@ -53,7 +57,7 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
       <h2>{trip.title}</h2>
       {error && <p role="alert">{error}</p>}
       <div className="days-grid" style={{ gridTemplateColumns: columns }}>
-        <div className="axis-cell" style={{ gridColumn: 1, gridRow: 2 }}>
+        <div className="axis-cell" style={{ gridColumn: 1, gridRow: 3 }}>
           <HourLabels range={range} />
         </div>
         {trip.days.map((day, index) => {
@@ -87,8 +91,8 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
                 </button>
                 <button
                   type="button"
-                  disabled={busy || day.events.length > 0 || lastPosition === 1}
-                  title={day.events.length > 0 ? "Only an empty Day can be deleted" : undefined}
+                  disabled={busy || onAxis(day).length > 0 || lastPosition === 1}
+                  title={onAxis(day).length > 0 ? "Only an empty Day can be deleted" : undefined}
                   onClick={() => changeDays(() => deleteDay(trip.id, day.id))}
                 >
                   Delete Day
@@ -98,9 +102,17 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
                 Add event
               </button>
             </section>,
-            <div key={`axis-${day.id}`} style={{ gridColumn: dayColumn, gridRow: 2 }}>
+            <div key={`banners-${day.id}`} style={{ gridColumn: dayColumn, gridRow: 2 }}>
+              <LodgingBanners
+                position={day.position}
+                stays={stays}
+                selectedEventId={selectedEventId}
+                onSelectEvent={onSelectEvent}
+              />
+            </div>,
+            <div key={`axis-${day.id}`} style={{ gridColumn: dayColumn, gridRow: 3 }}>
               <DayTimeline
-                events={day.events}
+                events={onAxis(day)}
                 range={range}
                 selectedEventId={selectedEventId}
                 draft={draft?.dayId === day.id ? draft : undefined}

@@ -2,7 +2,7 @@
 
 Product rules are in [`PRD.md`](./PRD.md); vocabulary in [`CONTEXT.md`](../CONTEXT.md); decisions in [`docs/adr/`](./adr/). This file orders the work and tracks status. It changes often; the PRD should not.
 
-**Current step: 6b (Lodging).** Steps 0 to 6 are done. The final design is in [`docs/design/`](./design/); a few designer fixes are pending and do not block step 0.
+**Current step: 7 (description and contacts).** Steps 0 to 6b are done. The final design is in [`docs/design/`](./design/); a few designer fixes are pending and do not block step 0.
 
 ## Working agreement
 
@@ -34,7 +34,7 @@ Each step lists what it needs from earlier steps and when it is done.
 - [x] **4. Create and edit on the axis.** Click a time (rounded down to 15 minutes) to create an Event there; edit title, Day, start time and duration in the side edit panel, which autosaves a field when it is left. A new Event is saved once it has a title. Each Day also has an "Add event" button for keyboard users. Deleting an Event waits for step 9. *Needs:* 3.
 - [x] **5. Drag and resize (desktop).** Move and resize Events within a Day with snapping to 15 minutes (minimum 15 minutes); nothing else moves. Move uses dnd kit (`@dnd-kit/react`, pinned), resize uses the handles on the selected card; dragging does not select an Event or open the panel. Dragging across Days is step 8. *Needs:* 4. (ADR 0001)
 - [x] **6. Kinds and Transport.** Four kinds with distinct looks (icon and color); kind switcher in the panel; Transport has departure and arrival times (arrival on a later day shows "+1") and a transport label. Booking links, contacts and locations come later. *Needs:* 4.
-- [ ] **6b. Lodging.** Lodging spans nights and shows as a banner on each Day; inserting or deleting a Day adjusts a Lodging's nights (PRD §3.2), and reordering Days leaves it alone. Until the Backlog exists (step 8), a Day deletion that would leave a Lodging with no nights is refused. *Needs:* 6.
+- [x] **6b. Lodging.** Lodging spans nights and shows as a banner on each Day; inserting or deleting a Day adjusts a Lodging's nights (PRD §3.2), and reordering Days leaves it alone. Until the Backlog exists (step 8), a Day deletion that would leave a Lodging with no nights is refused. *Needs:* 6.
 - [ ] **7. Description and contacts.** Markdown Description, phone and email, with preview. *Needs:* 4.
 
 ### Holding areas and Todos

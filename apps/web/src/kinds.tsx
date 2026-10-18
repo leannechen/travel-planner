@@ -1,9 +1,10 @@
 import type { Event } from "@travel-planner/shared";
-import { Bus, Flag, Plane, Route, Ship, TrainFront, Utensils, type LucideIcon } from "lucide-react";
+import { BedDouble, Bus, Flag, Plane, Route, Ship, TrainFront, Utensils, type LucideIcon } from "lucide-react";
 
 export const KIND_NAMES: Record<Event["kind"], string> = {
   attraction: "Attraction",
   meal: "Meal",
+  lodging: "Lodging",
   transport: "Transport",
 };
 
@@ -18,6 +19,7 @@ export const TRANSPORT_LABEL_NAMES: Record<NonNullable<Event["transportLabel"]>,
 const KIND_ICONS: Record<Event["kind"], LucideIcon> = {
   attraction: Flag,
   meal: Utensils,
+  lodging: BedDouble,
   transport: Route,
 };
 

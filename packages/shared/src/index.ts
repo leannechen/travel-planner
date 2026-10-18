@@ -14,13 +14,17 @@ export const MAX_DURATION_MINUTES = 1439;
 const startMinute = z.number().int().min(0).max(1439);
 const durationMinutes = z.number().int().min(1).max(MAX_DURATION_MINUTES);
 
+export const MAX_NIGHTS = 365;
+
 export const DEFAULT_START_MINUTE = 9 * 60;
 export const DEFAULT_DURATION_MINUTES = 60;
 
-export const EVENT_KINDS = ["attraction", "meal", "transport"] as const;
+export const EVENT_KINDS = ["attraction", "meal", "lodging", "transport"] as const;
 export const TRANSPORT_LABELS = ["flight", "train", "ferry", "bus", "other"] as const;
 export const kindSchema = z.enum(EVENT_KINDS);
 export const transportLabelSchema = z.enum(TRANSPORT_LABELS);
+
+const nightsField = z.number().int().min(1).max(MAX_NIGHTS).nullable();
 
 export const eventSchema = z.object({
   id: z.uuid(),
@@ -31,6 +35,10 @@ export const eventSchema = z.object({
   durationMinutes,
   // Only meaningful for Transport, but kept when the kind changes so switching back restores it.
   transportLabel: transportLabelSchema.nullable(),
+  // Lodging only, also kept when the kind changes. Check-in and check-out times are display only.
+  nights: nightsField,
+  checkInMinute: startMinute.nullable(),
+  checkOutMinute: startMinute.nullable(),
 });
 
 export const daySchema = z.object({
@@ -50,6 +58,9 @@ export const createEventInputSchema = z.object({
   title,
   kind: kindSchema.default("attraction"),
   transportLabel: transportLabelSchema.nullable().default(null),
+  nights: nightsField.default(null),
+  checkInMinute: startMinute.nullable().default(null),
+  checkOutMinute: startMinute.nullable().default(null),
   startMinute: startMinute.default(DEFAULT_START_MINUTE),
   durationMinutes: durationMinutes.default(DEFAULT_DURATION_MINUTES),
 });
@@ -68,6 +79,9 @@ export const updateEventInputSchema = z
     title: title.optional(),
     kind: kindSchema.optional(),
     transportLabel: transportLabelSchema.nullable().optional(),
+    nights: nightsField.optional(),
+    checkInMinute: startMinute.nullable().optional(),
+    checkOutMinute: startMinute.nullable().optional(),
     dayId: z.uuid().optional(),
     startMinute: startMinute.optional(),
     durationMinutes: durationMinutes.optional(),
@@ -84,6 +98,7 @@ export type ReorderDaysInput = z.infer<typeof reorderDaysInputSchema>;
 export * from "./day-order";
 export * from "./event-list";
 export * from "./event-save";
+export * from "./lodging-range";
 export * from "./time-edit";
 export * from "./time-layout";
 export * from "./transport";

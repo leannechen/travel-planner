@@ -27,7 +27,7 @@ export const days = pgTable(
   (t) => [unique("days_trip_position_unique").on(t.tripId, t.position)],
 );
 
-export const eventKind = pgEnum("event_kind", ["attraction", "meal", "transport"]);
+export const eventKind = pgEnum("event_kind", ["attraction", "meal", "lodging", "transport"]);
 export const transportLabel = pgEnum("transport_label", ["flight", "train", "ferry", "bus", "other"]);
 
 // startMinute and durationMinutes: minutes from 00:00 of the Day, and length. The defaults
@@ -43,12 +43,19 @@ export const events = pgTable(
     title: text().notNull(),
     // Kept when the kind changes, so switching back to Transport restores it.
     transportLabel: transportLabel(),
+    // Lodging only, kept when the kind changes. Check-in and check-out times are display only.
+    nights: integer(),
+    checkInMinute: integer(),
+    checkOutMinute: integer(),
     startMinute: integer().notNull().default(540),
     durationMinutes: integer().notNull().default(60),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     check("events_start_minute_range", sql`${t.startMinute} between 0 and 1439`),
+    check("events_nights_range", sql`${t.nights} is null or ${t.nights} between 1 and 365`),
+    check("events_check_in_range", sql`${t.checkInMinute} is null or ${t.checkInMinute} between 0 and 1439`),
+    check("events_check_out_range", sql`${t.checkOutMinute} is null or ${t.checkOutMinute} between 0 and 1439`),
     check("events_duration_range", sql`${t.durationMinutes} between 1 and 1439`),
   ],
 );

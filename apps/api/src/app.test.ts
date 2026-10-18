@@ -551,3 +551,145 @@ describe("Event kinds", () => {
     expect(eventSchema.parse(await patched.json()).transportLabel).toBeNull();
   });
 });
+
+describe("Lodging", () => {
+  async function stay(tripId: string, dayId: string, nights: number, body: Record<string, unknown> = {}) {
+    const res = await post(`/api/trips/${tripId}/days/${dayId}/events`, { title: "Hotel", kind: "lodging", nights, ...body });
+    return { res, event: res.ok ? eventSchema.parse(await res.json()) : undefined };
+  }
+
+  async function lodgingOf(tripId: string) {
+    const [trip] = z.array(tripSchema).parse(await (await fetch(`${app.baseUrl}/api/trips`)).json()).filter((t) => t.id === tripId);
+    const all = trip!.days.flatMap((d) => d.events.filter((e) => e.kind === "lodging").map((e) => ({ ...e, position: d.position })));
+    return all[0]!;
+  }
+
+  it("stores the nights and the optional times", async () => {
+    const { trip, ids } = await tripWithDays(4);
+    const { res, event } = await stay(trip.id, ids[0]!, 3, { checkInMinute: 900, checkOutMinute: 660 });
+    expect(res.status).toBe(201);
+    expect(event).toMatchObject({ kind: "lodging", nights: 3, checkInMinute: 900, checkOutMinute: 660 });
+  });
+
+  it("needs at least one night, and every night on a Day of the Trip", async () => {
+    const { trip, ids } = await tripWithDays(3);
+    expect((await stay(trip.id, ids[0]!, 0)).res.status).toBe(400);
+    expect((await stay(trip.id, ids[1]!, 3)).res.status).toBe(400); // Days 2 to 4 do not exist
+    expect((await stay(trip.id, ids[1]!, 2)).res.status).toBe(201); // Days 2 and 3, check-out after the Trip
+    const noNights = await post(`/api/trips/${trip.id}/days/${ids[0]!}/events`, { title: "Hotel", kind: "lodging" });
+    expect(noNights.status).toBe(400);
+  });
+
+  it("checks the fit when an Event becomes a Lodging or its nights or Day change", async () => {
+    const { trip, ids } = await tripWithDays(3);
+    const res = await post(`/api/trips/${trip.id}/days/${ids[0]!}/events`, { title: "Thing" });
+    const event = eventSchema.parse(await res.json());
+    const patch = (body: unknown) => send("PATCH", `/api/trips/${trip.id}/events/${event.id}`, body);
+
+    expect((await patch({ kind: "lodging" })).status).toBe(400); // no nights yet
+    expect((await patch({ kind: "lodging", nights: 4 })).status).toBe(400);
+    expect((await patch({ kind: "lodging", nights: 3 })).status).toBe(200);
+    expect((await patch({ nights: 4 })).status).toBe(400);
+    expect((await patch({ dayId: ids[1]! })).status).toBe(400); // Days 2 to 4
+    expect((await patch({ nights: 2, dayId: ids[1]! })).status).toBe(200);
+  });
+
+  it("keeps the Lodging fields when the kind changes away and back", async () => {
+    const { trip, ids } = await tripWithDays(3);
+    const { event } = await stay(trip.id, ids[0]!, 2, { checkInMinute: 840 });
+    await send("PATCH", `/api/trips/${trip.id}/events/${event!.id}`, { kind: "attraction" });
+    expect(await lodgingOf(trip.id).catch(() => undefined)).toBeUndefined();
+    const back = await send("PATCH", `/api/trips/${trip.id}/events/${event!.id}`, { kind: "lodging" });
+    expect(eventSchema.parse(await back.json())).toMatchObject({ nights: 2, checkInMinute: 840 });
+  });
+
+  describe("when Days are inserted", () => {
+    // Three nights from Day 2 in a 5-Day Trip: nights on Days 2 to 4, check-out on Day 5.
+    async function setup() {
+      const { trip, ids } = await tripWithDays(5);
+      const { event } = await stay(trip.id, ids[1]!, 3);
+      return { trip, ids, event: event! };
+    }
+    const insert = (tripId: string, position: number) => post(`/api/trips/${tripId}/days`, { position });
+
+    it("shifts the stay when inserting before the check-in Day", async () => {
+      const { trip, ids } = await setup();
+      await insert(trip.id, 1);
+      expect(await lodgingOf(trip.id)).toMatchObject({ position: 3, nights: 3, dayId: ids[1] });
+    });
+
+    it("adds a night when inserting between check-in and check-out, even just before the check-out Day", async () => {
+      const { trip } = await setup();
+      await insert(trip.id, 3);
+      expect(await lodgingOf(trip.id)).toMatchObject({ position: 2, nights: 4 });
+      await insert(trip.id, 6); // the check-out Day is now Day 6
+      expect(await lodgingOf(trip.id)).toMatchObject({ position: 2, nights: 5 });
+    });
+
+    it("changes nothing when inserting after the check-out Day", async () => {
+      const { trip } = await setup();
+      await insert(trip.id, 6);
+      expect(await lodgingOf(trip.id)).toMatchObject({ position: 2, nights: 3 });
+    });
+  });
+
+  describe("when Days are deleted", () => {
+    async function setup() {
+      const { trip, ids } = await tripWithDays(6);
+      const { event } = await stay(trip.id, ids[1]!, 3); // nights on Days 2 to 4, check-out Day 5
+      return { trip, ids, event: event! };
+    }
+    const remove = (tripId: string, dayId: string) => send("DELETE", `/api/trips/${tripId}/days/${dayId}`);
+
+    it("shifts the stay back when an earlier Day goes", async () => {
+      const { trip, ids } = await setup();
+      expect((await remove(trip.id, ids[0]!)).status).toBe(200);
+      expect(await lodgingOf(trip.id)).toMatchObject({ position: 1, nights: 3 });
+    });
+
+    it("removes a night when a covered Day goes", async () => {
+      const { trip, ids } = await setup();
+      expect((await remove(trip.id, ids[2]!)).status).toBe(200);
+      expect(await lodgingOf(trip.id)).toMatchObject({ position: 2, nights: 2, dayId: ids[1] });
+    });
+
+    it("moves the check-in to the Day that takes the place of a deleted check-in Day", async () => {
+      const { trip, ids } = await setup();
+      expect((await remove(trip.id, ids[1]!)).status).toBe(200);
+      expect(await lodgingOf(trip.id)).toMatchObject({ position: 2, nights: 2, dayId: ids[2] });
+    });
+
+    it("changes nothing when the check-out Day or a later Day goes", async () => {
+      const { trip, ids } = await setup();
+      await remove(trip.id, ids[4]!);
+      await remove(trip.id, ids[5]!);
+      expect(await lodgingOf(trip.id)).toMatchObject({ position: 2, nights: 3 });
+    });
+
+    it("refuses to delete a Day that would leave a stay with no nights", async () => {
+      const { trip, ids } = await tripWithDays(3);
+      await stay(trip.id, ids[1]!, 1);
+      const res = await remove(trip.id, ids[1]!);
+      expect(res.status).toBe(409);
+      expect(await lodgingOf(trip.id)).toMatchObject({ position: 2, nights: 1 });
+      expect(await positionsOf(trip.id)).toHaveLength(3);
+    });
+
+    it("still refuses a Day that has another Event, but not one that only holds a check-in", async () => {
+      const { trip, ids } = await setup();
+      await post(`/api/trips/${trip.id}/days/${ids[2]!}/events`, { title: "Castle" });
+      expect((await remove(trip.id, ids[2]!)).status).toBe(409);
+      expect((await remove(trip.id, ids[1]!)).status).toBe(200); // only the stay's check-in
+    });
+  });
+
+  it("stays on the same positions when Days are reordered", async () => {
+    const { trip, ids } = await tripWithDays(4);
+    await stay(trip.id, ids[0]!, 2);
+
+    const res = await send("PUT", `/api/trips/${trip.id}/days/order`, { dayIds: [ids[1], ids[0], ids[2], ids[3]] });
+
+    expect(res.status).toBe(200);
+    expect(await lodgingOf(trip.id)).toMatchObject({ position: 1, nights: 2, dayId: ids[1] });
+  });
+});

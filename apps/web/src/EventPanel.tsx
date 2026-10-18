@@ -4,6 +4,7 @@ import {
   EVENT_KINDS,
   formatMinute,
   MAX_DURATION_MINUTES,
+  MAX_NIGHTS,
   parseTime,
   TRANSPORT_LABELS,
   typedDuration,
@@ -52,12 +53,23 @@ type Props = {
 // Edits one Event. Fields are saved when the user leaves them or presses Enter, not on every
 // keystroke. A new Event is created once it has a title. Remount it (key) for another Event.
 export function EventPanel({ days, event, newEvent, onCreate, onUpdate, onDraftChange, onClose }: Props) {
-  const initial = event ?? { title: "", kind: "attraction" as const, transportLabel: null, ...newEvent! };
+  const initial = event ?? {
+    title: "",
+    kind: "attraction" as const,
+    transportLabel: null,
+    nights: null,
+    checkInMinute: null,
+    checkOutMinute: null,
+    ...newEvent!,
+  };
   const [fields, setFields] = useState<EventFields>({
     title: initial.title,
     dayId: initial.dayId,
     kind: initial.kind,
     transportLabel: initial.transportLabel ?? "",
+    nights: String(initial.nights ?? 1),
+    checkIn: initial.checkInMinute === null ? "" : formatMinute(initial.checkInMinute),
+    checkOut: initial.checkOutMinute === null ? "" : formatMinute(initial.checkOutMinute),
     ...timeFields(initial.startMinute, initial.durationMinutes),
   });
   const [status, setStatus] = useState<Status>({ kind: "idle" });
@@ -96,14 +108,19 @@ export function EventPanel({ days, event, newEvent, onCreate, onUpdate, onDraftC
     }
   }
 
-  // Moving between Transport and the other kinds keeps the same times: the duration and the
-  // arrival describe one thing, so the field that was hidden is recalculated from the shown one.
+  // Moving between kinds keeps the same times: the duration and the arrival describe one thing, so
+  // the field that was hidden is recalculated from the shown one. A Lodging's check-in time is its
+  // start time on the way in and back out (PRD §3.2); its duration is kept hidden meanwhile.
   function changeKind(kind: EventFields["kind"]) {
     const current = latest.current;
     // An invalid time field must not leave the hidden one stale: fall back to the saved Event.
-    const start = parseTime(current.start) ?? saved.current?.startMinute;
+    const start =
+      (current.kind === "lodging" ? parseTime(current.checkIn) : undefined) ??
+      parseTime(current.start) ??
+      saved.current?.startMinute;
     const duration = fieldsDuration(current) ?? saved.current?.durationMinutes;
-    change({ kind, ...(start !== undefined && duration !== undefined ? timeFields(start, duration) : {}) });
+    const checkIn = kind === "lodging" && current.checkIn.trim() === "" && start !== undefined ? { checkIn: formatMinute(start) } : {};
+    change({ kind, ...checkIn, ...(start !== undefined && duration !== undefined ? timeFields(start, duration) : {}) });
     commit();
   }
 
@@ -201,7 +218,7 @@ export function EventPanel({ days, event, newEvent, onCreate, onUpdate, onDraftC
           />
         </label>
         <label>
-          Day
+          {fields.kind === "lodging" ? "Check-in Day" : "Day"}
           <select
             value={fields.dayId}
             onChange={(e) => {
@@ -216,57 +233,93 @@ export function EventPanel({ days, event, newEvent, onCreate, onUpdate, onDraftC
             ))}
           </select>
         </label>
-        <label>
-          {fields.kind === "transport" ? "Departure" : "Start"}
-          <input
-            type="time"
-            value={fields.start}
-            onChange={(e) => change({ start: e.target.value })}
-            onBlur={commit}
-          />
-        </label>
-        {fields.kind === "transport" ? (
+        {fields.kind === "lodging" ? (
           <>
             <label>
-              Arrival
+              Nights
               <input
-                type="time"
-                value={fields.arrival}
-                onChange={(e) => change({ arrival: e.target.value })}
+                type="number"
+                min={1}
+                max={MAX_NIGHTS}
+                value={fields.nights}
+                onChange={(e) => change({ nights: e.target.value })}
                 onBlur={commit}
               />
-              {arrivesNextDay && <span className="hint">+1 (next day)</span>}
             </label>
             <label>
-              Transport type
-              <select
-                value={fields.transportLabel}
-                onChange={(e) => {
-                  change({ transportLabel: e.target.value });
-                  commit();
-                }}
-              >
-                <option value="">None</option>
-                {TRANSPORT_LABELS.map((label) => (
-                  <option key={label} value={label}>
-                    {TRANSPORT_LABEL_NAMES[label]}
-                  </option>
-                ))}
-              </select>
+              Check-in time (optional)
+              <input
+                type="time"
+                value={fields.checkIn}
+                onChange={(e) => change({ checkIn: e.target.value })}
+                onBlur={commit}
+              />
+            </label>
+            <label>
+              Check-out time (optional)
+              <input
+                type="time"
+                value={fields.checkOut}
+                onChange={(e) => change({ checkOut: e.target.value })}
+                onBlur={commit}
+              />
             </label>
           </>
         ) : (
-          <label>
-            Duration (minutes)
-            <input
-              type="number"
-              min={1}
-              max={MAX_DURATION_MINUTES}
-              value={fields.duration}
-              onChange={(e) => change({ duration: e.target.value })}
-              onBlur={commit}
-            />
-          </label>
+          <>
+            <label>
+              {fields.kind === "transport" ? "Departure" : "Start"}
+              <input
+                type="time"
+                value={fields.start}
+                onChange={(e) => change({ start: e.target.value })}
+                onBlur={commit}
+              />
+            </label>
+            {fields.kind === "transport" ? (
+              <>
+                <label>
+                  Arrival
+                  <input
+                    type="time"
+                    value={fields.arrival}
+                    onChange={(e) => change({ arrival: e.target.value })}
+                    onBlur={commit}
+                  />
+                  {arrivesNextDay && <span className="hint">+1 (next day)</span>}
+                </label>
+                <label>
+                  Transport type
+                  <select
+                    value={fields.transportLabel}
+                    onChange={(e) => {
+                      change({ transportLabel: e.target.value });
+                      commit();
+                    }}
+                  >
+                    <option value="">None</option>
+                    {TRANSPORT_LABELS.map((label) => (
+                      <option key={label} value={label}>
+                        {TRANSPORT_LABEL_NAMES[label]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </>
+            ) : (
+              <label>
+                Duration (minutes)
+                <input
+                  type="number"
+                  min={1}
+                  max={MAX_DURATION_MINUTES}
+                  value={fields.duration}
+                  onChange={(e) => change({ duration: e.target.value })}
+                  onBlur={commit}
+                />
+              </label>
+            )}
+          </>
         )}
         {/* Lets Enter submit from any field without a visible button. */}
         <button type="submit" hidden />

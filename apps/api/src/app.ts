@@ -16,6 +16,8 @@ const tripParamsSchema = z.object({ tripId: z.uuid() });
 const eventIdParamsSchema = z.object({ tripId: z.uuid(), eventId: z.uuid() });
 const dayParamsSchema = z.object({ tripId: z.uuid(), dayId: z.uuid() });
 
+const LODGING_ERROR = "A Lodging needs at least one night, and every night must fall on a Day of the Trip";
+
 export function createApp(db: Db) {
   const app = express();
   app.use(express.json());
@@ -42,6 +44,10 @@ export function createApp(db: Db) {
       res.status(404).json({ error: "Day not found" });
       return;
     }
+    if (event === "invalid-lodging") {
+      res.status(400).json({ error: LODGING_ERROR });
+      return;
+    }
     res.status(201).json(event);
   });
 
@@ -55,6 +61,10 @@ export function createApp(db: Db) {
     }
     if (result === "invalid-day") {
       res.status(400).json({ error: "The Day is not in this Trip" });
+      return;
+    }
+    if (result === "invalid-lodging") {
+      res.status(400).json({ error: LODGING_ERROR });
       return;
     }
     res.json(result);
@@ -99,6 +109,10 @@ export function createApp(db: Db) {
     }
     if (result === "not-empty") {
       res.status(409).json({ error: "Only an empty Day can be deleted" });
+      return;
+    }
+    if (result === "lodging-would-end") {
+      res.status(409).json({ error: "This Day is the only night of a Lodging; change the Lodging first" });
       return;
     }
     if (result === "last-day") {

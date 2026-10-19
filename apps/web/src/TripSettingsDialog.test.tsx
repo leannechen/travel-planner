@@ -36,8 +36,6 @@ describe("Trip settings", () => {
     const save = () => screen.getByRole("button", { name: "Save" }) as HTMLButtonElement;
     expect(save().disabled).toBe(true);
     fireEvent.change(field(), { target: { value: "2026-12-01" } });
-    fireEvent.blur(field());
-    await new Promise((r) => setTimeout(r, 1000));
     expect(onChangeStartDate).not.toHaveBeenCalled();
     await userEvent.click(save());
     expect(onChangeStartDate).toHaveBeenCalledWith("2026-12-01");
@@ -57,6 +55,24 @@ describe("Trip settings", () => {
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     expect(onClose).toHaveBeenCalledTimes(2);
     expect(onChangeStartDate).not.toHaveBeenCalled();
+  });
+
+  it("Esc leaves without saving", () => {
+    const { field, onChangeStartDate, onClose } = setup();
+    fireEvent.change(field(), { target: { value: "2026-12-01" } });
+    fireEvent(screen.getByRole("dialog", { hidden: true }), new Event("cancel", { cancelable: true }));
+    expect(onClose).toHaveBeenCalled();
+    expect(onChangeStartDate).not.toHaveBeenCalled();
+  });
+
+  it("cannot be cancelled or closed while the save is in flight", async () => {
+    const { field, onClose } = setup(undefined, vi.fn(() => new Promise<undefined>(() => undefined)));
+    fireEvent.change(field(), { target: { value: "2026-12-01" } });
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect((screen.getByRole("button", { name: "Cancel" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "Close" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent(screen.getByRole("dialog", { hidden: true }), new Event("cancel", { cancelable: true }));
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   it("Clear empties the field, and Save then removes the date", async () => {

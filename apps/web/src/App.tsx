@@ -139,14 +139,7 @@ export function App() {
   // The Trip whose settings are open.
   const [settingsTripId, setSettingsTripId] = useState<string | undefined>();
 
-  // Start date saves run one after another, so the last one made is the last one applied.
-  const startDateSaves = useRef<Promise<unknown>>(Promise.resolve());
-  function handleChangeStartDate(tripId: string, startDate: string | null) {
-    const run = startDateSaves.current.then(() => saveStartDate(tripId, startDate));
-    startDateSaves.current = run.catch(() => undefined);
-    return run;
-  }
-  async function saveStartDate(tripId: string, startDate: string | null) {
+  async function handleChangeStartDate(tripId: string, startDate: string | null) {
     const saved = await updateTrip(tripId, { startDate });
     setTrips((current) => current?.map((trip) => (trip.id === tripId ? { ...trip, startDate: saved.startDate } : trip)));
   }

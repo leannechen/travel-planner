@@ -52,13 +52,13 @@ export function TripSettingsDialog({ tripTitle, startDate, onChangeStartDate, on
       aria-labelledby="settings-title"
       onCancel={(e) => {
         e.preventDefault();
-        onClose();
+        if (!saving) onClose();
       }}
       onClose={onClose}
     >
       <div className="settings-head">
         <h2 id="settings-title">{t("trip.settings")}</h2>
-        <button type="button" className="ib" aria-label={t("generic.close")} title={t("generic.closeEsc")} onClick={onClose}>
+        <button type="button" className="ib" aria-label={t("generic.close")} title={t("generic.closeEsc")} disabled={saving} onClick={onClose}>
           <X size={16} aria-hidden="true" />
         </button>
       </div>
@@ -100,7 +100,7 @@ export function TripSettingsDialog({ tripTitle, startDate, onChangeStartDate, on
         {failed && <p role="alert">{t("trip.dateError")}</p>}
       </div>
       <div className="dialog-actions">
-        <button type="button" className="btn" onClick={onClose}>
+        <button type="button" className="btn" disabled={saving} onClick={onClose}>
           {t("generic.cancel")}
         </button>
         <button type="button" className="btn primary" disabled={!canSave} onClick={() => void save()}>

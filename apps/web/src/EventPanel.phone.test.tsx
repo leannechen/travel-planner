@@ -7,6 +7,8 @@ import { EventPanel } from "./EventPanel";
 import { makeDay, makeEvent, renderApp, setPhone } from "./test-helpers";
 
 // The Markdown editor needs a real browser; a plain field stands in for it.
+vi.mock("./api", () => ({ searchPlaces: vi.fn(async () => [{ id: "p1", name: "Kinkaku-ji", address: "Kyoto", lat: 1, lng: 1 }]), getPlaces: vi.fn(async () => []) }));
+
 vi.mock("./MarkdownEditor", () => ({
   MarkdownEditor: ({ label }: { label: string }) => <textarea aria-label={label} />,
 }));
@@ -146,6 +148,17 @@ describe("EventPanel on a phone", () => {
     expect(screen.getByRole("button", { name: "OK" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Archive/ })).toBeNull();
     expect(screen.queryByText("Saved automatically")).toBeNull();
+  });
+
+  it("saves a place chosen in the Location field, and Transport has From and To", async () => {
+    const user = userEvent.setup();
+    const props = setup();
+    await user.type(screen.getByRole("combobox", { name: "Location" }), "kin");
+    await user.click(await screen.findByRole("option", { name: /Kinkaku-ji/ }));
+    await waitFor(() => expect(props.onUpdate).toHaveBeenCalledWith(props.event.id, expect.objectContaining({ placeId: "p1" })));
+    await user.selectOptions(screen.getByRole("combobox", { name: "Kind" }), "transport");
+    expect(screen.getByText(/From/)).toBeTruthy();
+    expect(screen.getByRole("combobox", { name: /To/ })).toBeTruthy();
   });
 
   it("changes the Kind from the dropdown", async () => {

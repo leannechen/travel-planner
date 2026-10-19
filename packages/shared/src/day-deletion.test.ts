@@ -19,6 +19,8 @@ const ev = (id: string, dayId: string, kind: Event["kind"] = "attraction", night
   email: null,
   website: null,
   bookingUrl: null,
+  placeId: null,
+  destinationId: null,
 });
 const day = (id: string, position: number, events: Event[]): Day => ({ id, position, events });
 

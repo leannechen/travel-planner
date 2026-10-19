@@ -79,11 +79,12 @@ Each non-goal is listed with its reason, so it is not reopened without new infor
 Only the title is required.
 
 - **Location is optional for every kind.** A free-text idea such as "tempura place a friend recommended in Ginza" is valid. Events without a location are ignored by Legs and the Map View.
+  - A location is chosen by searching for a place and picking a result. An Event keeps only the place's id; the name, address and coordinates are read from a server cache that is refreshed after 30 days (ADR 0007), because the provider's terms allow storing place ids but not the rest of its content. A place the provider no longer knows shows no data. The search is a fake list of places until a Google key is configured.
 - **Opening hours** come from Google place data and are read-only: the user cannot edit them. They exist only while the Event has a location, are fetched from Google when needed (server-side cached, not stored with the Event), and are not part of the data kept when the kind changes. Google's terms for storing place data are checked at implementation time (plan steps 14 and 16).
 - **Preview image** defaults to the Google place photo when the Event has a location; the user may upload a replacement. Without an image, the kind's icon is shown.
   - **Replace** uploads the user's own image. **Remove** means "no image for this Event": the Google photo is no longer shown and the kind's icon is used. If the Event has a location, the image area then offers "Use place photo" to bring the default back.
   - Changing the location swaps the default Google photo to the new place's photo, but never replaces an image the user uploaded.
-  - Google's terms for place photos (attribution, storage and reuse limits) are checked at implementation time (plan step 14). If they are stricter than assumed in §9, the affected exports leave Google photos out.
+  - Google's terms for place photos were checked in plan step 14: photos may not be stored, the author must be credited (the name, with the avatar and profile link when space allows, and a larger view may carry it for thumbnails), and the place must be reachable on Google Maps. They are stricter than §9 assumed, so Google photos are fetched only when shown, are never stored or backed up, and are left out of every export. The Image export shows only photos the user uploaded.
 - **Lodging** appears as a thin banner at the top of each Day whose night it covers, and also on the check-out Day, labelled with the check-out time. It is the default start point for that Day's first Leg. Three nights from Day 1 cover Days 1 to 3 and check out on Day 4.
 - **Lodging is tied to Day positions, not to the Days' contents.** Reordering Days never changes a Lodging; the user adjusts it themselves if needed, so there are no surprising side effects. Inserting or deleting a Day adjusts a Lodging like a range: inserting before its check-in Day shifts it, inserting inside it adds a night, inserting after it changes nothing; deleting a Day inside it removes a night, and a Lodging left with no nights moves to the Backlog.
 - **Transport times**: the user enters departure and arrival time; the duration is derived and stored like any other Event's. An arrival on a later day shows "+1".
@@ -210,7 +211,7 @@ When a Trip has dates and an Attraction or Meal with a location (so Google openi
 | Format | Content | Purpose |
 |---|---|---|
 | Document (openable in Google Docs) | Each Day's schedule with Event details; no Todos, no Archive, no images | Print or send to companions |
-| Full backup (this app's format) | Everything: Todos, Notes, Backlog, Archive, and images the user uploaded (not Google photos); importing creates a new Trip | Clone or restore a Trip |
+| Full backup (this app's format) | Everything: Todos, Notes, Backlog, Archive, and images the user uploaded (not Google photos); an Event's place is kept as its place id, so importing needs the place provider to show it; importing creates a new Trip | Clone or restore a Trip |
 | Image | One image for the whole Trip, Days side by side, with Leg durations and travel-mode icons and Event images where Google's terms allow; no map | Sharing in chats |
 
 ## 10. Devices

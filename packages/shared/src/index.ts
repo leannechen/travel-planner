@@ -16,6 +16,20 @@ const durationMinutes = z.number().int().min(1).max(MAX_DURATION_MINUTES);
 
 export const MAX_NIGHTS = 365;
 
+// A place is stored on an Event by its provider id only (Google allows storing place ids, not the
+// rest of its place data; ADR 0007). The name, address and coordinates are looked up by id.
+export const placeIdSchema = z.string().trim().min(1).max(300);
+export const placeSchema = z.object({
+  id: placeIdSchema,
+  name: z.string(),
+  address: z.string(),
+  lat: z.number(),
+  lng: z.number(),
+});
+export type Place = z.infer<typeof placeSchema>;
+export const MAX_PLACE_QUERY_LENGTH = 200;
+export const MAX_PLACE_IDS = 20;
+
 export const DEFAULT_START_MINUTE = 9 * 60;
 export const DEFAULT_DURATION_MINUTES = 60;
 
@@ -76,6 +90,10 @@ export const eventSchema = z.object({
   checkInMinute: startMinute.nullable(),
   checkOutMinute: startMinute.nullable(),
   ...detailSchemas,
+  // The Event's place (a Transport event's departure place) and, for Transport only, its
+  // destination. Both are optional and kept when the kind changes.
+  placeId: placeIdSchema.nullable(),
+  destinationId: placeIdSchema.nullable(),
 });
 
 const todoText = z.string().trim().min(1, "Todo text is required").max(500);
@@ -132,6 +150,8 @@ export const createEventInputSchema = z.object({
   email: detailSchemas.email.default(null),
   website: detailSchemas.website.default(null),
   bookingUrl: detailSchemas.bookingUrl.default(null),
+  placeId: placeIdSchema.nullable().default(null),
+  destinationId: placeIdSchema.nullable().default(null),
   startMinute: startMinute.default(DEFAULT_START_MINUTE),
   durationMinutes: durationMinutes.default(DEFAULT_DURATION_MINUTES),
 });
@@ -158,6 +178,8 @@ export const updateEventInputSchema = z
     email: detailSchemas.email.optional(),
     website: detailSchemas.website.optional(),
     bookingUrl: detailSchemas.bookingUrl.optional(),
+    placeId: placeIdSchema.nullable().optional(),
+    destinationId: placeIdSchema.nullable().optional(),
     // Moves the Event onto a Day, or into a holding area; not both.
     dayId: z.uuid().optional(),
     area: holdingAreaSchema.optional(),

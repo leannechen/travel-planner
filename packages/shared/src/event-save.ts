@@ -23,6 +23,9 @@ export type EventFields = {
   email: string;
   website: string;
   bookingUrl: string;
+  // Provider place ids; "" for none. A Transport event's `placeId` is its departure place.
+  placeId: string;
+  destinationId: string;
 };
 
 type DetailKey = keyof typeof detailSchemas;
@@ -115,6 +118,8 @@ export function planEventSave(fields: EventFields, saved: Event | undefined): Sa
         email: null,
         website: null,
         bookingUrl: null,
+        placeId: fields.placeId || null,
+        destinationId: fields.destinationId || null,
         ...details,
       },
     };
@@ -135,6 +140,8 @@ export function planEventSave(fields: EventFields, saved: Event | undefined): Sa
     if (lodging.checkInMinute !== saved.checkInMinute) patch.checkInMinute = lodging.checkInMinute;
     if (lodging.checkOutMinute !== saved.checkOutMinute) patch.checkOutMinute = lodging.checkOutMinute;
   }
+  if ((fields.placeId || null) !== saved.placeId) patch.placeId = fields.placeId || null;
+  if ((fields.destinationId || null) !== saved.destinationId) patch.destinationId = fields.destinationId || null;
   for (const [key, value] of Object.entries(details) as [DetailKey, string | null][]) {
     if (value !== saved[key]) patch[key] = value;
   }

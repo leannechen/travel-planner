@@ -5,6 +5,7 @@ import {
   eventSchema,
   meSchema,
   noteSchema,
+  placeSchema,
   todoSchema,
   tripSchema,
   type CreateEventInput,
@@ -38,6 +39,14 @@ async function request<T>(
   }
   return schema.parse(await res.json());
 }
+
+const placesSchema = z.object({ places: z.array(placeSchema) });
+
+export const searchPlaces = (query: string) =>
+  request(`/api/places/search?q=${encodeURIComponent(query)}`, placesSchema).then((r) => r.places);
+
+export const getPlaces = (ids: string[]) =>
+  request(`/api/places?ids=${encodeURIComponent(ids.join(","))}`, placesSchema).then((r) => r.places);
 
 export const listTrips = () => request("/api/trips", z.array(tripSchema));
 

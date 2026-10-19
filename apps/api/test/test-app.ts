@@ -2,6 +2,7 @@ import type { Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { sql } from "drizzle-orm";
 import { createApp } from "../src/app";
+import { fakePlaceProvider } from "../src/places";
 import { createDb } from "../src/db/client";
 import { ensureDevUser } from "../src/dev-user";
 import { TEST_DATABASE_URL } from "./global-setup";
@@ -12,7 +13,7 @@ export async function startTestApp() {
 
   let server!: Server;
   await new Promise<void>((resolve) => {
-    server = createApp(db).listen(0, () => resolve());
+    server = createApp(db, { places: fakePlaceProvider() }).listen(0, () => resolve());
   });
   const baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 
@@ -20,7 +21,7 @@ export async function startTestApp() {
     baseUrl,
     db,
     async reset() {
-      await db.execute(sql`truncate table events, days, trips, users cascade`);
+      await db.execute(sql`truncate table events, days, trips, users, places cascade`);
       await ensureDevUser(db);
     },
     async stop() {

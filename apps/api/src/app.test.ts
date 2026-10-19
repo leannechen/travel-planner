@@ -1405,3 +1405,65 @@ describe("Notes", () => {
     expect((await addNote(theirs!.id, "Mine now")).res.status).toBe(404);
   });
 });
+
+describe("places", () => {
+  async function dayOf(tripId: string) {
+    const trips = z.array(tripSchema).parse(await (await fetch(`${app.baseUrl}/api/trips`)).json());
+    return trips.find((t) => t.id === tripId)!.days[0]!.id;
+  }
+
+  it("searches places and looks them up by id", async () => {
+    const res = await fetch(`${app.baseUrl}/api/places/search?q=nara`);
+    const { places } = (await res.json()) as { places: { id: string; name: string }[] };
+    expect(places.map((p) => p.name)).toContain("Nara Park");
+    const ids = places.map((p) => p.id).slice(0, 2).join(",");
+    const looked = (await (await fetch(`${app.baseUrl}/api/places?ids=${encodeURIComponent(ids)}`)).json()) as { places: unknown[] };
+    expect(looked.places).toHaveLength(2);
+  });
+
+  it("rejects an empty search and too many ids", async () => {
+    expect((await fetch(`${app.baseUrl}/api/places/search?q=%20`)).status).toBe(400);
+    expect((await fetch(`${app.baseUrl}/api/places?ids=${Array.from({ length: 21 }, (_, i) => `p${i}`).join(",")}`)).status).toBe(400);
+  });
+
+  it("keeps a place on an Event, changes it and clears it", async () => {
+    const { trip } = await createTrip("Kyoto");
+    const dayId = await dayOf(trip.id);
+    const created = eventSchema.parse(
+      await (await post(`/api/trips/${trip.id}/days/${dayId}/events`, { title: "Visit", placeId: "fake:nara-park" })).json(),
+    );
+    expect(created.placeId).toBe("fake:nara-park");
+    expect(created.destinationId).toBeNull();
+
+    const patch = (body: unknown) =>
+      fetch(`${app.baseUrl}/api/trips/${trip.id}/events/${created.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    const moved = eventSchema.parse(await (await patch({ placeId: "fake:todai-ji", destinationId: "fake:kyoto-station" })).json());
+    expect([moved.placeId, moved.destinationId]).toEqual(["fake:todai-ji", "fake:kyoto-station"]);
+    const cleared = eventSchema.parse(await (await patch({ placeId: null, destinationId: null })).json());
+    expect([cleared.placeId, cleared.destinationId]).toEqual([null, null]);
+  });
+
+  it("refuses a place the provider does not know", async () => {
+    const { trip } = await createTrip("Kyoto");
+    const dayId = await dayOf(trip.id);
+    const res = await post(`/api/trips/${trip.id}/days/${dayId}/events`, { title: "Visit", placeId: "fake:nowhere" });
+    expect(res.status).toBe(400);
+    const held = await post(`/api/trips/${trip.id}/backlog/events`, { title: "Visit", destinationId: "fake:nowhere" });
+    expect(held.status).toBe(400);
+  });
+
+  it("brings the place back when a deleted Event is restored", async () => {
+    const { trip } = await createTrip("Kyoto");
+    const dayId = await dayOf(trip.id);
+    const created = eventSchema.parse(
+      await (await post(`/api/trips/${trip.id}/days/${dayId}/events`, { title: "Visit", placeId: "fake:nara-park" })).json(),
+    );
+    const deleted = await (await fetch(`${app.baseUrl}/api/trips/${trip.id}/events/${created.id}`, { method: "DELETE" })).json();
+    const restored = eventSchema.parse(await (await post(`/api/trips/${trip.id}/events/restore`, deleted)).json());
+    expect(restored.placeId).toBe("fake:nara-park");
+  });
+});

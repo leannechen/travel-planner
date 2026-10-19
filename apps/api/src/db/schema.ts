@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { boolean, check, integer, pgEnum, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { boolean, check, doublePrecision, integer, pgEnum, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: uuid().primaryKey().defaultRandom(),
@@ -58,6 +58,10 @@ export const events = pgTable(
     email: text(),
     website: text(),
     bookingUrl: text(),
+    // Provider place ids (ADR 0007): the place, and for Transport the destination. The place data
+    // itself lives in `places`, a cache.
+    placeId: text(),
+    destinationId: text(),
     startMinute: integer().notNull().default(540),
     durationMinutes: integer().notNull().default(60),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
@@ -72,6 +76,18 @@ export const events = pgTable(
     check("events_duration_range", sql`${t.durationMinutes} between 1 and 1439`),
   ],
 );
+
+// Place data fetched from the place provider, kept as a cache: the provider's terms allow storing
+// place ids but not the rest beyond a limited time, so rows are refreshed when older than that
+// (ADR 0007). Events refer to a place by id only.
+export const places = pgTable("places", {
+  id: text().primaryKey(),
+  name: text().notNull(),
+  address: text().notNull(),
+  lat: doublePrecision().notNull(),
+  lng: doublePrecision().notNull(),
+  fetchedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+});
 
 // A Todo of a Trip (`eventId` null) or of one Event. An Event's Todos go with it when it is deleted
 // (cascade) and are deleted by the code when it is archived (PRD §5).

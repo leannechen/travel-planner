@@ -1037,6 +1037,109 @@ main.has-panel .topbar {
   gap: 4px;
 }
 
+/* ---------- place field ---------- */
+.place-field {
+  position: relative;
+}
+
+.place-input {
+  position: relative;
+  display: block;
+}
+
+.place-input svg {
+  position: absolute;
+  top: 50%;
+  left: 10px;
+  color: var(--muted);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.event-panel .place-input input {
+  padding-left: 34px;
+}
+
+.place-chosen {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 4px 4px 4px 10px;
+  border: 1px solid var(--border2);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.place-chosen > svg {
+  flex: none;
+  color: var(--muted);
+}
+
+.place-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.place-text strong {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.place-text small {
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.place-results {
+  position: absolute;
+  z-index: 3;
+  right: 0;
+  left: 0;
+  margin: 4px 0 0;
+  padding: 4px;
+  max-height: 14rem;
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid var(--border2);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--sh-pop);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.place-results li {
+  display: grid;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.place-results li.active,
+.place-results li:hover {
+  background: var(--pri-tint);
+}
+
+.place-results small,
+.place-results .place-note {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.place-results .place-note {
+  cursor: default;
+}
+
 .event-panel a {
   color: var(--pri-ink);
   font-weight: 500;

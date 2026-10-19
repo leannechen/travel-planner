@@ -40,6 +40,8 @@ export function makeEvent(overrides: Partial<Event> = {}): Event {
     email: null,
     website: null,
     bookingUrl: null,
+    placeId: null,
+    destinationId: null,
     ...overrides,
   };
 }

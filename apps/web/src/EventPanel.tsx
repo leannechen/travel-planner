@@ -20,6 +20,7 @@ import {
   type Todo,
   type UpdateEventInput,
 } from "@travel-planner/shared";
+import { PlaceField } from "./PlaceField";
 import { TodoList } from "./TodoList";
 import { kindKey, KindIcon, transportKey } from "./kinds";
 import { useT } from "./preferences";
@@ -113,6 +114,8 @@ export function EventPanel({
     email: null,
     website: null,
     bookingUrl: null,
+    placeId: null,
+    destinationId: null,
     ...newEvent!,
   };
   const [fields, setFields] = useState<EventFields>({
@@ -128,6 +131,8 @@ export function EventPanel({
     email: initial.email ?? "",
     website: initial.website ?? "",
     bookingUrl: initial.bookingUrl ?? "",
+    placeId: initial.placeId ?? "",
+    destinationId: initial.destinationId ?? "",
     ...timeFields(initial.startMinute, initial.durationMinutes),
   });
   // Open from the start when there is something to show; after that only the user changes it.
@@ -476,6 +481,37 @@ export function EventPanel({
               </label>
             )}
           </>
+        )}
+        {fields.kind === "transport" ? (
+          <>
+            <PlaceField
+              label={t("place.from")}
+              optional
+              value={fields.placeId}
+              onChange={(placeId) => {
+                change({ placeId });
+                commit();
+              }}
+            />
+            <PlaceField
+              label={t("place.to")}
+              optional
+              value={fields.destinationId}
+              onChange={(destinationId) => {
+                change({ destinationId });
+                commit();
+              }}
+            />
+          </>
+        ) : (
+          <PlaceField
+            label={t("place.location")}
+            value={fields.placeId}
+            onChange={(placeId) => {
+              change({ placeId });
+              commit();
+            }}
+          />
         )}
         {showsBookingLink(fields.kind) && (
           <label>

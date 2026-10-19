@@ -2,7 +2,7 @@
 
 Product rules are in [`PRD.md`](./PRD.md); vocabulary in [`CONTEXT.md`](../CONTEXT.md); decisions in [`docs/adr/`](./adr/). This file orders the work and tracks status. It changes often; the PRD should not.
 
-**Current step: 14 (Places).** Steps 0 to 13 are done (including 12b). The final design is in [`docs/design/`](./design/); a few designer fixes are pending and do not block step 0.
+**Current step: 15 (Legs).** Steps 0 to 14 are done (including 12b). The final design is in [`docs/design/`](./design/); a few designer fixes are pending and do not block step 0.
 
 ## Working agreement
 
@@ -52,7 +52,7 @@ Each step lists what it needs from earlier steps and when it is done.
 
 ### Places and travel
 
-- [ ] **14. Places.** Attach a location to an Event through a place-search interface, first with a fake provider, then Google. *Needs:* 4. Check Google's terms for place photos here and adjust PRD §3.2 and §9 if needed. (Opening hours display and warnings in step 16.)
+- [x] **14. Places.** Attach a location to an Event through a place-search interface, first with a fake provider, then Google. *Needs:* 4. Check Google's terms for place photos here and adjust PRD §3.2 and §9 if needed. (Opening hours display and warnings in step 16.) Done as: an Event keeps only a place id (`placeId`, and `destinationId` for Transport; ADR 0007); `GET /api/places/search` and `GET /api/places` read through a server cache (`places` table, refreshed after 30 days); a fake provider by default and Google Places (New) when `GOOGLE_MAPS_API_KEY` is set; the Event panel has a Location field (From and To for Transport) with search, keyboard selection and removal. The Google provider is covered by tests with a mocked `fetch` only; try it with a real key before relying on it. PRD §3.2 and §9 now state the photo rules: never stored, attribution required, left out of exports. Not done: showing the place on Event cards (comes with Legs and the Map View).
 - [ ] **15. Legs.** Click the slot between two Events to create a Leg; travel mode choice; lifecycle rules from PRD §3.3 with tests; first with a fake travel-time provider, then Google, with server-side caching. *Needs:* 5, 14. (ADR 0002)
 - [ ] **16. Opening hours.** Read-only opening hours fetched from Google place data (server-side cache), shown in the panel, warnings when a Trip has dates. No manual editing. Check Google's terms for storing place data. *Needs:* 14.
 - [ ] **17. Map View.** Markers colored by Day, Day filter, gray Backlog markers, marker opens the edit panel. *Needs:* 14.
@@ -77,7 +77,7 @@ Each step lists what it needs from earlier steps and when it is done.
 ### Release
 
 - [ ] **26. Photo attribution.** Add author attribution for the placeholder photos, once all features are done.
-- [ ] **27. Deploy.** Docker image on fly.io, production Postgres, environment configuration. *Needs:* 18.
+- [ ] **27. Deploy.** Docker image on fly.io, production Postgres, environment configuration. *Needs:* 18. Read the Google Maps Platform terms in full once more (place caching period, attribution) and settle ADR 0007's open note.
 
 ### Fixes
 

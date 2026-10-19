@@ -7,6 +7,9 @@ import {
   deletedEventSchema,
   restoreNoteInputSchema,
   holdingAreaSchema,
+  MAX_PLACE_IDS,
+  MAX_PLACE_QUERY_LENGTH,
+  placeIdSchema,
   reorderDaysInputSchema,
   restoreDayInputSchema,
   updateEventInputSchema,
@@ -18,6 +21,7 @@ import express from "express";
 import { z, ZodError } from "zod";
 import type { Db } from "./db/client";
 import { DEV_USER_ID } from "./dev-user";
+import { getPlaces, placeProviderFromEnv, searchPlaces, type PlaceProvider } from "./places";
 import {
   addEvent,
   addHeldEvent,
@@ -46,9 +50,24 @@ const todoParamsSchema = z.object({ tripId: z.uuid(), todoId: z.uuid() });
 const noteParamsSchema = z.object({ tripId: z.uuid(), noteId: z.uuid() });
 const areaParamsSchema = z.object({ tripId: z.uuid(), area: holdingAreaSchema });
 
+const UNKNOWN_PLACE = "That place is not known";
 const LODGING_ERROR = "A Lodging needs at least one night, and every night must fall on a Day of the Trip";
 
-export function createApp(db: Db) {
+const searchQuerySchema = z.object({ q: z.string().trim().min(1).max(MAX_PLACE_QUERY_LENGTH) });
+const idsQuerySchema = z.object({
+  ids: z
+    .string()
+    .transform((value) => value.split(",").filter(Boolean))
+    .pipe(z.array(placeIdSchema).max(MAX_PLACE_IDS)),
+});
+
+export function createApp(db: Db, options: { places?: PlaceProvider } = {}) {
+  const provider = options.places ?? placeProviderFromEnv();
+  // The ids an Event refers to must be places the provider knows.
+  const unknownPlace = async (...ids: (string | null | undefined)[]) => {
+    const wanted = ids.filter((id): id is string => Boolean(id));
+    return wanted.length > 0 && (await getPlaces(db, provider, wanted)).length !== new Set(wanted).size;
+  };
   const app = express();
   app.use(express.json());
 
@@ -60,6 +79,16 @@ export function createApp(db: Db) {
   app.get("/api/me", (_req, res) => {
     const body: Me = { id: DEV_USER_ID };
     res.json(body);
+  });
+
+  app.get("/api/places/search", async (req, res) => {
+    const { q } = searchQuerySchema.parse(req.query);
+    res.json({ places: await searchPlaces(db, provider, q) });
+  });
+
+  app.get("/api/places", async (req, res) => {
+    const { ids } = idsQuerySchema.parse(req.query);
+    res.json({ places: await getPlaces(db, provider, ids) });
   });
 
   app.get("/api/trips", async (_req, res) => {
@@ -74,6 +103,10 @@ export function createApp(db: Db) {
   app.post("/api/trips/:tripId/days/:dayId/events", async (req, res) => {
     const { tripId, dayId } = dayParamsSchema.parse(req.params);
     const input = createEventInputSchema.parse(req.body);
+    if (await unknownPlace(input.placeId, input.destinationId)) {
+      res.status(400).json({ error: UNKNOWN_PLACE });
+      return;
+    }
     const event = await addEvent(db, DEV_USER_ID, tripId, dayId, input);
     if (!event) {
       res.status(404).json({ error: "Day not found" });
@@ -89,6 +122,10 @@ export function createApp(db: Db) {
   app.post("/api/trips/:tripId/:area/events", async (req, res) => {
     const { tripId, area } = areaParamsSchema.parse(req.params);
     const input = createEventInputSchema.parse(req.body);
+    if (await unknownPlace(input.placeId, input.destinationId)) {
+      res.status(400).json({ error: UNKNOWN_PLACE });
+      return;
+    }
     const event = await addHeldEvent(db, DEV_USER_ID, tripId, area, input);
     if (!event) {
       res.status(404).json({ error: "Trip not found" });
@@ -104,6 +141,10 @@ export function createApp(db: Db) {
   app.patch("/api/trips/:tripId/events/:eventId", async (req, res) => {
     const { tripId, eventId } = eventIdParamsSchema.parse(req.params);
     const input = updateEventInputSchema.parse(req.body);
+    if (await unknownPlace(input.placeId, input.destinationId)) {
+      res.status(400).json({ error: UNKNOWN_PLACE });
+      return;
+    }
     const result = await updateEvent(db, DEV_USER_ID, tripId, eventId, input);
     if (!result) {
       res.status(404).json({ error: "Event not found" });
@@ -296,6 +337,11 @@ export function createApp(db: Db) {
   app.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
     if (err instanceof ZodError) {
       res.status(400).json({ error: "Invalid request", issues: err.issues });
+      return;
+    }
+    // The place provider could not be reached or refused the request.
+    if (err instanceof Error && /^Place (search|lookup) failed/.test(err.message)) {
+      res.status(502).json({ error: "Places are not available right now" });
       return;
     }
     next(err);

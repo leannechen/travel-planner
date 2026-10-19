@@ -47,6 +47,8 @@ function toEvent(row: Pick<typeof events.$inferSelect, keyof Event>): Event {
     email: row.email,
     website: row.website,
     bookingUrl: row.bookingUrl,
+    placeId: row.placeId,
+    destinationId: row.destinationId,
   };
 }
 
@@ -77,6 +79,8 @@ const eventColumns = {
   email: true,
   website: true,
   bookingUrl: true,
+  placeId: true,
+  destinationId: true,
 } as const;
 
 const arrivalOrder = [asc(events.createdAt), asc(events.id)];
@@ -99,6 +103,8 @@ const eventColumnsSelect = {
   email: events.email,
   website: events.website,
   bookingUrl: events.bookingUrl,
+  placeId: events.placeId,
+  destinationId: events.destinationId,
 };
 
 export async function listTrips(db: Db, ownerId: string): Promise<Trip[]> {

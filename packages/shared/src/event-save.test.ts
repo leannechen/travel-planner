@@ -19,6 +19,8 @@ const saved: Event = {
   email: null,
   website: null,
   bookingUrl: null,
+  placeId: null,
+  destinationId: null,
 };
 const noExtras = {
   transportLabel: null,
@@ -30,6 +32,8 @@ const noExtras = {
   email: null,
   website: null,
   bookingUrl: null,
+  placeId: null,
+  destinationId: null,
 };
 const fields = {
   title: "Lunch",
@@ -47,6 +51,8 @@ const fields = {
   email: "",
   website: "",
   bookingUrl: "",
+  placeId: "",
+  destinationId: "",
 };
 
 describe("planEventSave for a new Event", () => {
@@ -166,6 +172,8 @@ describe("planEventSave for Lodging", () => {
         email: null,
         website: null,
         bookingUrl: null,
+        placeId: null,
+        destinationId: null,
       },
     });
   });
@@ -285,5 +293,34 @@ describe("planEventSave and holding areas", () => {
       kind: "error",
       message: "Enter a duration of 1 to 1439 whole minutes",
     });
+  });
+});
+
+describe("planEventSave places", () => {
+  it("creates an Event with its place and destination, and none when empty", () => {
+    const withPlaces = planEventSave({ ...fields, placeId: "p1", destinationId: "p2" }, undefined);
+    expect(withPlaces).toMatchObject({ kind: "create", input: { placeId: "p1", destinationId: "p2" } });
+    expect(planEventSave(fields, undefined)).toMatchObject({ kind: "create", input: { placeId: null, destinationId: null } });
+  });
+
+  it("sends only a changed place", () => {
+    expect(planEventSave({ ...fields, placeId: "p1" }, saved)).toEqual({ kind: "update", patch: { placeId: "p1" } });
+    expect(planEventSave({ ...fields, destinationId: "p2" }, saved)).toEqual({ kind: "update", patch: { destinationId: "p2" } });
+  });
+
+  it("clears a place that was removed", () => {
+    expect(planEventSave(fields, { ...saved, placeId: "p1", destinationId: "p2" })).toEqual({
+      kind: "update",
+      patch: { placeId: null, destinationId: null },
+    });
+  });
+
+  it("changes nothing when the places are the same", () => {
+    expect(planEventSave({ ...fields, placeId: "p1" }, { ...saved, placeId: "p1" })).toEqual({ kind: "nothing" });
+  });
+
+  it("keeps a destination for a kind that does not show one", () => {
+    // A hidden value is kept: it stays in the fields and is not cleared by the kind change.
+    expect(planEventSave({ ...fields, kind: "meal", destinationId: "p2" }, { ...saved, destinationId: "p2" })).toEqual({ kind: "nothing" });
   });
 });

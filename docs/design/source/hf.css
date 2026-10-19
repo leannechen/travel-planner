@@ -322,3 +322,22 @@
 .thsw button.on{background:var(--pri-tint);color:var(--pri-ink)}
 .thsw .i{width:15px;height:15px}
 .thsw.sm{height:30px}.thsw.sm button{height:22px}
+
+/* Opening hours section (PRD 3.5) */
+.oh{display:flex;flex-direction:column;gap:6px}
+.oh svg.i{width:14px;height:14px}
+.oh-line{display:flex;align-items:baseline;gap:2px 8px;flex-wrap:wrap;color:var(--text);padding-top:2px}
+.oh-src{font-size:12px;color:var(--muted)}
+.oh-cf{display:inline-flex;gap:5px;align-items:center;align-self:flex-start;background:var(--warnbg);color:var(--warn);font-size:12px;font-weight:600;padding:2px 8px;border-radius:6px}
+.oh-acts{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.oh-link{border:0;background:transparent;color:var(--pri-ink);font:inherit;font-size:13px;font-weight:600;padding:0;min-height:28px;display:inline-flex;gap:4px;align-items:center;cursor:pointer;text-align:left}
+.oh-link.rm{color:var(--muted);font-weight:500}
+.oh-get{height:36px;border:1px solid var(--border2);border-radius:var(--r-md);background:var(--surface);color:var(--pri-ink);font:inherit;font-size:13px;font-weight:600;padding:0 12px;display:inline-flex;gap:6px;align-items:center;align-self:flex-start;cursor:pointer;white-space:nowrap}
+.oh-get[disabled]{color:var(--muted);cursor:default}
+.oh-wk{border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;background:var(--surface)}
+.oh-wk>div{display:grid;grid-template-columns:44px 1fr;gap:8px;padding:5px 10px;font-size:13px;border-top:1px solid var(--border)}
+.oh-wk>div:first-child{border-top:0}
+.oh-wk .now{background:var(--pri-tint);color:var(--pri-ink);font-weight:600}
+.oh-wk .cl>span:last-child{color:var(--muted)}
+.oh-note{font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:flex-start;line-height:1.4}
+.oh-note svg.i{margin-top:1px}

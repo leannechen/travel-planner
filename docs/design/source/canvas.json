@@ -1,4 +1,5 @@
 {
+  "v": 3,
   "attachments": {},
   "boards": {
     "AccountMenu.dc.html": {
@@ -161,7 +162,7 @@
     },
     "LoginHosted.dc.html": {
       "h": 2456,
-      "title": "Hosted login page (Auth0, themed) — opened directly from every entry point; log in, sign up, wrong password · High fidelity",
+      "title": "Hosted login page (Auth0, themed) — opened directly from every entry point; log in, sign up, wrong password · High fidel",
       "w": 5780,
       "x": 0,
       "y": 17816
@@ -311,6 +312,14 @@
       "w": 1500,
       "x": 0,
       "y": 3100
+    },
+    "OpeningHours.dc.html": {
+      "h": 1740,
+      "page": "page-72j84k",
+      "title": "Opening hours — Event panel section states, conflict label, read-only, phone · High fidelity",
+      "w": 1960,
+      "x": 0,
+      "y": 4470
     }
   },
   "createdOnFiles": {
@@ -470,7 +479,8 @@
     "SessionExpired.dc.html",
     "InviteEditor.dc.html",
     "NotesStates.dc.html",
-    "EmptySlot.dc.html"
+    "EmptySlot.dc.html",
+    "OpeningHours.dc.html"
   ],
   "pages": [
     {
@@ -482,6 +492,5 @@
       "name": "Page 2"
     }
   ],
-  "title": "Travel Planner — High Fidelity",
-  "v": 3
+  "title": "Travel Planner — High Fidelity"
 }

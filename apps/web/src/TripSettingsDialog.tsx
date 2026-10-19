@@ -31,19 +31,24 @@ export function TripSettingsDialog({ tripTitle, startDate, onChangeStartDate, on
 
   // The date typed and not saved yet. A date field reports every year typed on the way (0002, 0020,
   // 0202, 2026), so a date is saved shortly after typing stops, when the field is left, or on close.
-  const typed = useRef<{ value: string; timer: ReturnType<typeof setTimeout> } | undefined>(undefined);
+  const typed = useRef<{ value: string; timer?: ReturnType<typeof setTimeout> } | undefined>(undefined);
 
-  function flush() {
+  // Saves the typed date now; false when that failed. A failed date stays typed, so leaving the
+  // field or closing tries again.
+  async function flush() {
     const pending = typed.current;
-    if (!pending) return;
+    if (!pending) return true;
     clearTimeout(pending.timer);
     typed.current = undefined;
-    if (pending.value !== saved) void save(pending.value);
+    if (pending.value === saved) return true;
+    const ok = await save(pending.value);
+    if (!ok && !typed.current) typed.current = { value: pending.value };
+    return ok;
   }
 
-  function close() {
-    flush();
-    onClose();
+  // Stays open, with the error shown, when the typed date could not be saved.
+  async function close() {
+    if (await flush()) onClose();
   }
 
   // Saves the date; false when it could not be saved.
@@ -78,9 +83,9 @@ export function TripSettingsDialog({ tripTitle, startDate, onChangeStartDate, on
       aria-labelledby="settings-title"
       onCancel={(e) => {
         e.preventDefault();
-        close();
+        void close();
       }}
-      onClose={close}
+      onClose={onClose}
     >
       <div className="settings-head">
         <h2 id="settings-title">{t("trip.settings")}</h2>
@@ -88,7 +93,7 @@ export function TripSettingsDialog({ tripTitle, startDate, onChangeStartDate, on
           {status === "saving" && t("generic.saving")}
           {status === "saved" && t("generic.saved")}
         </span>
-        <button type="button" className="ib" aria-label={t("generic.close")} title={t("generic.closeEsc")} onClick={close}>
+        <button type="button" className="ib" aria-label={t("generic.close")} title={t("generic.closeEsc")} onClick={() => void close()}>
           <X size={16} aria-hidden="true" />
         </button>
       </div>
@@ -108,12 +113,12 @@ export function TripSettingsDialog({ tripTitle, startDate, onChangeStartDate, on
             title={t("trip.pickDate")}
             min={`${MIN_START_YEAR}-01-01`}
             max={`${MAX_START_YEAR}-12-31`}
-            onBlur={flush}
+            onBlur={() => void flush()}
             onChange={(e) => {
               const value = e.target.value;
-              if (typed.current) clearTimeout(typed.current.timer);
+              clearTimeout(typed.current?.timer);
               // An empty or half-typed field is not a date to save; only Clear removes the date.
-              typed.current = startDateSchema.safeParse(value).success ? { value, timer: setTimeout(flush, SAVE_DELAY_MS) } : undefined;
+              typed.current = startDateSchema.safeParse(value).success ? { value, timer: setTimeout(() => void flush(), SAVE_DELAY_MS) } : undefined;
             }}
           />
           <button
@@ -121,7 +126,7 @@ export function TripSettingsDialog({ tripTitle, startDate, onChangeStartDate, on
             className="btn"
             disabled={saved === ""}
             onClick={() => {
-              if (typed.current) clearTimeout(typed.current.timer);
+              clearTimeout(typed.current?.timer);
               typed.current = undefined;
               void clear();
             }}

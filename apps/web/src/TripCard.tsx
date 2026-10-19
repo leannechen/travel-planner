@@ -295,7 +295,12 @@ export function TripCard({ trip, onOpenSettings, onDaysChange, selectedEventId, 
               onClick={() => setDayId(day.id)}
             >
               {t("day.title", { n: day.position })}
-              {startDate && <small>{dayLabel(startDate, day.position).short}</small>}
+              {startDate && (
+                <>
+                  {" "}
+                  <small>{dayLabel(startDate, day.position).short}</small>
+                </>
+              )}
             </button>
           ))}
           <button
@@ -373,9 +378,12 @@ export function TripCard({ trip, onOpenSettings, onDaysChange, selectedEventId, 
                   <h3>
                     {t("day.title", { n: day.position })}
                     {startDate && !phone && (
-                      <small>
+                      <>
+                        {" "}
+                        <small>
                         {dayLabel(startDate, day.position).short}・{t(weekdayKey(dayLabel(startDate, day.position).weekday))}
-                      </small>
+                        </small>
+                      </>
                     )}
                   </h3>
                   <div>

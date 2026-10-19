@@ -56,6 +56,18 @@ describe("Trip settings", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it("stays open with the error when the save fails on close, and tries again on the next close", async () => {
+    const onChangeStartDate = vi.fn().mockRejectedValueOnce(new Error("down")).mockResolvedValue(undefined);
+    const { field, onClose } = setup(undefined, onChangeStartDate);
+    fireEvent.change(field(), { target: { value: "2026-12-01" } });
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(await screen.findByRole("alert")).toBeTruthy();
+    expect(onClose).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(onChangeStartDate).toHaveBeenCalledTimes(2);
+  });
+
   it("does not clear the date when the field is emptied while typing", () => {
     const { field, onChangeStartDate } = setup("2026-11-03");
     fireEvent.change(field(), { target: { value: "" } });

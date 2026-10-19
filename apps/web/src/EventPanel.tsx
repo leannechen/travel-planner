@@ -302,6 +302,9 @@ export function EventPanel({
     start !== undefined && shownDuration !== undefined && arrivalOf(start, shownDuration).dayOffset > 0;
 
   return (
+    <>
+    {/* Phone: the page behind the sheet cannot be used; tapping it closes the sheet like OK. */}
+    {phone && <div className="sheet-scrim" onClick={() => void finish()} />}
     <aside
       className="event-panel"
       aria-label={t("event.panel")}
@@ -622,5 +625,6 @@ export function EventPanel({
         </footer>
       )}
     </aside>
+    </>
   );
 }

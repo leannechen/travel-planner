@@ -1,6 +1,7 @@
 import { DragDropProvider } from "@dnd-kit/react";
 import { Accessibility } from "@dnd-kit/dom";
 import {
+  adjacentPairs,
   allEvents,
   axisRange,
   DEFAULT_START_MINUTE,
@@ -165,7 +166,13 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
   const legTo = legUi && allEvents(trip).find((e) => e.id === legUi.toId);
   const legShown = legUi && trip.legs.find((l) => l.fromEventId === legUi.fromId && l.toEventId === legUi.toId);
   const closeLeg = useCallback(() => setLegUi(undefined), []);
-  const legLost = legUi && (!legFrom || !legTo || legFrom.dayId !== legTo.dayId);
+  const legDay = legFrom && trip.days.find((d) => d.id === legFrom.dayId);
+  const legLost =
+    legUi &&
+    (!legFrom ||
+      !legTo ||
+      !legDay ||
+      !adjacentPairs(legDay.events.filter((e) => e.kind !== "lodging")).some(([a, b]) => a.id === legFrom.id && b.id === legTo.id));
   useEffect(() => {
     if (legLost) closeLeg();
   }, [legLost, closeLeg]);
@@ -467,6 +474,9 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
           </p>
           <ul>
             <li>{deleting.plan.moved.length === 1 ? t("day.todosKeptOne") : t("day.todosKeptMany")}</li>
+            {trip.legs.some((l) => l.dayId === deleting.day.id) && (
+              <li>{t("day.legsRemoved", { count: trip.legs.filter((l) => l.dayId === deleting.day.id).length })}</li>
+            )}
             {deleting.day.position < lastPosition && (
               <li>
                 {t("day.laterMoveUp", { from: deleting.day.position + 1, to: deleting.day.position })}

@@ -165,6 +165,7 @@ export function App() {
     legRequests.current++;
     const leg = await createLeg(tripId, input);
     setTripLegs(tripId, (legs) => [...legs.filter((l) => l.id !== leg.id), leg]);
+    void refreshLegs(tripId);
     return leg;
   }
 
@@ -172,12 +173,14 @@ export function App() {
     legRequests.current++;
     const changed = await updateLegMode(tripId, leg.id, mode);
     setTripLegs(tripId, (legs) => legs.map((l) => (l.id === changed.id ? changed : l)));
+    void refreshLegs(tripId);
   }
 
   async function handleDeleteLeg(tripId: string, leg: Leg) {
     legRequests.current++;
     await deleteLeg(tripId, leg.id);
     setTripLegs(tripId, (legs) => legs.filter((l) => l.id !== leg.id));
+    void refreshLegs(tripId);
   }
 
   function setTripNotes(tripId: string, change: (notes: Note[]) => Note[]) {
@@ -420,7 +423,7 @@ export function App() {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const target = e.target instanceof HTMLElement ? e.target : undefined;
     if (
-      target?.closest("input, textarea, select, [contenteditable], .notes-panel, .event-panel") ||
+      target?.closest("input, textarea, select, [contenteditable], .notes-panel, .event-panel, .leg-popover") ||
       document.querySelector("dialog[open]")
     )
       return;

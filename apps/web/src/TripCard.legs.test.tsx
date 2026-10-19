@@ -5,6 +5,7 @@ import type { Leg, Place } from "@travel-planner/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getPlaces } from "./api";
 import { TripCard } from "./TripCard";
+import { PreferencesProvider } from "./preferences";
 import { makeDay, makeEvent, makeTrip, renderApp, setPhone } from "./test-helpers";
 
 vi.mock("./api", () => ({ insertDay: vi.fn(), deleteDay: vi.fn(), reorderDays: vi.fn(), restoreDay: vi.fn(), getPlaces: vi.fn() }));
@@ -128,8 +129,8 @@ describe("Legs on the timeline", () => {
       onToggleTodo: vi.fn(),
       onDeleteTodo: vi.fn(),
     };
-    renderApp(<TripCard {...props} />);
-    return props;
+    const rendered = renderApp(<TripCard {...props} />);
+    return { ...props, rerenderWith: (next: typeof trip) => rendered.rerender(<PreferencesProvider><TripCard {...props} trip={next} /></PreferencesProvider>) };
   }
 
   it("shows the mode and duration, and the detail on click", async () => {
@@ -210,5 +211,18 @@ describe("Legs on the timeline", () => {
     window.removeEventListener("keydown", reachedPage);
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(reachedPage).not.toHaveBeenCalled();
+  });
+
+  it("closes when the two Events stop being adjacent", async () => {
+    const user = userEvent.setup();
+    cleanup();
+    const props = withLeg();
+    await user.click(screen.getByRole("button", { name: /Open the Leg/ }));
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    // Another Event lands between the two; the server's answer drops the Leg.
+    const day = props.trip.days[0]!;
+    const between = makeEvent({ title: "Between", startMinute: 600, durationMinutes: 30, dayId: day.id });
+    props.rerenderWith({ ...props.trip, days: [{ ...day, events: [...day.events, between] }], legs: [] });
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 });

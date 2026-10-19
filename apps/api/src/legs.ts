@@ -6,9 +6,9 @@ import {
   type Place,
   type TravelMode,
 } from "@travel-planner/shared";
-import { and, eq, inArray, isNotNull, ne } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, ne, sql } from "drizzle-orm";
 import type { Db } from "./db/client";
-import { events, legs } from "./db/schema";
+import { events, legs, trips } from "./db/schema";
 import { getPlaces, PlaceProviderError, type PlaceProvider } from "./places";
 import { routeBetween, RouteProviderError, type RouteProvider } from "./routes";
 
@@ -31,8 +31,11 @@ export async function listLegs(db: Db, tripId: string): Promise<Leg[]> {
   return (await db.select().from(legs).where(eq(legs.tripId, tripId)).orderBy(legs.id)).map(toLeg);
 }
 
+// A database or a transaction on it.
+type Executor = Pick<Db, "select" | "execute">;
+
 // The Events a Day's timeline shows (Lodging is a banner), as the Legs see them.
-function dayEvents(db: Db, tripId: string) {
+function dayEvents(db: Executor, tripId: string) {
   return db
     .select({
       id: events.id,
@@ -81,40 +84,70 @@ const pairKey = (from: string, to: string) => `${from}>${to}`;
 
 export type CreatedLeg = Leg | "not-adjacent" | "no-location" | "exists";
 
+// The two Events when they are adjacent in a Day.
+async function findPair(db: Executor, tripId: string, input: CreateLegInput): Promise<[DayEvent, DayEvent] | undefined> {
+  for (const dayList of byDay(await dayEvents(db, tripId))) {
+    const pair = adjacentPairs(dayList).find(([a, b]) => a.id === input.fromEventId && b.id === input.toEventId);
+    if (pair) return pair;
+  }
+  return undefined;
+}
+
+// Changes to a Trip's Legs and to the Events they depend on are ordered by a lock on the Trip row:
+// a Leg is created only after the lock is held and adjacency checked again, and the sync after an
+// Event change takes the same lock, so no Leg is left between Events that are no longer adjacent.
+const lockTrip = (tx: Executor, tripId: string) => tx.execute(sql`select 1 from ${trips} where ${trips.id} = ${tripId} for update`);
+
 // Creates the Leg between two adjacent Events (ADR 0002). Both Events need a location; a Leg
 // already created shows "cannot calculate" if one is cleared later.
 export async function createLeg(db: Db, deps: LegDeps, tripId: string, input: CreateLegInput): Promise<CreatedLeg> {
-  const all = await dayEvents(db, tripId);
-  let pair: [DayEvent, DayEvent] | undefined;
-  for (const dayList of byDay(all)) {
-    pair = adjacentPairs(dayList).find(([a, b]) => a.id === input.fromEventId && b.id === input.toEventId);
-    if (pair) break;
-  }
+  const pair = await findPair(db, tripId, input);
   if (!pair) return "not-adjacent";
-  const [from, to] = pair;
-  const { fromPlaceId, toPlaceId } = legEndpoints(from, to);
+  const { fromPlaceId, toPlaceId } = legEndpoints(...pair);
   if (!fromPlaceId || !toPlaceId) return "no-location";
   const [already] = await db
     .select({ id: legs.id })
     .from(legs)
-    .where(and(eq(legs.fromEventId, from.id), eq(legs.toEventId, to.id)));
+    .where(and(eq(legs.fromEventId, input.fromEventId), eq(legs.toEventId, input.toEventId)));
   if (already) return "exists";
+  // The slow part (the provider can take seconds) is done before the lock is taken.
   const result = await calculate(db, deps, input.mode, fromPlaceId, toPlaceId);
-  const [row] = await db
-    .insert(legs)
-    .values({ tripId, dayId: from.dayId!, fromEventId: from.id, toEventId: to.id, mode: input.mode, ...result, fromPlaceId, toPlaceId })
-    .onConflictDoNothing()
-    .returning();
-  // Two requests for the same pair at once: the other one created it.
-  return row ? toLeg(row) : "exists";
+  return db.transaction(async (tx) => {
+    await lockTrip(tx, tripId);
+    const current = await findPair(tx, tripId, input);
+    if (!current) return "not-adjacent";
+    const now = legEndpoints(...current);
+    if (!now.fromPlaceId || !now.toPlaceId) return "no-location";
+    // The places changed while calculating: keep the Leg, but unknown, so the next sync calculates it.
+    const fresh = now.fromPlaceId === fromPlaceId && now.toPlaceId === toPlaceId;
+    const [row] = await tx
+      .insert(legs)
+      .values({
+        tripId,
+        dayId: current[0].dayId!,
+        fromEventId: current[0].id,
+        toEventId: current[1].id,
+        mode: input.mode,
+        ...(fresh ? { ...result, fromPlaceId, toPlaceId } : { ...CANNOT_CALCULATE, fromPlaceId: null, toPlaceId: null }),
+      })
+      .onConflictDoNothing()
+      .returning();
+    // Two requests for the same pair at once: the other one created it.
+    return row ? toLeg(row) : "exists";
+  });
 }
 
-// Changes a Leg's travel mode and calculates it again.
+// Changes a Leg's travel mode and calculates it again, from where its Events are now.
 export async function setLegMode(db: Db, deps: LegDeps, tripId: string, legId: string, mode: TravelMode): Promise<Leg | undefined> {
   const [row] = await db.select().from(legs).where(and(eq(legs.id, legId), eq(legs.tripId, tripId)));
   if (!row) return undefined;
-  const result = await calculate(db, deps, mode, row.fromPlaceId, row.toPlaceId);
-  const [updated] = await db.update(legs).set({ mode, ...result }).where(eq(legs.id, legId)).returning();
+  const onDays = await dayEvents(db, tripId);
+  const from = onDays.find((e) => e.id === row.fromEventId);
+  const to = onDays.find((e) => e.id === row.toEventId);
+  if (!from || !to) return undefined;
+  const { fromPlaceId, toPlaceId } = legEndpoints(from, to);
+  const result = await calculate(db, deps, mode, fromPlaceId, toPlaceId);
+  const [updated] = await db.update(legs).set({ mode, ...result, fromPlaceId, toPlaceId }).where(eq(legs.id, legId)).returning();
   return updated && toLeg(updated);
 }
 
@@ -129,30 +162,33 @@ export async function deleteLeg(db: Db, tripId: string, legId: string): Promise<
 // the adjacency check, so no Leg outlives them. Never throws: when the provider is unavailable
 // the Leg shows "cannot calculate" and is tried again at the next change.
 export async function syncLegs(db: Db, deps: LegDeps, tripId: string): Promise<void> {
-  const stored = await db.select().from(legs).where(eq(legs.tripId, tripId));
-  if (stored.length === 0) return;
-  const all = await dayEvents(db, tripId);
-  const byId = new Map(all.map((e) => [e.id, e]));
-  const adjacent = new Set<string>();
-  for (const dayList of byDay(all)) {
-    for (const [a, b] of adjacentPairs(dayList)) adjacent.add(pairKey(a.id, b.id));
-  }
+  const kept = await db.transaction(async (tx) => {
+    await lockTrip(tx, tripId);
+    const stored = await tx.select().from(legs).where(eq(legs.tripId, tripId));
+    if (stored.length === 0) return [];
+    const all = await dayEvents(tx, tripId);
+    const adjacent = new Set<string>();
+    for (const dayList of byDay(all)) {
+      for (const [a, b] of adjacentPairs(dayList)) adjacent.add(pairKey(a.id, b.id));
+    }
+    const gone = stored.filter((leg) => !adjacent.has(pairKey(leg.fromEventId, leg.toEventId)));
+    if (gone.length > 0) await tx.delete(legs).where(inArray(legs.id, gone.map((leg) => leg.id)));
+    const byId = new Map(all.map((e) => [e.id, e]));
+    return stored
+      .filter((l) => adjacent.has(pairKey(l.fromEventId, l.toEventId)))
+      .map((leg) => ({ leg, ...legEndpoints(byId.get(leg.fromEventId)!, byId.get(leg.toEventId)!) }));
+  });
 
-  const gone = stored.filter((leg) => !adjacent.has(pairKey(leg.fromEventId, leg.toEventId)));
-  if (gone.length > 0) {
-    await db.delete(legs).where(inArray(legs.id, gone.map((leg) => leg.id)));
-  }
-
-  for (const leg of stored.filter((l) => adjacent.has(pairKey(l.fromEventId, l.toEventId)))) {
-    const { fromPlaceId, toPlaceId } = legEndpoints(byId.get(leg.fromEventId)!, byId.get(leg.toEventId)!);
+  for (const { leg, fromPlaceId, toPlaceId } of kept) {
     if (fromPlaceId === leg.fromPlaceId && toPlaceId === leg.toPlaceId) continue;
     try {
       const result = await calculate(db, deps, leg.mode, fromPlaceId, toPlaceId);
       await db.update(legs).set({ ...result, fromPlaceId, toPlaceId }).where(eq(legs.id, leg.id));
     } catch (err) {
       if (!isProviderError(err)) throw err;
-      // The old places stay on the Leg, so the next sync tries again.
-      await db.update(legs).set(CANNOT_CALCULATE).where(eq(legs.id, leg.id));
+      // Unknown places mark the Leg as stale: whatever the Events look like at the next sync, it
+      // is calculated again.
+      await db.update(legs).set({ ...CANNOT_CALCULATE, fromPlaceId: null, toPlaceId: null }).where(eq(legs.id, leg.id));
     }
   }
 }

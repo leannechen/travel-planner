@@ -697,8 +697,9 @@ main.has-panel .topbar {
   cursor: grab;
 }
 
+/* Above the Leg slots and pills (4), which sit on the edges of Events that touch. */
 .event-card.selected {
-  z-index: 4;
+  z-index: 5;
   outline: 2px solid var(--card);
   box-shadow: 0 0 0 4px var(--pri), var(--sh-card);
 }

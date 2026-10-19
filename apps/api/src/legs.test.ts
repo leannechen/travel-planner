@@ -8,9 +8,12 @@ import { fakeRouteProvider, googleRouteProvider, ROUTE_CACHE_DAYS, RouteProvider
 const inner = fakeRouteProvider();
 const calls = { estimate: 0 };
 let failing = false;
+// While set, lookups wait for it: a slow provider.
+let gate: Promise<void> | undefined;
 const routes: RouteProvider = {
   async estimate(from, to, mode) {
     calls.estimate++;
+    await gate;
     if (failing) throw new RouteProviderError("down");
     return inner.estimate(from, to, mode);
   },
@@ -24,6 +27,7 @@ beforeEach(async () => {
   await app.reset();
   calls.estimate = 0;
   failing = false;
+  gate = undefined;
 });
 afterAll(() => app.stop());
 
@@ -263,6 +267,64 @@ describe("Leg lifecycle (PRD §3.3)", () => {
     await send("PATCH", `/api/trips/${tripId}/events/${b.id}`, { title: "Renamed" });
     const [again] = await legsOf(tripId);
     expect(again!.durationMinutes).not.toBeNull();
+  });
+});
+
+describe("Legs and failures of the provider", () => {
+  it("does not stay stuck on 'cannot calculate' when the place is put back after a failure", async () => {
+    const { tripId, a, leg } = await tripWithLeg("walk");
+    failing = true;
+    await send("PATCH", `/api/trips/${tripId}/events/${a.id}`, { placeId: "fake:dotonbori" });
+    expect((await legsOf(tripId))[0]!.durationMinutes).toBeNull();
+    // Back to the first place: its travel time is in the cache, so no provider is needed.
+    await send("PATCH", `/api/trips/${tripId}/events/${a.id}`, { placeId: FUSHIMI });
+    expect(await legsOf(tripId)).toEqual([leg]);
+  });
+
+  it("calculates a new mode from where the Events are now, not from where they were", async () => {
+    const { tripId, a, leg } = await tripWithLeg("walk");
+    failing = true;
+    await send("PATCH", `/api/trips/${tripId}/events/${a.id}`, { placeId: NISHIKI });
+    failing = false;
+    const res = await send("PATCH", `/api/trips/${tripId}/legs/${leg!.id}`, { mode: "walk" });
+    const places = fakePlaceProvider();
+    const [nishiki, kinkaku] = await Promise.all([NISHIKI, KINKAKU].map((id) => places.get(id)));
+    const expected = (await fakeRouteProvider().estimate(nishiki!, kinkaku!, "walk"))!.durationMinutes;
+    expect(legSchema.parse(await res.json()).durationMinutes).toBe(expected);
+  });
+});
+
+describe("creating a Leg while Events change", () => {
+  it("does not leave a Leg between Events that stopped being adjacent during the calculation", async () => {
+    const { tripId, dayId } = await newTrip();
+    const a = await addEvent(tripId, dayId, { startMinute: 540, placeId: FUSHIMI });
+    const b = await addEvent(tripId, dayId, { startMinute: 720, placeId: KINKAKU });
+    let release!: () => void;
+    gate = new Promise<void>((resolve) => (release = resolve));
+    const creating = send("POST", `/api/trips/${tripId}/legs`, { fromEventId: a.id, toEventId: b.id, mode: "walk" });
+    // An Event lands between the two while the provider is still answering.
+    await vi.waitFor(() => expect(calls.estimate).toBe(1));
+    await addEvent(tripId, dayId, { startMinute: 630 });
+    release();
+    expect((await creating).status).toBe(400);
+    expect(await legsOf(tripId)).toEqual([]);
+  });
+});
+
+describe("Legs and Days", () => {
+  it("keeps Legs when Days are inserted or reordered", async () => {
+    const { tripId, leg } = await tripWithLeg();
+    const days = (await (await send("POST", `/api/trips/${tripId}/days`, { position: 1 })).json()) as { id: string }[];
+    expect(await legsOf(tripId)).toEqual([leg]);
+    await send("PUT", `/api/trips/${tripId}/days/order`, { dayIds: [...days.map((d) => d.id)].reverse() });
+    expect(await legsOf(tripId)).toEqual([leg]);
+  });
+
+  it("does not bring a Leg back when a deleted Event or Day is restored", async () => {
+    const { tripId, a } = await tripWithLeg();
+    const deleted = await (await send("DELETE", `/api/trips/${tripId}/events/${a.id}`)).json();
+    expect((await send("POST", `/api/trips/${tripId}/events/restore`, deleted)).status).toBe(201);
+    expect(await legsOf(tripId)).toEqual([]);
   });
 });
 

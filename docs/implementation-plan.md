@@ -79,13 +79,15 @@ Each step lists what it needs from earlier steps and when it is done.
 - [ ] **26. Photo attribution.** Add author attribution for the placeholder photos, once all features are done.
 - [ ] **27. Deploy.** Docker image on fly.io, production Postgres, environment configuration. *Needs:* 18.
 
+### Fixes
+
+- [ ] **28. Drag shows the right time.** While an Event is dragged (for example from Day 1 09:00 towards Day 2 10:00), the card keeps its old time until it is dropped, which can suggest the target is wrong. Show the time of the current drop position on the card during the drag. Best done together with a browser check of dragging, which the automated browser could not do in step 8.
+- [ ] **29. Reliable keyboard changes.** Shift+arrow (move 15 minutes or to another Day) and Delete on the selected Event often do nothing, probably because the focus is in the Event panel's title field after an Event is selected with the mouse, where single keys are off by design. Not important; decide how focus should work after selecting an Event, then revisit.
+- [ ] **30. Accurate Todo counts.** The deletion dialog counts Todos from what the browser has loaded; a Todo added by someone else a moment before is deleted without being counted. Revisit with live collaboration (step 21). *Needs:* 21.
+
 ## Known issues (not scheduled)
 
-- **Todo counts can be stale.** The deletion dialog counts Todos from what the browser has loaded; a Todo added by someone else a moment before is deleted without being counted. Revisit with live collaboration (step 21).
-
-- **Drag shows the old time.** While an Event is dragged (for example from Day 1 09:00 towards Day 2 10:00), the card keeps its old time until it is dropped, which can suggest the target is wrong. Show the time of the current drop position on the card during the drag. Best done together with a browser check of dragging, which the automated browser could not do in step 8.
-
-- **Keyboard time and Day changes are unreliable.** Shift+arrow (move 15 minutes or to another Day) and Delete on the selected Event often do nothing, probably because the focus is in the Event panel's title field after an Event is selected with the mouse, where single keys are off by design. Not important; decide how focus should work after selecting an Event, then revisit.
+None at the moment. The earlier ones are steps 28 to 30.
 
 ## Next phase (not scheduled)
 

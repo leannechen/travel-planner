@@ -1,6 +1,7 @@
 import { clampPosition, noteTitle, orderNotes, type Note, type Point } from "@travel-planner/shared";
 import { ArrowLeft, GripHorizontal, List, Pin, Plus, Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useIsPhone } from "./phone";
 import { useT } from "./preferences";
 
 const POSITION_KEY = "travel-planner.notes-position";
@@ -70,6 +71,7 @@ type Props = {
 // leaves the field, the Note or the panel.
 export function NotesPanel({ tripId, notes, onAdd, onUpdate, onDelete, onClose, closeRef }: Props) {
   const t = useT();
+  const phone = useIsPhone();
   const panel = useRef<HTMLElement>(null);
   const [position, setPosition] = useState<Point>(() => readPosition() ?? { x: Math.max(0, window.innerWidth - WIDTH - 16), y: 72 });
 
@@ -216,6 +218,9 @@ export function NotesPanel({ tripId, notes, onAdd, onUpdate, onDelete, onClose, 
   const emptyNew = view === "edit" && !currentId && text.trim() === "";
 
   return (
+    <>
+    {/* Phone: the page behind the sheet cannot be used; tapping it closes the panel (saving first). */}
+    {phone && <div className="sheet-scrim" onClick={() => void close()} />}
     <section
       ref={panel}
       className="notes-panel"
@@ -301,5 +306,6 @@ export function NotesPanel({ tripId, notes, onAdd, onUpdate, onDelete, onClose, 
         </div>
       )}
     </section>
+    </>
   );
 }

@@ -49,6 +49,7 @@ function toEvent(row: Pick<typeof events.$inferSelect, keyof Event>): Event {
     bookingUrl: row.bookingUrl,
     placeId: row.placeId,
     destinationId: row.destinationId,
+    openingHoursOn: row.openingHoursOn,
   };
 }
 
@@ -81,6 +82,7 @@ const eventColumns = {
   bookingUrl: true,
   placeId: true,
   destinationId: true,
+  openingHoursOn: true,
 } as const;
 
 const arrivalOrder = [asc(events.createdAt), asc(events.id)];
@@ -105,6 +107,7 @@ const eventColumnsSelect = {
   bookingUrl: events.bookingUrl,
   placeId: events.placeId,
   destinationId: events.destinationId,
+  openingHoursOn: events.openingHoursOn,
 };
 
 export async function listTrips(db: Db, ownerId: string): Promise<Trip[]> {
@@ -244,7 +247,7 @@ export async function updateEvent(
     if (!trip) return undefined;
 
     const [current] = await tx
-      .select({ id: events.id, kind: events.kind, nights: events.nights, dayId: events.dayId, holding: events.holding })
+      .select({ id: events.id, kind: events.kind, nights: events.nights, dayId: events.dayId, holding: events.holding, placeId: events.placeId })
       .from(events)
       .where(and(eq(events.id, eventId), eq(events.tripId, tripId)))
       // So two updates of one Event run one after another, each checking the latest values.
@@ -274,13 +277,48 @@ export async function updateEvent(
       await tx.delete(todos).where(eq(todos.eventId, eventId));
     }
     const place = area ? { dayId: null, holding: area } : input.dayId ? { holding: null } : {};
+    // Opening hours belong to the place they were asked for: another place or none turns them off.
+    const hours = input.placeId !== undefined && input.placeId !== current.placeId ? { openingHoursOn: false } : {};
     const [event] = await tx
       .update(events)
-      .set({ ...fields, ...place })
+      .set({ ...fields, ...place, ...hours })
       .where(eq(events.id, eventId))
       .returning();
     return toEvent(event!);
   });
+}
+
+// The kind and place of an Event of this user's Trip, for the opening hours request.
+export async function findEventPlace(db: Db, ownerId: string, tripId: string, eventId: string) {
+  const [row] = await db
+    .select({ kind: events.kind, placeId: events.placeId })
+    .from(events)
+    .innerJoin(trips, eq(trips.id, events.tripId))
+    .where(and(eq(events.id, eventId), eq(events.tripId, tripId), eq(trips.ownerId, ownerId)));
+  return row;
+}
+
+// Turns the Event's opening hours on or off (PRD §3.5). On only while its place is still the one
+// the hours were fetched for: `placeId` is checked in the same statement, so a place changed in
+// between leaves it off. Returns the Event, or undefined when it is not in this user's Trip.
+export async function setOpeningHours(
+  db: Db,
+  ownerId: string,
+  tripId: string,
+  eventId: string,
+  on: boolean,
+  placeId?: string,
+): Promise<Event | undefined> {
+  const found = await findEventPlace(db, ownerId, tripId, eventId);
+  if (!found) return undefined;
+  const [row] = await db
+    .update(events)
+    .set({ openingHoursOn: on })
+    .where(and(eq(events.id, eventId), eq(events.tripId, tripId), placeId ? eq(events.placeId, placeId) : undefined))
+    .returning();
+  if (row) return toEvent(row);
+  const [current] = await db.select().from(events).where(eq(events.id, eventId));
+  return toEvent(current!);
 }
 
 type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];

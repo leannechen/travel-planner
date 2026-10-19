@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { startTestApp } from "../test/test-app";
 import { places } from "./db/schema";
-import { fakePlaceProvider, getPlaces, googlePlaceProvider, PLACE_CACHE_DAYS, PlaceProviderError, searchPlaces, type PlaceProvider } from "./places";
+import { fakePlaceProvider, fetchOpeningHours, getOpeningHours, getPlaces, googlePlaceProvider, PLACE_CACHE_DAYS, PlaceProviderError, searchPlaces, type PlaceProvider } from "./places";
 
 let app: Awaited<ReturnType<typeof startTestApp>>;
 
@@ -18,10 +18,11 @@ const DAY = 24 * 60 * 60 * 1000;
 // A provider that counts its lookups, over the fake places.
 function counting() {
   const inner = fakePlaceProvider();
-  const calls = { search: 0, get: 0 };
+  const calls = { search: 0, get: 0, hours: 0 };
   const provider: PlaceProvider = {
     search: (q) => (calls.search++, inner.search(q)),
     get: (id) => (calls.get++, inner.get(id)),
+    getOpeningHours: (id) => (calls.hours++, inner.getOpeningHours(id)),
   };
   return { provider, calls };
 }
@@ -71,6 +72,7 @@ describe("getPlaces", () => {
     const inner = fakePlaceProvider();
     const provider: PlaceProvider = {
       search: inner.search,
+      getOpeningHours: inner.getOpeningHours,
       get: (id) => (id === "fake:broken" ? Promise.reject(new PlaceProviderError("down")) : inner.get(id)),
     };
     await expect(getPlaces(app.db, provider, ["fake:nara-park", "fake:broken"])).rejects.toThrow("down");
@@ -80,7 +82,7 @@ describe("getPlaces", () => {
 
   it("caches a search whose results repeat an id", async () => {
     const nara = (await fakePlaceProvider().get("fake:nara-park"))!;
-    const provider: PlaceProvider = { search: async () => [nara, nara], get: async () => nara };
+    const provider: PlaceProvider = { search: async () => [nara, nara], get: async () => nara, getOpeningHours: async () => undefined };
     expect(await searchPlaces(app.db, provider, "nara")).toHaveLength(2);
     expect(await app.db.select().from(places)).toHaveLength(1);
   });
@@ -88,6 +90,98 @@ describe("getPlaces", () => {
   it("keeps the order of the ids and skips repeats", async () => {
     const found = await getPlaces(app.db, fakePlaceProvider(), ["fake:todai-ji", "fake:nara-park", "fake:todai-ji"]);
     expect(found.map((p) => p.id)).toEqual(["fake:todai-ji", "fake:nara-park"]);
+  });
+});
+
+describe("opening hours cache", () => {
+  const now = new Date("2026-10-19T00:00:00Z");
+
+  it("fetches hours once, then serves them from the cache until they are old", async () => {
+    const { provider, calls } = counting();
+    await getPlaces(app.db, provider, ["fake:kinkaku-ji"], now);
+    expect((await getOpeningHours(app.db, provider, ["fake:kinkaku-ji"], now)).get("fake:kinkaku-ji")?.periods).toHaveLength(7);
+    await getOpeningHours(app.db, provider, ["fake:kinkaku-ji"], new Date(now.getTime() + (PLACE_CACHE_DAYS - 1) * DAY));
+    expect(calls.hours).toBe(1);
+    await getOpeningHours(app.db, provider, ["fake:kinkaku-ji"], new Date(now.getTime() + (PLACE_CACHE_DAYS + 1) * DAY));
+    expect(calls.hours).toBe(2);
+  });
+
+  it("leaves out a place with no hours and does not ask for it again while the answer is fresh", async () => {
+    const { provider, calls } = counting();
+    await getPlaces(app.db, provider, ["fake:nara-park"], now);
+    expect((await getOpeningHours(app.db, provider, ["fake:nara-park"], now)).size).toBe(0);
+    await getOpeningHours(app.db, provider, ["fake:nara-park"], now);
+    expect(calls.hours).toBe(1);
+  });
+
+  it("is not lost when the place data is refreshed", async () => {
+    const { provider } = counting();
+    await getPlaces(app.db, provider, ["fake:kinkaku-ji"], now);
+    await getOpeningHours(app.db, provider, ["fake:kinkaku-ji"], now);
+    await searchPlaces(app.db, provider, "Kinkaku", now);
+    const [row] = await app.db.select().from(places).where(eq(places.id, "fake:kinkaku-ji"));
+    expect(row?.openingHours).not.toBeNull();
+  });
+
+  it("leaves out a place whose hours could not be fetched, and keeps the others", async () => {
+    const inner = fakePlaceProvider();
+    const provider: PlaceProvider = {
+      ...inner,
+      getOpeningHours: (id) => (id === "fake:kinkaku-ji" ? Promise.reject(new PlaceProviderError("down")) : inner.getOpeningHours(id)),
+    };
+    await getPlaces(app.db, provider, ["fake:kinkaku-ji", "fake:dotonbori"], now);
+    const found = await getOpeningHours(app.db, provider, ["fake:kinkaku-ji", "fake:dotonbori"], now);
+    expect([...found.keys()]).toEqual(["fake:dotonbori"]);
+  });
+
+  it("reports a failed fetch for the one place the user asked about", async () => {
+    const inner = fakePlaceProvider();
+    const provider: PlaceProvider = { ...inner, getOpeningHours: () => Promise.reject(new PlaceProviderError("down")) };
+    await expect(fetchOpeningHours(app.db, provider, "fake:kinkaku-ji", now)).rejects.toThrow("down");
+    expect(await fetchOpeningHours(app.db, inner, "fake:nara-park", now)).toBeUndefined();
+  });
+});
+
+describe("Google opening hours", () => {
+  const reply = (body: unknown, status = 200) => Promise.resolve(new Response(JSON.stringify(body), { status }));
+  const point = (day: number, hour: number, minute = 0) => ({ day, hour, minute });
+  const provider = (body: unknown, status = 200) => googlePlaceProvider("KEY", (() => reply(body, status)) as unknown as typeof fetch);
+
+  it("asks for the hours and the business status only", async () => {
+    const fetchFn = vi.fn(() => reply({ regularOpeningHours: { periods: [] } }));
+    await googlePlaceProvider("KEY", fetchFn as unknown as typeof fetch).getOpeningHours("ChIJ123");
+    const [url, init] = fetchFn.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("https://places.googleapis.com/v1/places/ChIJ123");
+    expect(init.headers).toMatchObject({ "X-Goog-FieldMask": "id,regularOpeningHours,businessStatus" });
+  });
+
+  it("turns periods into minutes from Sunday 00:00", async () => {
+    const hours = await provider({
+      businessStatus: "OPERATIONAL",
+      regularOpeningHours: { periods: [{ open: point(1, 9), close: point(1, 17, 30) }] },
+    }).getOpeningHours("x");
+    expect(hours).toEqual({ status: "open", periods: [{ start: 1440 + 540, end: 1440 + 1050 }] });
+  });
+
+  it("puts a period that ends on the next week after the end of this one", async () => {
+    const hours = await provider({ regularOpeningHours: { periods: [{ open: point(6, 20), close: point(0, 3) }] } }).getOpeningHours("x");
+    expect(hours?.periods).toEqual([{ start: 6 * 1440 + 1200, end: 7 * 1440 + 180 }]);
+  });
+
+  it("reads a period without a close as open all the time", async () => {
+    const hours = await provider({ regularOpeningHours: { periods: [{ open: point(0, 0) }] } }).getOpeningHours("x");
+    expect(hours?.periods).toEqual([{ start: 0, end: 7 * 1440 }]);
+  });
+
+  it("answers undefined without hours, and tells about a place that is closed", async () => {
+    expect(await provider({ id: "x" }).getOpeningHours("x")).toBeUndefined();
+    expect(await provider({ businessStatus: "CLOSED_PERMANENTLY" }).getOpeningHours("x")).toEqual({ status: "closed-permanently", periods: [] });
+    expect(await provider({ businessStatus: "CLOSED_TEMPORARILY", regularOpeningHours: { periods: [{ open: point(1, 9), close: point(1, 17) }] } }).getOpeningHours("x")).toMatchObject({ status: "closed-temporarily" });
+  });
+
+  it("answers undefined for an id Google does not know and fails on other errors", async () => {
+    expect(await provider({}, 404).getOpeningHours("x")).toBeUndefined();
+    await expect(provider({}, 403).getOpeningHours("x")).rejects.toThrow("Place opening hours failed (403)");
   });
 });
 

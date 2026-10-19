@@ -95,6 +95,9 @@ export const eventSchema = z.object({
   // destination. Both are optional and kept when the kind changes.
   placeId: placeIdSchema.nullable(),
   destinationId: placeIdSchema.nullable(),
+  // Whether the user asked for the place's opening hours (PRD §3.5). Only this choice is kept on
+  // the Event; the hours are read through the place cache. Turned off when the place changes.
+  openingHoursOn: z.boolean(),
 });
 
 const todoText = z.string().trim().min(1, "Todo text is required").max(500);
@@ -223,6 +226,7 @@ export * from "./keyboard";
 export * from "./legs";
 export * from "./lodging-range";
 export * from "./notes";
+export * from "./opening-hours";
 export * from "./time-edit";
 export * from "./time-layout";
 export * from "./todo-removal";

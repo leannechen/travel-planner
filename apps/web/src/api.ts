@@ -6,6 +6,7 @@ import {
   legSchema,
   meSchema,
   noteSchema,
+  openingHoursSchema,
   placeSchema,
   todoSchema,
   tripSchema,
@@ -51,6 +52,12 @@ export const searchPlaces = (query: string) =>
 export const getPlaces = (ids: string[]) =>
   request(`/api/places?ids=${encodeURIComponent(ids.join(","))}`, placesSchema).then((r) => r.places);
 
+// Opening hours by place id; a place without hours is left out.
+export const getOpeningHours = (ids: string[]) =>
+  request(`/api/places/opening-hours?ids=${encodeURIComponent(ids.join(","))}`, z.object({ openingHours: z.record(z.string(), openingHoursSchema) })).then(
+    (r) => new Map(Object.entries(r.openingHours)),
+  );
+
 export const listTrips = () => request("/api/trips", z.array(tripSchema));
 
 export const createTrip = (input: CreateTripInput) => request("/api/trips", tripSchema, input);
@@ -77,6 +84,13 @@ export const restoreDay = (tripId: string, input: RestoreDayInput) =>
 
 export const updateEvent = (tripId: string, eventId: string, input: UpdateEventInput) =>
   request(`/api/trips/${tripId}/events/${eventId}`, eventSchema, input, "PATCH");
+
+// Turns the Event's opening hours on: the server fetches them, and `hours` is null when Google has none.
+export const turnOnOpeningHours = (tripId: string, eventId: string) =>
+  request(`/api/trips/${tripId}/events/${eventId}/opening-hours`, z.object({ event: eventSchema, hours: openingHoursSchema.nullable() }), undefined, "PUT");
+
+export const turnOffOpeningHours = (tripId: string, eventId: string) =>
+  request(`/api/trips/${tripId}/events/${eventId}/opening-hours`, eventSchema, undefined, "DELETE");
 
 export const getMe = () => request("/api/me", meSchema);
 

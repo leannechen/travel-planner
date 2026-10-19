@@ -72,6 +72,8 @@ type Props = {
   // The Legs of this Day, and what opens when one (or the slot for a new one) is clicked.
   legs: Leg[];
   onOpenLeg: (target: LegTarget, anchor: HTMLElement) => void;
+  // Events whose time may not fit their place's opening hours (PRD §3.5).
+  openingConflicts?: ReadonlySet<string>;
 };
 
 export type LegTarget = { from: Event; to: Event; leg?: Leg };
@@ -124,6 +126,7 @@ export function DayTimeline({
   onChangeTimes,
   legs,
   onOpenLeg,
+  openingConflicts,
 }: Props) {
   const t = useT();
   const placements = new Map(layoutDay(events).map((p) => [p.id, p]));
@@ -217,6 +220,7 @@ export function DayTimeline({
             columnCount={placement.columnCount}
             selected={event.id === selectedEventId}
             resizing={resizing?.id === event.id}
+            openingConflict={openingConflicts?.has(event.id) ?? false}
             onSelect={() => {
               if (!gestureJustEnded()) onSelectEvent(event.id);
             }}
@@ -280,6 +284,7 @@ type CardProps = {
   columnCount: number;
   selected: boolean;
   resizing: boolean;
+  openingConflict: boolean;
   onSelect: () => void;
   onResizeStart: (edge: "top" | "bottom", e: PointerEvent<HTMLElement>) => void;
 };
@@ -292,9 +297,11 @@ function EventCard({
   columnCount,
   selected,
   resizing,
+  openingConflict,
   onSelect,
   onResizeStart,
 }: CardProps) {
+  const t = useT();
   // Only the card's button starts a drag, so the resize handles never do.
   // Created once per card, so the library does not rebuild them on every render during a drag.
   // The movement is free sideways (to reach other Days and the holding areas) and snapped
@@ -304,7 +311,7 @@ function EventCard({
 
   const realEnd = times.startMinute + times.durationMinutes;
   const drawnHeight = toPx(Math.min(realEnd, MINUTES_PER_DAY) - times.startMinute);
-  const classes = ["event-card", `kind-${event.kind}`, selected && "selected", isDragging && "dragging"].filter(Boolean).join(" ");
+  const classes = ["event-card", `kind-${event.kind}`, selected && "selected", openingConflict && "warn", isDragging && "dragging"].filter(Boolean).join(" ");
 
   return (
     <li
@@ -326,6 +333,12 @@ function EventCard({
         <span>
           {formatMinute(times.startMinute)} – {formatEnd(realEnd)}
         </span>
+        {openingConflict && (
+          <span className="event-warning">
+            <TriangleAlert size={12} aria-hidden="true" />
+            {t("opening.conflict")}
+          </span>
+        )}
       </button>
       {(selected || resizing) && (
         <>

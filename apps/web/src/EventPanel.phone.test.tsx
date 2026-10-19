@@ -31,6 +31,8 @@ function setup(overrides: { event?: Event; onUpdate?: (id: string, input: Record
     onToggleTodo: vi.fn(),
     onDeleteTodo: vi.fn(),
     onDelete: vi.fn(),
+    onTurnOnOpeningHours: vi.fn(),
+    onRemoveOpeningHours: vi.fn(),
   };
   renderApp(<EventPanel {...props} />);
   return props;
@@ -171,6 +173,8 @@ describe("EventPanel on a phone", () => {
         onToggleTodo={vi.fn()}
         onDeleteTodo={vi.fn()}
         onDelete={vi.fn()}
+        onTurnOnOpeningHours={vi.fn()}
+        onRemoveOpeningHours={vi.fn()}
       />,
     );
     expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();

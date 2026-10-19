@@ -11,6 +11,7 @@ import {
   MAX_PLACE_IDS,
   MAX_PLACE_QUERY_LENGTH,
   placeIdSchema,
+  showsOpeningHours,
   reorderDaysInputSchema,
   restoreDayInputSchema,
   updateEventInputSchema,
@@ -24,7 +25,7 @@ import { z, ZodError } from "zod";
 import type { Db } from "./db/client";
 import { DEV_USER_ID } from "./dev-user";
 import { createLeg, deleteLeg, isProviderError, listLegs, setLegMode, syncLegs } from "./legs";
-import { getPlaces, PlaceProviderError, placeProviderFromEnv, searchPlaces, type PlaceProvider } from "./places";
+import { fetchOpeningHours, getOpeningHours, getPlaces, PlaceProviderError, placeProviderFromEnv, searchPlaces, type PlaceProvider } from "./places";
 import { routeProviderFromEnv, type RouteProvider } from "./routes";
 import {
   addEvent,
@@ -36,6 +37,7 @@ import {
   deleteEvent,
   deleteNote,
   deleteTodo,
+  findEventPlace,
   insertDay,
   listTrips,
   ownsTrip,
@@ -43,6 +45,7 @@ import {
   restoreDay,
   restoreEvent,
   restoreNote,
+  setOpeningHours,
   updateEvent,
   updateNote,
   updateTodo,
@@ -99,6 +102,13 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
   app.get("/api/places", async (req, res) => {
     const { ids } = idsQuerySchema.parse(req.query);
     res.json({ places: await getPlaces(db, provider, ids) });
+  });
+
+  // The opening hours for these places, for the Events that have them on. A place without hours, or
+  // whose hours could not be fetched, is left out.
+  app.get("/api/places/opening-hours", async (req, res) => {
+    const { ids } = idsQuerySchema.parse(req.query);
+    res.json({ openingHours: Object.fromEntries(await getOpeningHours(db, provider, ids)) });
   });
 
   app.get("/api/trips", async (_req, res) => {
@@ -183,6 +193,34 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
     }
     await syncTripLegs(tripId);
     res.json(result);
+  });
+
+  // Turns opening hours on: fetches the hours of the Event's place and keeps the choice on the Event.
+  // `hours` is null when the provider has none, and the choice stays off.
+  app.put("/api/trips/:tripId/events/:eventId/opening-hours", async (req, res) => {
+    const { tripId, eventId } = eventIdParamsSchema.parse(req.params);
+    const found = await findEventPlace(db, DEV_USER_ID, tripId, eventId);
+    if (!found) {
+      res.status(404).json({ error: "Event not found" });
+      return;
+    }
+    if (!showsOpeningHours(found.kind) || !found.placeId) {
+      res.status(400).json({ error: "Opening hours need an Attraction or Meal with a location" });
+      return;
+    }
+    const hours = await fetchOpeningHours(db, provider, found.placeId);
+    const event = await setOpeningHours(db, DEV_USER_ID, tripId, eventId, hours !== undefined, found.placeId);
+    res.json({ event, hours: hours ?? null });
+  });
+
+  app.delete("/api/trips/:tripId/events/:eventId/opening-hours", async (req, res) => {
+    const { tripId, eventId } = eventIdParamsSchema.parse(req.params);
+    const event = await setOpeningHours(db, DEV_USER_ID, tripId, eventId, false);
+    if (!event) {
+      res.status(404).json({ error: "Event not found" });
+      return;
+    }
+    res.json(event);
   });
 
   app.delete("/api/trips/:tripId/events/:eventId", async (req, res) => {

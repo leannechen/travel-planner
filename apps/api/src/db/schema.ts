@@ -1,5 +1,6 @@
 import { relations, sql } from "drizzle-orm";
-import { boolean, check, doublePrecision, integer, pgEnum, pgTable, primaryKey, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { boolean, check, doublePrecision, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import type { OpeningHours } from "@travel-planner/shared";
 
 export const users = pgTable("users", {
   id: uuid().primaryKey().defaultRandom(),
@@ -66,6 +67,9 @@ export const events = pgTable(
     // itself lives in `places`, a cache.
     placeId: text(),
     destinationId: text(),
+    // The user asked for the place's opening hours (PRD §3.5). Only the choice is kept here; the
+    // hours are read through the `places` cache. Cleared when the place changes.
+    openingHoursOn: boolean().notNull().default(false),
     startMinute: integer().notNull().default(540),
     durationMinutes: integer().notNull().default(60),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
@@ -91,6 +95,10 @@ export const places = pgTable("places", {
   lat: doublePrecision().notNull(),
   lng: doublePrecision().notNull(),
   fetchedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  // Usual opening hours, fetched on request and cached like the rest of the place. `hoursFetchedAt`
+  // set with null hours means the provider has none, which is not asked again before it is old.
+  openingHours: jsonb().$type<OpeningHours>(),
+  hoursFetchedAt: timestamp({ withTimezone: true }),
 });
 
 // Travel time and distance between two places by one mode, fetched from the route provider and

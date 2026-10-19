@@ -18,6 +18,7 @@ const ev = (id: string, dayId: string, start: number, title = id): Event => ({
   bookingUrl: null,
   placeId: null,
   destinationId: null,
+  openingHoursOn: false,
   transportLabel: null,
   title,
   startMinute: start,

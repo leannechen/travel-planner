@@ -40,6 +40,8 @@ import {
   listTrips,
   restoreEvent,
   restoreNote,
+  turnOffOpeningHours,
+  turnOnOpeningHours,
   updateEvent,
   updateLegMode,
   updateNote,
@@ -47,6 +49,8 @@ import {
 } from "./api";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { EventPanel } from "./EventPanel";
+import { rememberOpeningHours } from "./openingHours";
+import { tripStartDate } from "./tripDates";
 import { useUnsavedGuard } from "./unsavedGuard";
 import { UnsavedDialog } from "./UnsavedDialog";
 import { NotesPanel } from "./NotesPanel";
@@ -271,6 +275,20 @@ export function App() {
     void refreshLegs(tripId);
     if (input.area === "archive" && current?.holding !== "archive") showArchived();
     return event;
+  }
+
+  // Opening hours are turned on and off at once, apart from the panel's Save.
+  async function handleTurnOnHours(tripId: string, eventId: string) {
+    const n = beginSave(eventId);
+    const { event, hours } = await turnOnOpeningHours(tripId, eventId);
+    if (hours && event.placeId) rememberOpeningHours(event.placeId, hours);
+    applySaved(tripId, event, n);
+    return hours ? ("on" as const) : ("none" as const);
+  }
+
+  async function handleTurnOffHours(tripId: string, eventId: string) {
+    const n = beginSave(eventId);
+    applySaved(tripId, await turnOffOpeningHours(tripId, eventId), n);
   }
 
   const deleting = useRef(new Set<string>());
@@ -677,6 +695,9 @@ export function App() {
           onToggleTodo={(todo) => handleToggleTodo(selectedTrip.id, todo)}
           onDeleteTodo={(todo) => handleDeleteTodo(selectedTrip.id, todo)}
           onDelete={(event) => handleDeleteEvent(selectedTrip.id, event)}
+          startDate={tripStartDate(selectedTrip)}
+          onTurnOnOpeningHours={(eventId) => handleTurnOnHours(selectedTrip.id, eventId)}
+          onRemoveOpeningHours={(eventId) => handleTurnOffHours(selectedTrip.id, eventId)}
           quiet={"eventId" in selection && selection.quiet}
         />
       )}

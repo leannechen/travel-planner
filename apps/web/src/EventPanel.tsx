@@ -13,6 +13,8 @@ import {
   planEventSave,
   showsBookingLink,
   showsContact,
+  showsOpeningHours,
+  weekdayOf,
   type EventFields,
   type CreateEventInput,
   type Day,
@@ -20,6 +22,8 @@ import {
   type Todo,
   type UpdateEventInput,
 } from "@travel-planner/shared";
+import { OpeningHoursSection } from "./OpeningHoursSection";
+import { eventConflicts, useOpeningHours } from "./openingHours";
 import { PlaceField } from "./PlaceField";
 import { TodoList } from "./TodoList";
 import { kindKey, KindIcon, transportKey } from "./kinds";
@@ -86,6 +90,11 @@ type Props = {
   onToggleTodo: (todo: Todo) => void;
   onDeleteTodo: (todo: Todo) => void;
   onDelete: (event: Event) => void;
+  // The Trip's start date ("YYYY-MM-DD"), which the opening-hours check needs.
+  startDate?: string;
+  // Opening hours are turned on and off at once, not with Save. "none": Google has no hours for the place.
+  onTurnOnOpeningHours: (eventId: string) => Promise<"on" | "none">;
+  onRemoveOpeningHours: (eventId: string) => Promise<void>;
   // Selected from the keyboard: leave the focus where it is so the arrow keys keep working.
   quiet?: boolean;
 };
@@ -108,9 +117,13 @@ export function EventPanel({
   onToggleTodo,
   onDeleteTodo,
   onDelete,
+  startDate,
+  onTurnOnOpeningHours,
+  onRemoveOpeningHours,
   quiet,
 }: Props) {
   const t = useT();
+  const { hours: placeHours, loading: hoursLoading } = useOpeningHours(event?.openingHoursOn && event.placeId ? [event.placeId] : []);
   const phone = useIsPhone();
   // Phone footer: which of the split button's actions is chosen, and whether its menu is open.
   const [footerAction, setFooterAction] = useState<"archive" | "delete">("archive");
@@ -129,6 +142,7 @@ export function EventPanel({
     bookingUrl: null,
     placeId: null,
     destinationId: null,
+    openingHoursOn: false,
     ...newEvent!,
   };
   const [fields, setFields] = useState<EventFields>({
@@ -345,6 +359,9 @@ export function EventPanel({
     void finish();
   }
 
+  // The saved Event's Day, for the opening-hours check.
+  const dayPosition = event?.dayId ? days.find((d) => d.id === event.dayId)?.position : undefined;
+  const openingWeekday = startDate && dayPosition !== undefined ? weekdayOf(startDate, dayPosition) : undefined;
   const start = parseTime(fields.start);
   const shownDuration = fieldsDuration(fields);
   const held = isHoldingArea(fields.dayId);
@@ -572,6 +589,18 @@ export function EventPanel({
               )}
             </label>
           </details>
+        )}
+        {event && event.placeId && showsOpeningHours(fields.kind) && showsOpeningHours(event.kind) && fields.placeId === event.placeId && (
+          <OpeningHoursSection
+            on={event.openingHoursOn}
+            hours={placeHours.get(event.placeId)}
+            fetching={hoursLoading}
+            weekday={openingWeekday}
+            dated={startDate !== undefined}
+            conflict={eventConflicts(event, dayPosition, startDate, placeHours)}
+            onTurnOn={() => onTurnOnOpeningHours(event.id)}
+            onRemove={() => onRemoveOpeningHours(event.id)}
+          />
         )}
         <div className="field">
           <span>{t("event.description")}</span>

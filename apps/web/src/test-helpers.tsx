@@ -42,6 +42,7 @@ export function makeEvent(overrides: Partial<Event> = {}): Event {
     bookingUrl: null,
     placeId: null,
     destinationId: null,
+    openingHoursOn: false,
     ...overrides,
   };
 }

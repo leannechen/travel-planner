@@ -32,6 +32,9 @@ type DetailKey = keyof typeof detailSchemas;
 
 // Which kinds show which detail field (PRD §3.2). A field a kind does not show keeps its value.
 export const showsContact = (kind: Event["kind"]) => kind !== "transport";
+
+// Opening hours are for the kinds a visit has hours for (PRD §3.2).
+export const showsOpeningHours = (kind: Event["kind"]) => kind === "attraction" || kind === "meal";
 export const showsBookingLink = (kind: Event["kind"]) => kind !== "attraction";
 const showsDetail = (kind: Event["kind"], key: DetailKey) =>
   key === "phone" || key === "email" || key === "website"

@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { trips, users, days, events } from "./db/schema";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { startTestApp } from "../test/test-app";
-import { PlaceProviderError } from "./places";
+import { fakePlaceProvider, PlaceProviderError } from "./places";
 
 let app: Awaited<ReturnType<typeof startTestApp>>;
 
@@ -1489,11 +1489,104 @@ describe("places", () => {
   });
 });
 
+describe("opening hours", () => {
+  async function eventAt(placeId: string | null, kind: "attraction" | "lodging" = "attraction") {
+    const { trip } = await createTrip("Kyoto");
+    const dayId = z.array(tripSchema).parse(await (await fetch(`${app.baseUrl}/api/trips`)).json()).find((t) => t.id === trip.id)!.days[0]!.id;
+    const body = kind === "lodging" ? { title: "Stay", kind, nights: 1, placeId } : { title: "Visit", placeId };
+    const event = eventSchema.parse(await (await post(`/api/trips/${trip.id}/days/${dayId}/events`, body)).json());
+    return { trip, event, url: `${app.baseUrl}/api/trips/${trip.id}/events/${event.id}` };
+  }
+  const put = (url: string) => fetch(`${url}/opening-hours`, { method: "PUT" });
+  const remove = (url: string) => fetch(`${url}/opening-hours`, { method: "DELETE" });
+  const patch = (url: string, body: unknown) =>
+    fetch(url, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+
+  it("starts off, turns on with the hours, and turns off again", async () => {
+    const { event, url } = await eventAt("fake:kinkaku-ji");
+    expect(event.openingHoursOn).toBe(false);
+    const on = (await (await put(url)).json()) as { event: unknown; hours: { periods: unknown[] } };
+    expect(eventSchema.parse(on.event).openingHoursOn).toBe(true);
+    expect(on.hours.periods).toHaveLength(7);
+    expect(eventSchema.parse(await (await remove(url)).json()).openingHoursOn).toBe(false);
+  });
+
+  it("serves the hours of places by id, leaving out places without hours", async () => {
+    await eventAt("fake:kinkaku-ji");
+    await eventAt("fake:nara-park");
+    const res = await fetch(`${app.baseUrl}/api/places/opening-hours?ids=fake:kinkaku-ji,fake:nara-park`);
+    const { openingHours } = (await res.json()) as { openingHours: Record<string, unknown> };
+    expect(Object.keys(openingHours)).toEqual(["fake:kinkaku-ji"]);
+  });
+
+  it("stays off when the provider has no hours for the place", async () => {
+    const { url } = await eventAt("fake:nara-park");
+    const answer = (await (await put(url)).json()) as { event: unknown; hours: unknown };
+    expect(answer.hours).toBeNull();
+    expect(eventSchema.parse(answer.event).openingHoursOn).toBe(false);
+  });
+
+  it("refuses an Event without a place or of a kind that has no hours", async () => {
+    expect((await put((await eventAt(null)).url)).status).toBe(400);
+    expect((await put((await eventAt("fake:granvia-kyoto", "lodging")).url)).status).toBe(400);
+  });
+
+  it("answers 404 for an Event that is not there", async () => {
+    const { trip } = await eventAt("fake:kinkaku-ji");
+    const missing = `${app.baseUrl}/api/trips/${trip.id}/events/00000000-0000-4000-8000-000000000000`;
+    expect((await put(missing)).status).toBe(404);
+    expect((await remove(missing)).status).toBe(404);
+  });
+
+  it("turns off when the place changes or is cleared, and stays on for other changes", async () => {
+    const { url } = await eventAt("fake:kinkaku-ji");
+    await put(url);
+    expect(eventSchema.parse(await (await patch(url, { title: "Golden Pavilion", durationMinutes: 90 })).json()).openingHoursOn).toBe(true);
+    expect(eventSchema.parse(await (await patch(url, { placeId: "fake:kinkaku-ji" })).json()).openingHoursOn).toBe(true);
+    expect(eventSchema.parse(await (await patch(url, { placeId: "fake:dotonbori" })).json()).openingHoursOn).toBe(false);
+    await put(url);
+    expect(eventSchema.parse(await (await patch(url, { placeId: null })).json()).openingHoursOn).toBe(false);
+  });
+
+  it("keeps the choice when the kind changes", async () => {
+    const { url } = await eventAt("fake:kinkaku-ji");
+    await put(url);
+    const meal = eventSchema.parse(await (await patch(url, { kind: "meal" })).json());
+    expect(meal.openingHoursOn).toBe(true);
+  });
+
+  it("answers 502 when the provider fails on the button", async () => {
+    const failing = await startTestApp({
+      ...fakePlaceProvider(),
+      getOpeningHours: () => Promise.reject(new PlaceProviderError("Place opening hours failed (503)")),
+    });
+    try {
+      await failing.reset();
+      const trip = tripSchema.parse(
+        await (await fetch(`${failing.baseUrl}/api/trips`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: "T" }) })).json(),
+      );
+      const event = eventSchema.parse(
+        await (
+          await fetch(`${failing.baseUrl}/api/trips/${trip.id}/backlog/events`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ title: "x", placeId: "fake:kinkaku-ji" }),
+          })
+        ).json(),
+      );
+      expect((await fetch(`${failing.baseUrl}/api/trips/${trip.id}/events/${event.id}/opening-hours`, { method: "PUT" })).status).toBe(502);
+    } finally {
+      await failing.stop();
+    }
+  });
+});
+
 describe("places when the provider fails", () => {
   it("answers 502 for a search and for saving a place, not 500", async () => {
     const failing = await startTestApp({
       search: () => Promise.reject(new PlaceProviderError("Place search failed (503)")),
       get: () => Promise.reject(new PlaceProviderError("Place lookup failed (503)")),
+      getOpeningHours: () => Promise.reject(new PlaceProviderError("Place opening hours failed (503)")),
     });
     try {
       await failing.reset();

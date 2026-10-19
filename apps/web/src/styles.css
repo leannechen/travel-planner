@@ -2465,3 +2465,191 @@ main.has-panel .topbar {
   overflow: hidden;
   clip-path: inset(50%);
 }
+
+/* ---------- Opening hours (design 44) ---------- */
+.event-panel .oh {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.oh-title {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.oh-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  padding-top: 2px;
+  color: var(--text);
+}
+
+.oh-src {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.oh-src.strong {
+  font-weight: 600;
+}
+
+.oh-cf {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--warnbg);
+  color: var(--warn);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.oh-acts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.oh-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--pri-ink);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.oh-link.rm {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.oh-get {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--border2);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--pri-ink);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.oh-get[disabled] {
+  color: var(--muted);
+  cursor: default;
+}
+
+.oh-wk {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+.oh-wk > div {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 8px;
+  padding: 5px 10px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.oh-wk > div:first-child {
+  border-top: 0;
+}
+
+.oh-wk .now {
+  background: var(--pri-tint);
+  color: var(--pri-ink);
+  font-weight: 600;
+}
+
+.oh-wk .cl > span:last-child {
+  color: var(--muted);
+}
+
+.oh-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.oh-note svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation: none;
+  }
+}
+
+/* An Event whose time may not fit the opening hours: amber border and label. */
+.event-card.warn {
+  border: 2px solid var(--warnb);
+}
+
+.event-card.warn::before {
+  left: 7px;
+}
+
+.event-card.warn > button {
+  padding: 5px 9px 5px 17px;
+}
+
+.event-card > button > .event-warning {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  margin-top: 3px;
+  padding: 1px 7px;
+  border-radius: 6px;
+  background: var(--warnbg);
+  color: var(--warn);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.event-warning svg {
+  flex: none;
+}

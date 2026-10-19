@@ -25,6 +25,8 @@ import { ChevronLeft, ChevronRight, CircleHelp, Map as MapIcon, Plus, Trash2 } f
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { deleteDay, insertDay, reorderDays, restoreDay } from "./api";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { eventConflicts, hoursPlaceIds, useOpeningHours } from "./openingHours";
+import { tripStartDate } from "./tripDates";
 import { accessibility, DayTimeline, HourLabels, PX_PER_HOUR, sensors, type EventTimes } from "./DayTimeline";
 import { endGesture } from "./gesture";
 import { HoldingAreas } from "./HoldingAreas";
@@ -211,6 +213,9 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
   const range = axisRange(trip.days.flatMap(onAxis));
   const stays = staysOf(trip.days);
   const events = allEvents(trip);
+  // Opening hours of the Events that have them on, for the warning on their cards.
+  const startDate = tripStartDate(trip);
+  const { hours: openingHours } = useOpeningHours(hoursPlaceIds(trip.days.flatMap(onAxis)));
 
   function insertButton(position: number) {
     return (
@@ -418,6 +423,7 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
                     onCreateAt={(startMinute) => onCreateAt(day.id, startMinute)}
                     legs={trip.legs.filter((l) => l.dayId === day.id)}
                     onOpenLeg={(target, anchor) => setLegUi({ fromId: target.from.id, toId: target.to.id, anchor })}
+                    openingConflicts={new Set(onAxis(day).filter((e) => eventConflicts(e, day.position, startDate, openingHours)).map((e) => e.id))}
                   />
                 </div>,
               ];

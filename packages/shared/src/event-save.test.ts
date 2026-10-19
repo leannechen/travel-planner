@@ -21,6 +21,7 @@ const saved: Event = {
   bookingUrl: null,
   placeId: null,
   destinationId: null,
+  openingHoursOn: false,
 };
 const noExtras = {
   transportLabel: null,

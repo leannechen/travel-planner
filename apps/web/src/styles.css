@@ -1544,6 +1544,20 @@ main.has-panel .topbar {
   text-transform: uppercase;
 }
 
+/* Save and Cancel under the form on desktop. */
+.panel-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.panel-actions .primary {
+  border-color: var(--pri-strong);
+  background: var(--pri-strong);
+  color: var(--onpri);
+  font-weight: 600;
+}
+
 .delete-event {
   margin-top: 16px;
 }

@@ -47,6 +47,8 @@ import {
 } from "./api";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { EventPanel } from "./EventPanel";
+import { useUnsavedGuard } from "./unsavedGuard";
+import { UnsavedDialog } from "./UnsavedDialog";
 import { NotesPanel } from "./NotesPanel";
 import { Sidebar } from "./Sidebar";
 import { useT } from "./preferences";
@@ -210,11 +212,13 @@ export function App() {
 
   const showArchived = () => setToast({ id: Date.now(), message: t("event.archived") });
 
-  function select(next: Selection | undefined) {
+  function apply(next: Selection | undefined) {
     setSelection(next);
     panelKeyRef.current += 1;
     setPanelKey(panelKeyRef.current);
   }
+  const guard = useUnsavedGuard<Selection>(apply);
+  const { panelApi, select } = guard;
 
   // The server's answer after a Day change; the Backlog comes along when the change moves Events.
   function handleDaysChange(tripId: string, newDays: Day[], backlog?: Event[]) {
@@ -223,7 +227,7 @@ export function App() {
     // A new Event set up on a Day that no longer exists cannot be saved.
     const draftDay = selection && "draft" in selection ? selection.draft.dayId : undefined;
     if (selection?.tripId === tripId && draftDay && !isHoldingArea(draftDay) && !newDays.some((d) => d.id === draftDay)) {
-      select(undefined);
+      select(undefined, true);
     }
   }
 
@@ -299,7 +303,7 @@ export function App() {
     setTripAreas(tripId, (areas) => removeEvent(areas, event.id));
     setTripTodos(tripId, (todos) => dropEventTodos(todos, event.id));
     void refreshLegs(tripId);
-    if (selection && "eventId" in selection && selection.eventId === event.id) select(undefined);
+    if (selection && "eventId" in selection && selection.eventId === event.id) select(undefined, true);
     setToast({ id: Date.now(), message: t("event.deleted", { title: event.title }), undo: () => undoDeleteEvent(tripId, deleted) });
   }
 
@@ -666,7 +670,8 @@ export function App() {
           onDraftChange={(draft) =>
             setSelection((s) => (s && "draft" in s ? { ...s, draft } : s))
           }
-          onClose={() => select(undefined)}
+          apiRef={panelApi}
+          onClose={(force) => select(undefined, force)}
           todos={selectedEvent ? selectedTrip.todos.filter((t) => t.eventId === selectedEvent.id) : []}
           onAddTodo={(text, eventId) => handleAddTodo(selectedTrip.id, text, eventId)}
           onToggleTodo={(todo) => handleToggleTodo(selectedTrip.id, todo)}
@@ -689,6 +694,9 @@ export function App() {
         />
       )}
       {sheetOpen && <ShortcutSheet onClose={() => setSheetOpen(false)} />}
+      {guard.asking && (
+        <UnsavedDialog busy={guard.busy} onSave={() => void guard.answer(true)} onDiscard={() => void guard.answer(false)} onKeep={guard.keepEditing} />
+      )}
       {removal && (
         <ConfirmDialog
           title={t(removal.action === "archive" ? "removal.archiveTitle" : "removal.deleteTitle", { title: removal.title })}

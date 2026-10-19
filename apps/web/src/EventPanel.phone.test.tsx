@@ -47,17 +47,17 @@ describe("EventPanel on a phone", () => {
     setup();
     expect(screen.queryByRole("button", { name: "Close" })).toBeNull();
     expect(screen.getByRole("combobox", { name: "Kind" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "OK" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();
     expect(screen.getByRole("button", { name: /Archive/ })).toBeTruthy();
   });
 
-  it("OK saves what was typed, then closes", async () => {
+  it("Save saves what was typed, then closes", async () => {
     const user = userEvent.setup();
     const props = setup();
     const title = screen.getByRole("textbox", { name: "Title" });
     await user.clear(title);
     await user.type(title, "Kinkaku-ji");
-    await user.click(screen.getByRole("button", { name: "OK" }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(props.onClose).toHaveBeenCalled());
     expect(props.onUpdate).toHaveBeenCalledWith(props.event.id, expect.objectContaining({ title: "Kinkaku-ji" }));
   });
@@ -66,7 +66,7 @@ describe("EventPanel on a phone", () => {
     const user = userEvent.setup();
     const props = setup({ onUpdate: async () => Promise.reject(new Error("Server is down")) });
     await user.type(screen.getByRole("textbox", { name: "Title" }), "x");
-    await user.click(screen.getByRole("button", { name: "OK" }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(document.querySelector(".sheet-footer .sheet-error")?.textContent).toBe("Server is down"));
     expect(props.onClose).not.toHaveBeenCalled();
   });
@@ -97,7 +97,7 @@ describe("EventPanel on a phone", () => {
     expect(screen.queryByText("Remove this Event for good")).toBeNull();
     const main = screen.getByRole("button", { name: /^Delete$/ });
     expect(screen.queryByRole("button", { name: /^Archive$/ })).toBeNull();
-    // Both choices keep the same width class, so OK does not change size.
+    // Both choices keep the same width class, so Save does not change size.
     expect(main.className).toContain("split-main");
     await user.click(main);
     expect(props.onDelete).toHaveBeenCalledWith(props.event);
@@ -129,7 +129,7 @@ describe("EventPanel on a phone", () => {
     expect(screen.queryByRole("button", { name: "More actions" })).toBeNull();
   });
 
-  it("shows only OK for a new Event, and no 'Saved automatically' before it exists", () => {
+  it("shows only Save for a new Event", () => {
     renderApp(
       <EventPanel
         days={days}
@@ -145,9 +145,8 @@ describe("EventPanel on a phone", () => {
         onDelete={vi.fn()}
       />,
     );
-    expect(screen.getByRole("button", { name: "OK" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Archive/ })).toBeNull();
-    expect(screen.queryByText("Saved automatically")).toBeNull();
   });
 
   it("saves a place chosen in the Location field, and Transport has From and To", async () => {

@@ -24,7 +24,7 @@ import { PlaceField } from "./PlaceField";
 import { TodoList } from "./TodoList";
 import { kindKey, KindIcon, transportKey } from "./kinds";
 import { useT } from "./preferences";
-import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, type FormEvent, type MutableRefObject } from "react";
 import { useIsPhone } from "./phone";
 import { tip } from "./shortcuts";
 import { Archive, Check, ChevronDown, Trash2 } from "lucide-react";
@@ -58,6 +58,14 @@ const placeOf = (event: { dayId: string | null; holding?: Event["holding"] }) =>
 const hasContact = (event: { phone: string | null; email: string | null; website: string | null }) =>
   Boolean(event.phone || event.email || event.website);
 
+// What the page may ask of an open panel.
+export type PanelApi = {
+  // Whether the typed fields differ from what is saved (or are a new Event that has a title).
+  isDirty: () => boolean;
+  // Saves them; false when the save failed or the fields are not valid.
+  save: () => Promise<boolean>;
+};
+
 type Props = {
   days: Day[];
   // The Event being edited, or the starting values of a new Event.
@@ -68,7 +76,10 @@ type Props = {
   onUpdate: (eventId: string, input: UpdateEventInput) => Promise<Event>;
   // Reports the values being typed for a new Event, so the placeholder follows them.
   onDraftChange: (draft: { dayId: string; startMinute: number; durationMinutes: number; kind: Event["kind"] }) => void;
-  onClose: () => void;
+  // `force` closes without asking about unsaved changes (Cancel).
+  onClose: (force?: boolean) => void;
+  // Filled while the panel is open, so the page can ask whether to save before it leaves the panel.
+  apiRef?: MutableRefObject<PanelApi | undefined>;
   // Only for a saved Event; a new one has neither Todos nor anything to delete yet.
   todos: Todo[];
   onAddTodo: (text: string, eventId: string) => Promise<void>;
@@ -80,8 +91,10 @@ type Props = {
 };
 
 
-// Edits one Event. Fields are saved when the user leaves them or presses Enter, not on every
-// keystroke. A new Event is created once it has a title. Remount it (key) for another Event.
+// Edits one Event. Typed fields are saved by Save (or Enter), which also closes the panel; closing
+// any other way with unsaved changes is first confirmed by the page. Choosing a Day, Kind, Transport
+// type or place is not typing, so it saves at once. A new Event is created by saving it with a
+// title. Remount it (key) for another Event.
 export function EventPanel({
   days,
   event,
@@ -90,6 +103,7 @@ export function EventPanel({
   onUpdate,
   onDraftChange,
   onClose,
+  apiRef,
   todos,
   onAddTodo,
   onToggleTodo,
@@ -146,6 +160,8 @@ export function EventPanel({
   const latest = useRef(fields);
   // Whether the last save failed.
   const failed = useRef(false);
+  // The fields as the panel opened, to tell whether anything was typed into a new Event.
+  const untouched = useRef(JSON.stringify(fields));
 
   // What this panel last sent for the time and place, so its own saves are not mistaken for
   // outside changes.
@@ -281,13 +297,41 @@ export function EventPanel({
     };
   }, [menuOpen]);
 
-  // Phone footer: closes the sheet once the pending changes are saved; a failed save keeps it open.
-  async function finish() {
+  // Saves what is typed and reports whether it worked.
+  async function saveNow() {
     commit();
     await queue.current;
-    // A failed save keeps the sheet open, with the text and the error.
-    if (!failed.current) onClose();
+    return !failed.current;
   }
+
+  // Save: closes the panel once the changes are saved; a failed save keeps it open with the error.
+  async function finish() {
+    // A new Event without a title has nothing to create: say so rather than drop what was typed.
+    if (!saved.current && planEventSave(latest.current, undefined).kind === "wait" && JSON.stringify(latest.current) !== untouched.current) {
+      failed.current = true;
+      setStatus({ kind: "error", message: t("event.titleRequired") });
+      return;
+    }
+    if (await saveNow()) onClose();
+  }
+
+  // Offered to the page on every render, so it never calls a stale closure.
+  useEffect(() => {
+    if (!apiRef) return;
+    apiRef.current = {
+      isDirty: () => {
+        const plan = planEventSave(latest.current, saved.current);
+        return plan.kind === "update" || plan.kind === "create" || plan.kind === "error";
+      },
+      save: saveNow,
+    };
+  });
+  useEffect(
+    () => () => {
+      if (apiRef) apiRef.current = undefined;
+    },
+    [],
+  );
 
   async function archiveAndClose() {
     changePlace("archive");
@@ -298,7 +342,7 @@ export function EventPanel({
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    commit();
+    void finish();
   }
 
   const start = parseTime(fields.start);
@@ -310,17 +354,13 @@ export function EventPanel({
 
   return (
     <>
-    {/* Phone: the page behind the sheet cannot be used; tapping it closes the sheet like OK. */}
-    {phone && <div className="sheet-scrim" onClick={() => (menuOpen ? setMenuOpen(false) : void finish())} />}
+    {/* Phone: the page behind the sheet cannot be used; tapping it closes the sheet, asking first about unsaved changes. */}
+    {phone && <div className="sheet-scrim" onClick={() => (menuOpen ? setMenuOpen(false) : onClose())} />}
     <aside
       className="event-panel"
       aria-label={t("event.panel")}
       onKeyDown={(e) => {
-        if (e.key === "Escape") {
-          // The field being edited will not blur once the panel is gone, so save it first.
-          commit();
-          onClose();
-        }
+        if (e.key === "Escape") onClose();
       }}
     >
       {phone ? (
@@ -331,7 +371,7 @@ export function EventPanel({
             {status.kind === "saving" && t("generic.saving")}
             {status.kind === "saved" && t("generic.saved")}
           </span>
-          <button type="button" onClick={onClose} aria-label={t("generic.close")} title={t("generic.closeEsc")}>
+          <button type="button" onClick={() => onClose()} aria-label={t("generic.close")} title={t("generic.closeEsc")}>
             ✕
           </button>
         </div>
@@ -376,7 +416,6 @@ export function EventPanel({
             data-field="title"
             value={fields.title}
             onChange={(e) => change({ title: e.target.value })}
-            onBlur={commit}
           />
         </label>
         <label>
@@ -402,7 +441,6 @@ export function EventPanel({
                 max={MAX_NIGHTS}
                 value={fields.nights}
                 onChange={(e) => change({ nights: e.target.value })}
-                onBlur={commit}
               />
             </label>
             <label>
@@ -411,7 +449,6 @@ export function EventPanel({
                 type="time"
                 value={fields.checkIn}
                 onChange={(e) => change({ checkIn: e.target.value })}
-                onBlur={commit}
               />
             </label>
             <label>
@@ -420,7 +457,6 @@ export function EventPanel({
                 type="time"
                 value={fields.checkOut}
                 onChange={(e) => change({ checkOut: e.target.value })}
-                onBlur={commit}
               />
             </label>
           </>
@@ -433,7 +469,6 @@ export function EventPanel({
                   type="time"
                   value={fields.start}
                   onChange={(e) => change({ start: e.target.value })}
-                  onBlur={commit}
                 />
               </label>
             )}
@@ -444,7 +479,6 @@ export function EventPanel({
                   type="time"
                   value={fields.arrival}
                   onChange={(e) => change({ arrival: e.target.value })}
-                  onBlur={commit}
                 />
                 {arrivesNextDay && <span className="hint">{t("event.nextDay")}</span>}
               </label>
@@ -457,7 +491,6 @@ export function EventPanel({
                   max={MAX_DURATION_MINUTES}
                   value={fields.duration}
                   onChange={(e) => change({ duration: e.target.value })}
-                  onBlur={commit}
                 />
               </label>
             )}
@@ -520,7 +553,6 @@ export function EventPanel({
               type="url"
               value={fields.bookingUrl}
               onChange={(e) => change({ bookingUrl: e.target.value })}
-              onBlur={commit}
             />
             {isWebUrl(fields.bookingUrl.trim()) && (
               <a href={fields.bookingUrl.trim()} target="_blank" rel="noreferrer">
@@ -534,15 +566,15 @@ export function EventPanel({
             <summary>{t("event.contact")}</summary>
             <label>
               {t("event.phone")}
-              <input type="tel" value={fields.phone} onChange={(e) => change({ phone: e.target.value })} onBlur={commit} />
+              <input type="tel" value={fields.phone} onChange={(e) => change({ phone: e.target.value })} />
             </label>
             <label>
               {t("event.email")}
-              <input type="email" value={fields.email} onChange={(e) => change({ email: e.target.value })} onBlur={commit} />
+              <input type="email" value={fields.email} onChange={(e) => change({ email: e.target.value })} />
             </label>
             <label>
               {t("event.website")}
-              <input type="url" value={fields.website} onChange={(e) => change({ website: e.target.value })} onBlur={commit} />
+              <input type="url" value={fields.website} onChange={(e) => change({ website: e.target.value })} />
               {isWebUrl(fields.website.trim()) && (
                 <a href={fields.website.trim()} target="_blank" rel="noreferrer">
                   {t("event.openWebsite")}
@@ -558,7 +590,6 @@ export function EventPanel({
               label={t("event.description")}
               value={initial.description ?? ""}
               onChange={(description) => change({ description })}
-              onBlur={commit}
             />
           </Suspense>
         </div>
@@ -581,6 +612,16 @@ export function EventPanel({
           />
         </section>
       )}
+      {!phone && (
+        <div className="panel-actions">
+          <button type="button" className="primary" onClick={() => void finish()}>
+            {t("event.save")}
+          </button>
+          <button type="button" onClick={() => onClose(true)}>
+            {t("generic.cancel")}
+          </button>
+        </div>
+      )}
       {event && !phone && (
         <button type="button" className="danger delete-event" title={tip(t("event.delete"), "delete")} onClick={() => onDelete(event)}>
           {t("event.delete")}
@@ -592,10 +633,10 @@ export function EventPanel({
           <p className="sheet-status" role="status">
             {status.kind === "saving" && t("generic.saving")}
             {status.kind === "error" && <span className="sheet-error">{status.message}</span>}
-            {status.kind !== "saving" && status.kind !== "error" && (saved.current || status.kind === "saved") && (
+            {status.kind === "saved" && (
               <>
                 <Check size={14} aria-hidden="true" />
-                {t("event.autosaved")}
+                {t("generic.saved")}
               </>
             )}
           </p>
@@ -655,7 +696,7 @@ export function EventPanel({
               </div>
             )}
             <button type="button" className="btn lg pri ok" onClick={() => void finish()}>
-              {t("event.ok")}
+              {t("event.save")}
             </button>
           </div>
         </footer>

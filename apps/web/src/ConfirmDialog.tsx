@@ -24,7 +24,7 @@ export function ConfirmDialog({ title, confirmLabel, tone = "danger", reminderOp
   }, []);
 
   return (
-    <dialog ref={dialog} className="confirm-dialog" aria-labelledby="confirm-title" onCancel={(e) => { e.preventDefault(); onCancel(); }}>
+    <dialog ref={dialog} className="confirm-dialog" aria-labelledby="confirm-title" onCancel={(e) => { e.preventDefault(); onCancel(); }} onClose={onCancel}>
       <h2 id="confirm-title">{title}</h2>
       {children}
       {reminderOption && (

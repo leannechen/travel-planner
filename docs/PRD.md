@@ -87,6 +87,7 @@ Only the title is required.
   - Google's terms for place photos were checked in plan step 14: photos may not be stored, the author must be credited (the name, with the avatar and profile link when space allows, and a larger view may carry it for thumbnails), and the place must be reachable on Google Maps. They are stricter than §9 assumed, so Google photos are fetched only when shown, are never stored or backed up, and are left out of every export. The Image export shows only photos the user uploaded.
 - **Lodging** appears as a thin banner at the top of each Day whose night it covers, and also on the check-out Day, labelled with the check-out time. It is the default start point for that Day's first Leg. Three nights from Day 1 cover Days 1 to 3 and check out on Day 4.
 - **Lodging is tied to Day positions, not to the Days' contents.** Reordering Days never changes a Lodging; the user adjusts it themselves if needed, so there are no surprising side effects. Inserting or deleting a Day adjusts a Lodging like a range: inserting before its check-in Day shifts it, inserting inside it adds a night, inserting after it changes nothing; deleting a Day inside it removes a night, and a Lodging left with no nights moves to the Backlog.
+- **Saving the Event panel**: typed fields are saved by the **Save** button (or Enter), which also closes the panel; on desktop a **Cancel** button closes it and discards the typed changes. Closing any other way with unsaved changes (the close button, Esc, a tap outside on phone, selecting another Event or starting a new one) asks whether to save, discard or keep editing. A new Event is created by saving it with a title; closing a new Event that has no title asks nothing. Choosing a Day, kind, Transport type or location is not typing, so it saves at once (together with anything typed so far), as do changes made by dragging, resizing or the keyboard on the time axis.
 - **Transport times**: the user enters departure and arrival time; the duration is derived and stored like any other Event's. An arrival on a later day shows "+1".
 
 **Changing an Event's kind** never silently loses data:
@@ -97,7 +98,7 @@ Only the title is required.
 
 ### 3.3 Legs
 
-- A Leg is created only when the user clicks the time slot between two adjacent Events (ADR 0002). The system never creates Legs on its own.
+- A Leg is created only when the user chooses "Add Travel" in the empty time slot between two adjacent Events, shown on hover or tap next to "Add Event" (ADR 0002). The system never creates Legs on its own.
 - Both Events need a location. Its duration is computed from the two locations using the Google Maps API; the user picks the travel mode (drive, public transit, walk). A Trip has a default travel mode, chosen at creation and changeable in Trip settings; each Leg can override it.
 - A Day's Lodging can be the start point of a Leg to the first Event of that Day.
 - If the gap between two Events is shorter than the Leg's duration, a conflict warning is shown. Nothing is moved automatically.
@@ -200,7 +201,7 @@ When a Trip has dates and an Attraction or Meal with a location (so Google openi
 
 ### 8.1 Trip management
 
-- A user has a list of their Trips and a separate list of Trips shared with them (as Editor). The list is a collapsible sidebar on desktop and a full screen on phone, opened from the Trip title; switching Trips loses no edits, since everything autosaves.
+- A user has a list of their Trips and a separate list of Trips shared with them (as Editor). The list is a collapsible sidebar on desktop and a full screen on phone, opened from the Trip title; switching Trips goes through the same question about unsaved changes as any other way of leaving the Event panel, so no edit is lost silently.
 - **New Trip**: title, optional start date, default travel mode. Create with AI is offered first for logged-in users.
 - Trip actions: rename, Trip settings, export, share, and delete (Owner only). Deleting asks the Owner to type the Trip title, and states what is lost: its Events, Backlog, Archive, Todos and Notes, and that Editors and the share link lose access.
 - **Import backup** creates a new Trip from a full-backup file (§9).

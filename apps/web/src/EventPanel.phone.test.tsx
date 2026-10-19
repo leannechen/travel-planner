@@ -43,8 +43,9 @@ afterEach(() => {
 });
 
 describe("EventPanel on a phone", () => {
-  it("has a handle instead of a close button, a Kind dropdown and a footer", () => {
+  it("has a handle instead of a close button, a Day and Kind dropdown and a footer", () => {
     setup();
+    expect(screen.getByRole("combobox", { name: "Day" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Close" })).toBeNull();
     expect(screen.getByRole("combobox", { name: "Kind" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();
@@ -87,6 +88,33 @@ describe("EventPanel on a phone", () => {
     await user.click(screen.getByRole("button", { name: /^Archive$/ }));
     await waitFor(() => expect(props.onUpdate).toHaveBeenCalled());
     expect(props.onClose).not.toHaveBeenCalled();
+  });
+
+  it("a chosen Day waits for Save", async () => {
+    const user = userEvent.setup();
+    const props = setup();
+    await user.selectOptions(screen.getByRole("combobox", { name: "Day" }), days[1]!.id);
+    expect(props.onUpdate).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(props.onUpdate).toHaveBeenCalledWith(props.event.id, expect.objectContaining({ dayId: days[1]!.id })));
+  });
+
+  it("stays open when Save moves it to the Archive and that is declined", async () => {
+    const user = userEvent.setup();
+    const event = makeEvent({ dayId: days[0]!.id, holding: null });
+    const props = setup({ event, onUpdate: async () => event });
+    await user.selectOptions(screen.getByRole("combobox", { name: "Day" }), "archive");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(props.onUpdate).toHaveBeenCalled());
+    expect(props.onClose).not.toHaveBeenCalled();
+  });
+
+  it("Archive saves what was typed together with the move", async () => {
+    const user = userEvent.setup();
+    const props = setup();
+    await user.type(screen.getByRole("textbox", { name: "Title" }), "!");
+    await user.click(screen.getByRole("button", { name: /^Archive$/ }));
+    await waitFor(() => expect(props.onUpdate).toHaveBeenCalledWith(props.event.id, expect.objectContaining({ area: "archive", title: `${props.event.title}!` })));
   });
 
   it("switches the split button to Delete from its menu, then deletes", async () => {

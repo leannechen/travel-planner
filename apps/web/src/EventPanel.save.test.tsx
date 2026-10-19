@@ -57,17 +57,38 @@ describe("Event panel saves on Save", () => {
     expect(props.onUpdate).not.toHaveBeenCalled();
   });
 
-  it("a chosen location is unsaved until Save, for an existing and a new Event", async () => {
+  async function chooseLocation(user: ReturnType<typeof userEvent.setup>) {
+    await user.type(screen.getByRole("combobox", { name: "Location" }), "kin");
+    await user.click(await screen.findByRole("option", { name: /Kinkaku-ji/ }));
+  }
+
+  it("a chosen location is unsaved until Save", async () => {
     const user = userEvent.setup();
-    for (const event of [undefined, null]) {
-      const props = setup(event === undefined ? undefined : null);
-      await user.type(screen.getByRole("combobox", { name: "Location" }), "kin");
-      await user.click(await screen.findByRole("option", { name: /Kinkaku-ji/ }));
-      expect(props.onUpdate).not.toHaveBeenCalled();
-      expect(props.onCreate).not.toHaveBeenCalled();
-      expect(props.apiRef.current!.isDirty()).toBe(true);
-      cleanup();
-    }
+    const props = setup();
+    await chooseLocation(user);
+    expect(props.onUpdate).not.toHaveBeenCalled();
+    expect(props.apiRef.current!.isDirty()).toBe(true);
+  });
+
+  it("a location chosen for a new Event without a title is unsaved, and saving it asks for a title", async () => {
+    const user = userEvent.setup();
+    const props = setup(null);
+    await chooseLocation(user);
+    expect(props.onCreate).not.toHaveBeenCalled();
+    expect(props.apiRef.current!.isDirty()).toBe(true);
+    // What the dialog's Save does: it must fail, not close the panel and lose the location.
+    expect(await props.apiRef.current!.save()).toBe(false);
+    expect((await screen.findByRole("alert")).textContent).toBe("Enter a title to save this Event");
+  });
+
+  it("a chosen Transport type waits for Save", async () => {
+    const user = userEvent.setup();
+    const props = setup(makeEvent({ dayId: days[0]!.id, holding: null, kind: "transport" }));
+    await user.selectOptions(screen.getByRole("combobox", { name: "Transport type" }), "flight");
+    expect(props.onUpdate).not.toHaveBeenCalled();
+    expect(props.apiRef.current!.isDirty()).toBe(true);
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(props.onUpdate).toHaveBeenCalledWith(props.event!.id, expect.objectContaining({ transportLabel: "flight" })));
   });
 
   it("Save sends the changes and closes", async () => {
@@ -136,7 +157,7 @@ describe("Event panel saves on Save", () => {
     expect(props.apiRef.current!.isDirty()).toBe(false);
   });
 
-  it("a new Event is dirty only once it has a title, and Save creates it", async () => {
+  it("a new Event with a title is created by Save", async () => {
     const user = userEvent.setup();
     const props = setup(null);
     expect(props.apiRef.current!.isDirty()).toBe(false);

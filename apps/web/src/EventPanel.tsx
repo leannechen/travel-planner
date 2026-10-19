@@ -60,7 +60,7 @@ const hasContact = (event: { phone: string | null; email: string | null; website
 
 // What the page may ask of an open panel.
 export type PanelApi = {
-  // Whether the typed fields differ from what is saved (or are a new Event that has a title).
+  // Whether the typed fields differ from what is saved (a new Event counts once something is typed).
   isDirty: () => boolean;
   // Saves them; false when the save failed or the fields are not valid.
   save: () => Promise<boolean>;
@@ -264,6 +264,7 @@ export function EventPanel({
         lastSent.current = undefined;
         change({ dayId: placeOf(result) });
         setStatus({ kind: "idle" });
+        failed.current = true;
       }
     } catch (err) {
       failed.current = true;
@@ -296,6 +297,12 @@ export function EventPanel({
 
   // Saves what is typed and reports whether it worked.
   async function saveNow() {
+    // A new Event without a title has nothing to create: say so rather than drop what was typed.
+    if (!saved.current && planEventSave(latest.current, undefined).kind === "wait" && JSON.stringify(latest.current) !== untouched.current) {
+      failed.current = true;
+      setStatus({ kind: "error", message: t("event.titleRequired") });
+      return false;
+    }
     commit();
     await queue.current;
     return !failed.current;
@@ -303,12 +310,6 @@ export function EventPanel({
 
   // Save: closes the panel once the changes are saved; a failed save keeps it open with the error.
   async function finish() {
-    // A new Event without a title has nothing to create: say so rather than drop what was typed.
-    if (!saved.current && planEventSave(latest.current, undefined).kind === "wait" && JSON.stringify(latest.current) !== untouched.current) {
-      failed.current = true;
-      setStatus({ kind: "error", message: t("event.titleRequired") });
-      return;
-    }
     if (await saveNow()) onClose();
   }
 

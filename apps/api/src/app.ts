@@ -210,7 +210,12 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
     }
     const hours = await fetchOpeningHours(db, provider, found.placeId);
     const event = await setOpeningHours(db, DEV_USER_ID, tripId, eventId, hours !== undefined, found.placeId);
-    res.json({ event, hours: hours ?? null });
+    if (!event) {
+      res.status(404).json({ error: "Event not found" });
+      return;
+    }
+    // The hours are for the place asked about; if the place changed meanwhile the choice stayed off.
+    res.json({ event, hours: event.openingHoursOn ? (hours ?? null) : null });
   });
 
   app.delete("/api/trips/:tripId/events/:eventId/opening-hours", async (req, res) => {

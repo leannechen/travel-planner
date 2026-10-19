@@ -108,7 +108,8 @@ const googleHoursSchema = z.object({
 // time; a close at or before the open is on the next week (Saturday night into Sunday).
 function fromGoogleHours(raw: unknown): OpeningHours | undefined {
   const parsed = googleHoursSchema.safeParse(raw);
-  if (!parsed.success) return undefined;
+  // An answer that makes no sense is a failure, not "no hours", so it is not cached as such.
+  if (!parsed.success) throw new PlaceProviderError("Place opening hours failed (unexpected answer)");
   const status: OpeningHours["status"] =
     parsed.data.businessStatus === "CLOSED_PERMANENTLY" ? "closed-permanently" : parsed.data.businessStatus === "CLOSED_TEMPORARILY" ? "closed-temporarily" : "open";
   const given = parsed.data.regularOpeningHours?.periods;
@@ -121,7 +122,8 @@ function fromGoogleHours(raw: unknown): OpeningHours | undefined {
     return { start, end: end <= start ? end + WEEK_MINUTES : end };
   });
   const result = { status, periods: periods.slice(0, 50) };
-  return openingHoursSchema.safeParse(result).success ? result : undefined;
+  if (!openingHoursSchema.safeParse(result).success) throw new PlaceProviderError("Place opening hours failed (unexpected answer)");
+  return result;
 }
 
 const REQUEST_TIMEOUT_MS = 5000;

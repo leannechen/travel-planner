@@ -318,7 +318,8 @@ export async function setOpeningHours(
     .returning();
   if (row) return toEvent(row);
   const [current] = await db.select().from(events).where(eq(events.id, eventId));
-  return toEvent(current!);
+  // Deleted while the hours were being fetched.
+  return current && toEvent(current);
 }
 
 type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];

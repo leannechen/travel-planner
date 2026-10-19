@@ -179,6 +179,11 @@ describe("Google opening hours", () => {
     expect(await provider({ businessStatus: "CLOSED_TEMPORARILY", regularOpeningHours: { periods: [{ open: point(1, 9), close: point(1, 17) }] } }).getOpeningHours("x")).toMatchObject({ status: "closed-temporarily" });
   });
 
+  it("fails, rather than answering no hours, when the answer makes no sense", async () => {
+    await expect(provider({ regularOpeningHours: { periods: [{ open: { day: 9, hour: 1, minute: 0 } }] } }).getOpeningHours("x")).rejects.toBeInstanceOf(PlaceProviderError);
+    await expect(provider({ regularOpeningHours: { periods: "soon" } }).getOpeningHours("x")).rejects.toBeInstanceOf(PlaceProviderError);
+  });
+
   it("answers undefined for an id Google does not know and fails on other errors", async () => {
     expect(await provider({}, 404).getOpeningHours("x")).toBeUndefined();
     await expect(provider({}, 403).getOpeningHours("x")).rejects.toThrow("Place opening hours failed (403)");

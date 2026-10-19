@@ -277,18 +277,31 @@ export function App() {
     return event;
   }
 
+  // Puts the opening-hours choice the server answered into the Event as it is on screen now, without
+  // the save counter: a slower answer must not drop a newer save of the same Event, nor be dropped by
+  // it. Only while the Event still has the place the answer is for.
+  function applyOpeningHoursChoice(tripId: string, answer: Event) {
+    const patch = (e: Event) => (e.placeId === answer.placeId ? { ...e, openingHoursOn: answer.openingHoursOn } : e);
+    setTripAreas(tripId, (areas) => {
+      const current = [...areas.days.flatMap((d) => d.events), ...areas.backlog, ...areas.archive].find((e) => e.id === answer.id);
+      return current ? upsertEvent(areas, patch(current)) : areas;
+    });
+    const last = confirmed.current.get(answer.id);
+    if (last) confirmed.current.set(answer.id, patch(last));
+  }
+
   // Opening hours are turned on and off at once, apart from the panel's Save.
   async function handleTurnOnHours(tripId: string, eventId: string) {
-    const n = beginSave(eventId);
     const { event, hours } = await turnOnOpeningHours(tripId, eventId);
-    if (hours && event.placeId) rememberOpeningHours(event.placeId, hours);
-    applySaved(tripId, event, n);
-    return hours ? ("on" as const) : ("none" as const);
+    // The hours belong to the place the answer's Event has; the server leaves the choice off when the
+    // place changed in the meantime.
+    if (hours && event.openingHoursOn && event.placeId) rememberOpeningHours(event.placeId, hours);
+    applyOpeningHoursChoice(tripId, event);
+    return hours && event.openingHoursOn ? ("on" as const) : ("none" as const);
   }
 
   async function handleTurnOffHours(tripId: string, eventId: string) {
-    const n = beginSave(eventId);
-    applySaved(tripId, await turnOffOpeningHours(tripId, eventId), n);
+    applyOpeningHoursChoice(tripId, await turnOffOpeningHours(tripId, eventId));
   }
 
   const deleting = useRef(new Set<string>());

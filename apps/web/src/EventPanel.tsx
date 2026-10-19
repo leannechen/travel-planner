@@ -24,7 +24,9 @@ import { TodoList } from "./TodoList";
 import { kindKey, KindIcon, transportKey } from "./kinds";
 import { useT } from "./preferences";
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from "react";
+import { useIsPhone } from "./phone";
 import { tip } from "./shortcuts";
+import { Archive, Check, ChevronDown, Trash2 } from "lucide-react";
 
 // The editor is large, so it is loaded when the first panel opens, not with the page.
 const MarkdownEditor = lazy(() => import("./MarkdownEditor").then((m) => ({ default: m.MarkdownEditor })));
@@ -95,6 +97,10 @@ export function EventPanel({
   quiet,
 }: Props) {
   const t = useT();
+  const phone = useIsPhone();
+  // Phone footer: which of the split button's actions is chosen, and whether its menu is open.
+  const [footerAction, setFooterAction] = useState<"archive" | "delete">("archive");
+  const [menuOpen, setMenuOpen] = useState(false);
   const initial = event ?? {
     title: "",
     kind: "attraction" as const,
@@ -133,6 +139,8 @@ export function EventPanel({
   const queue = useRef<Promise<void>>(Promise.resolve());
   // The fields as last typed; change() is the only writer, so a queued save never sees stale text.
   const latest = useRef(fields);
+  // Whether the last save failed.
+  const failed = useRef(false);
 
   // What this panel last sent for the time and place, so its own saves are not mistaken for
   // outside changes.
@@ -206,6 +214,7 @@ export function EventPanel({
   async function save() {
     const current = saved.current;
     const plan = planEventSave(latest.current, current);
+    failed.current = plan.kind === "error";
     if (plan.kind === "wait") return;
     if (plan.kind === "nothing") {
       setStatus({ kind: "idle" });
@@ -239,8 +248,24 @@ export function EventPanel({
         setStatus({ kind: "idle" });
       }
     } catch (err) {
+      failed.current = true;
       setStatus({ kind: "error", message: err instanceof Error ? err.message : t("generic.error") });
     }
+  }
+
+  // Phone footer: closes the sheet once the pending changes are saved; a failed save keeps it open.
+  async function finish() {
+    commit();
+    await queue.current;
+    // A failed save keeps the sheet open, with the text and the error.
+    if (!failed.current) onClose();
+  }
+
+  async function archiveAndClose() {
+    changePlace("archive");
+    await queue.current;
+    // A declined or failed move leaves the Event where it was.
+    if (saved.current?.holding === "archive") onClose();
   }
 
   function handleSubmit(e: FormEvent) {
@@ -267,16 +292,35 @@ export function EventPanel({
         }
       }}
     >
-      <div className="panel-top">
-        <span className="panel-status" role="status">
-          {status.kind === "saving" && t("generic.saving")}
-          {status.kind === "saved" && t("generic.saved")}
-        </span>
-        <button type="button" onClick={onClose} aria-label={t("generic.close")} title={t("generic.closeEsc")}>
-          ✕
-        </button>
-      </div>
+      {phone ? (
+        <div className="sheet-handle" aria-hidden="true" />
+      ) : (
+        <div className="panel-top">
+          <span className="panel-status" role="status">
+            {status.kind === "saving" && t("generic.saving")}
+            {status.kind === "saved" && t("generic.saved")}
+          </span>
+          <button type="button" onClick={onClose} aria-label={t("generic.close")} title={t("generic.closeEsc")}>
+            ✕
+          </button>
+        </div>
+      )}
+      <div className="panel-body">
       <form onSubmit={handleSubmit}>
+        {phone ? (
+          <label className={`kind-select kind-${fields.kind}`}>
+            <span className="visually-hidden">{t("event.kind")}</span>
+            <KindIcon kind={fields.kind} transportLabel={null} />
+            <select value={fields.kind} onChange={(e) => changeKind(e.target.value as EventFields["kind"])}>
+              {EVENT_KINDS.map((kind) => (
+                <option key={kind} value={kind}>
+                  {t(kindKey(kind))}
+                </option>
+              ))}
+            </select>
+            <ChevronDown size={18} aria-hidden="true" />
+          </label>
+        ) : (
         <fieldset className="kind-switch">
           <legend>{t("event.kind")}</legend>
           {EVENT_KINDS.map((kind) => (
@@ -293,6 +337,7 @@ export function EventPanel({
             </label>
           ))}
         </fieldset>
+        )}
         <label>
           {t("event.title")}
           <input
@@ -315,6 +360,7 @@ export function EventPanel({
             <option value="archive">{t("area.archive")}</option>
           </select>
         </label>
+        {phone && <p className="hint">{t("event.dayHint")}</p>}
         {fields.kind === "lodging" ? (
           <>
             <label>
@@ -473,10 +519,77 @@ export function EventPanel({
           />
         </section>
       )}
-      {event && (
+      {event && !phone && (
         <button type="button" className="danger delete-event" title={tip(t("event.delete"), "delete")} onClick={() => onDelete(event)}>
           {t("event.delete")}
         </button>
+      )}
+      </div>
+      {phone && (
+        <footer className="sheet-footer">
+          <p className="sheet-status" role="status">
+            {status.kind === "saving" ? t("generic.saving") : status.kind !== "error" && t("event.autosaved")}
+          </p>
+          <div className="sheet-actions">
+            {event && (
+              <div className="split">
+                <button
+                  type="button"
+                  className={footerAction === "delete" || event.holding === "archive" ? "split-main danger" : "split-main"}
+                  onClick={() => {
+                    if (footerAction === "delete" || event.holding === "archive") onDelete(event);
+                    else void archiveAndClose();
+                  }}
+                >
+                  {footerAction === "delete" || event.holding === "archive" ? (
+                    <Trash2 size={16} aria-hidden="true" />
+                  ) : (
+                    <Archive size={16} aria-hidden="true" />
+                  )}
+                  {footerAction === "delete" || event.holding === "archive" ? t("event.deleteShort") : t("area.archive")}
+                </button>
+                {event.holding !== "archive" && (
+                  <button
+                    type="button"
+                    className="split-more"
+                    aria-label={t("event.moreActions")}
+                    aria-expanded={menuOpen}
+                    onClick={() => setMenuOpen(!menuOpen)}
+                  >
+                    <ChevronDown size={16} aria-hidden="true" />
+                  </button>
+                )}
+                {menuOpen && (
+                  <ul className="split-menu" role="menu">
+                    {(["archive", "delete"] as const).map((action) => (
+                      <li key={action}>
+                        <button
+                          type="button"
+                          role="menuitemradio"
+                          aria-checked={footerAction === action}
+                          className={action === "delete" ? "danger" : undefined}
+                          onClick={() => {
+                            setFooterAction(action);
+                            setMenuOpen(false);
+                          }}
+                        >
+                          {footerAction === action ? <Check size={16} aria-hidden="true" /> : <span className="check-space" />}
+                          <span>
+                            <strong>{action === "delete" ? t("event.deleteShort") : t("area.archive")}</strong>
+                            <small>{action === "delete" ? t("event.deleteHint") : t("event.archiveHint")}</small>
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+            <button type="button" className="primary ok" onClick={() => void finish()}>
+              {t("event.ok")}
+            </button>
+          </div>
+        </footer>
       )}
     </aside>
   );

@@ -16,6 +16,7 @@ body{margin:0}
 button{font:inherit;color:inherit;cursor:pointer;text-align:left}
 .i{width:16px;height:16px;flex:none}
 .cap{position:absolute;top:18px;left:40px;font-size:12px;font-weight:600;color:var(--text);text-transform:uppercase;letter-spacing:.05em}
+.in.kd{width:100%;box-sizing:border-box;font-weight:600;text-align:left;background:var(--pri-tint);border-color:var(--pri-tint);color:var(--pri-ink);height:46px;padding:0 14px}.kd .i{width:18px;height:18px}
 .chip{height:36px;border:1px solid var(--border2);border-radius:18px;background:var(--surface);padding:0 9px;display:inline-flex;gap:6px;align-items:center;white-space:nowrap}
 .chip.on{border:2px solid var(--pri-strong);font-weight:600}
 .lbl{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;display:block}
@@ -36,7 +37,12 @@ button{font:inherit;color:inherit;cursor:pointer;text-align:left}
 .grab{width:40px;height:4px;border-radius:2px;background:var(--border2);margin:8px auto 6px;flex:none}
 .sbody{flex:1;overflow:hidden;padding:4px 16px 0;display:flex;flex-direction:column;gap:12px;position:relative}
 .fade{position:absolute;left:0;right:0;bottom:0;height:56px;background:linear-gradient(to bottom,rgba(255,255,255,0),#fff);pointer-events:none}
-.sfoot{border-top:1px solid var(--border);padding:10px 16px 14px;display:flex;gap:8px;align-items:center}
+.sfoot{position:relative;border-top:1px solid var(--border);padding:8px 16px 14px;display:flex;flex-direction:column;gap:8px}
+.spl{display:inline-flex;flex:none}.spl .spm{border-radius:var(--r-md) 0 0 var(--r-md);border-right:0}.spl .spc{width:38px;padding:0;justify-content:center;border-radius:0 var(--r-md) var(--r-md) 0}
+.spmenu{position:absolute;left:16px;bottom:68px;width:280px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-md);box-shadow:var(--sh-pop);padding:4px;z-index:5}
+.spi{display:flex;gap:8px;align-items:flex-start;padding:8px;border-radius:var(--r-sm)}.spi .i{margin-top:2px;color:var(--pri-ink)}.sp0{width:16px;flex:none}
+.spi b{display:block;font-weight:600;font-size:14px}.spi em{display:block;font-style:normal;font-size:12px;color:var(--muted);margin-top:1px}.spi.dg b{color:var(--danger)}
+.svd{display:inline-flex;gap:6px;align-items:center;justify-content:center;font-size:12px}.fr{display:flex;gap:8px;align-items:center}.fr .ok{min-width:0}
 </style>
 </helmet>
 <div class="hf wfroot">
@@ -49,12 +55,7 @@ button{font:inherit;color:inherit;cursor:pointer;text-align:left}
   <section class="sheet" aria-label="Edit Event">
     <div class="grab"></div>
     <div class="sbody">
-      <div style="display:flex;gap:6px;align-items:center">
-        <button class="chip on k-a"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2.5 4L17 12H5"></path></svg>Attraction</button>
-        <button class="chip"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3v7a2 2 0 0 0 4 0V3"></path><path d="M8 10v11"></path><path d="M17 21V3c-2.5 1.5-3.5 4.5-3.5 8H17"></path></svg>Meal</button>
-        <button class="chip"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 19V6"></path><path d="M3 14h18v5"></path><path d="M21 14v-2a3 3 0 0 0-3-3h-7v5"></path></svg>Lodging</button>
-        <button class="chip"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="14" rx="3"></rect><path d="M5 11h14"></path><path d="M9 21l2-4M15 21l-2-4"></path></svg>Transport</button>
-      </div>
+      <button class="in kd" aria-label="Kind: Attraction" aria-haspopup="listbox"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2.5 4L17 12H5"></path></svg><b>Attraction</b><span style="flex:1"></span><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button>
       <div class="in" style="height:48px;font-size:16px;font-weight:600">Fushimi Inari Taisha</div>
       <div class="row">
         <div style="flex:1.3"><span class="lbl">Day</span><div class="in" style="justify-content:space-between">Day 1 <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></div></div>
@@ -79,10 +80,7 @@ button{font:inherit;color:inherit;cursor:pointer;text-align:left}
       <div><span class="lbl">Event Todos · 2</span><label class="todo"><input type="checkbox"><span>Bring coins for offerings</span></label></div>
       <span class="fade"></span>
     </div>
-    <div class="sfoot">
-      <button class="btn" aria-label="More: Archive, Delete">⋯</button>
-      <span class="muted" style="flex:1;display:inline-flex;gap:6px;align-items:center;justify-content:flex-end"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>Saved automatically</span>
-    </div>
+    <div class="sfoot"><div class="spmenu" role="menu"><div class="spi" role="menuitemradio" aria-checked="true"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg><span><b>Archive</b><em>Move this Event to the Archive</em></span></div><div class="spi dg" role="menuitemradio" aria-checked="false"><span class="sp0"></span><span><b>Delete</b><em>Remove this Event for good</em></span></div></div><span class="svd muted"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>Saved automatically</span><div class="fr"><div class="spl"><button class="btn lg spm"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="4" rx="1"></rect><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"></path><path d="M10 12h4"></path></svg>Archive</button><button class="btn lg spc" aria-label="Choose Archive or Delete" aria-haspopup="menu"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button></div><button class="btn lg pri ok" style="flex:1;justify-content:center">OK</button></div></div>
   </section>
 </div>
 

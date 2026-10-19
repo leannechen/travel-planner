@@ -1012,7 +1012,7 @@ main.has-panel .topbar {
   text-transform: uppercase;
 }
 
-.event-panel label input,
+.event-panel label input:not([type="checkbox"]),
 .event-panel label select {
   height: 36px;
   color: var(--text);
@@ -1197,6 +1197,14 @@ main.has-panel .topbar {
   gap: 9px;
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+.event-panel .todo-list li label {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .todo-list li.done span {
@@ -1855,6 +1863,8 @@ main.has-panel .topbar {
   }
 
   .split-main {
+    justify-content: center;
+    width: 116px;
     border-right: 0;
     border-radius: var(--r-md) 0 0 var(--r-md);
   }

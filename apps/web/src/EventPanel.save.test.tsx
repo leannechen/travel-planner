@@ -115,10 +115,13 @@ describe("Event panel saves on Save", () => {
     expect(props.onUpdate).not.toHaveBeenCalled();
   });
 
-  it("choosing a Kind saves at once", async () => {
+  it("choosing a Kind waits for Save", async () => {
     const user = userEvent.setup();
     const props = setup();
     await user.click(screen.getByRole("radio", { name: /Meal/ }));
+    expect(props.onUpdate).not.toHaveBeenCalled();
+    expect(props.apiRef.current!.isDirty()).toBe(true);
+    await user.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(props.onUpdate).toHaveBeenCalledWith(props.event!.id, expect.objectContaining({ kind: "meal" })));
   });
 

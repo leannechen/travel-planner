@@ -92,9 +92,8 @@ type Props = {
 
 
 // Edits one Event. Typed fields are saved by Save (or Enter), which also closes the panel; closing
-// any other way with unsaved changes is first confirmed by the page. Choosing a Day, Kind or Transport
-// type is not typing, so it saves at once. A new Event is created by saving it with a
-// title. Remount it (key) for another Event.
+// any other way with unsaved changes is first confirmed by the page. A new Event is created by saving
+// it with a title. Remount it (key) for another Event.
 export function EventPanel({
   days,
   event,
@@ -214,7 +213,6 @@ export function EventPanel({
     const duration = fieldsDuration(current) ?? saved.current?.durationMinutes;
     const checkIn = kind === "lodging" && current.checkIn.trim() === "" && start !== undefined ? { checkIn: formatMinute(start) } : {};
     change({ kind, ...checkIn, ...(start !== undefined && duration !== undefined ? timeFields(start, duration) : {}) });
-    commit();
   }
 
   // Moving between a Day and a holding area keeps the same duration: a Transport event is shown by
@@ -225,7 +223,6 @@ export function EventPanel({
     const duration = fieldsDuration(current) ?? saved.current?.durationMinutes;
     change({ dayId: place });
     if (start !== undefined && duration !== undefined) change(timeFields(start, duration));
-    commit();
   }
 
   function commit() {
@@ -336,6 +333,7 @@ export function EventPanel({
 
   async function archiveAndClose() {
     changePlace("archive");
+    commit();
     await queue.current;
     // A declined or failed move leaves the Event where it was.
     if (saved.current?.holding === "archive") onClose();
@@ -500,10 +498,7 @@ export function EventPanel({
                 {t("event.transportType")}
                 <select
                   value={fields.transportLabel}
-                  onChange={(e) => {
-                    change({ transportLabel: e.target.value });
-                    commit();
-                  }}
+                  onChange={(e) => change({ transportLabel: e.target.value })}
                 >
                   <option value="">{t("event.none")}</option>
                   {TRANSPORT_LABELS.map((label) => (

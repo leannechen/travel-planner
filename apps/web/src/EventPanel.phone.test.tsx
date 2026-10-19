@@ -162,10 +162,12 @@ describe("EventPanel on a phone", () => {
     expect(screen.getByRole("combobox", { name: /To/ })).toBeTruthy();
   });
 
-  it("changes the Kind from the dropdown", async () => {
+  it("changes the Kind from the dropdown on Save", async () => {
     const user = userEvent.setup();
     const props = setup();
     await user.selectOptions(screen.getByRole("combobox", { name: "Kind" }), "meal");
+    expect(props.onUpdate).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(props.onUpdate).toHaveBeenCalledWith(props.event.id, expect.objectContaining({ kind: "meal" })));
   });
 });

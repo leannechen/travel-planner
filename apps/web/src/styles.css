@@ -1199,22 +1199,75 @@ main.has-panel .topbar {
   color: var(--warn);
 }
 
-/* The slot to add a Leg shows when the pointer or focus is on it; touch screens always show it. */
-.leg-slot {
-  border: 1px dashed var(--pri);
+/* An empty stretch of a Day: outlined, with its buttons in a floating group centred on it. They show
+   on hover or focus, and after a tap on touch screens. The group may be taller than a short gap and
+   then sits above the neighbouring cards. */
+.slot-row {
+  position: absolute;
+  z-index: 4;
+  right: 0;
+  left: 0;
+  box-sizing: border-box;
+  border: 1.5px dashed transparent;
+  border-radius: var(--r-md);
+  list-style: none;
+  cursor: default;
+}
+
+.slot-row:hover,
+.slot-row:focus-within,
+.slot-row.open {
+  border-color: var(--pri);
   background: var(--pri-tint);
-  color: var(--pri-ink);
+}
+
+.slot-actions {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: inline-flex;
+  overflow: hidden;
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--pri);
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: var(--sh-card);
   opacity: 0;
 }
 
-.leg-row:hover .leg-slot,
-.leg-slot:focus-visible {
+.slot-row:hover .slot-actions,
+.slot-row:focus-within .slot-actions,
+.slot-row.open .slot-actions {
   opacity: 1;
 }
 
-@media (hover: none) {
-  .leg-slot {
-    opacity: 0.85;
+.slot-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--pri-ink);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.slot-actions button + button {
+  border-left: 1px solid var(--border2);
+}
+
+.slot-actions button:hover {
+  background: var(--pri-tint);
+}
+
+@media (hover: none), (max-width: 40rem) {
+  .slot-actions button {
+    height: 44px;
+    padding: 0 16px;
+    font-size: 14px;
   }
 }
 

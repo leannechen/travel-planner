@@ -71,6 +71,45 @@ describe("Leg slots", () => {
     expect(screen.getByRole("button", { name: "Add travel between Station and Golden Pavilion" })).toBeTruthy();
   });
 
+  it("offers Add Event in every empty stretch, and Add Travel only where both Events have a location", () => {
+    setup();
+    // Before the first Event, between each pair, and after the last one.
+    expect(screen.getAllByRole("button", { name: /^Add Event / })).toHaveLength(4);
+    expect(screen.getByRole("button", { name: "Add Event before Station" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Add Event after Lunch idea" })).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: /Add travel between/ })).toHaveLength(1);
+  });
+
+  it("Add Event creates at the end of the Event before the gap", async () => {
+    const user = userEvent.setup();
+    const { props, dayId } = setup();
+    await user.click(screen.getByRole("button", { name: "Add Event between Station and Golden Pavilion" }));
+    expect(props.onCreateAt).toHaveBeenCalledTimes(1);
+    expect(props.onCreateAt).toHaveBeenCalledWith(dayId, 600);
+  });
+
+  it("on a touch screen the first tap only shows the buttons", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("matchMedia", (query: string) => ({ matches: query === "(hover: none)", media: query, addEventListener() {}, removeEventListener() {} }));
+    const { props } = setup();
+    const add = screen.getByRole("button", { name: "Add Event between Station and Golden Pavilion" });
+    await user.click(add);
+    expect(props.onCreateAt).not.toHaveBeenCalled();
+    expect(add.closest(".slot-row")?.classList.contains("open")).toBe(true);
+    await user.click(add);
+    expect(props.onCreateAt).toHaveBeenCalledTimes(1);
+  });
+
+  it("on a touch screen a tap outside dismisses the buttons", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("matchMedia", (query: string) => ({ matches: query === "(hover: none)", media: query, addEventListener() {}, removeEventListener() {} }));
+    setup();
+    const add = screen.getByRole("button", { name: "Add Event between Station and Golden Pavilion" });
+    await user.click(add);
+    await user.click(document.body);
+    expect(add.closest(".slot-row")?.classList.contains("open")).toBe(false);
+  });
+
   it("chooses the mode, starting with the Trip's default, and creates the Leg on OK", async () => {
     const user = userEvent.setup();
     const { props, ids } = setup();

@@ -4,7 +4,7 @@ This folder is the **final** design for Travel Planner. It replaces the earlier 
 
 - **Design name:** Travel Planner — High Fidelity
 - **Date:** 2026-10-17
-- **Fidelity:** all 42 screens are high fidelity. There are no wireframe-only screens left. Some dialog backdrops are still simplified (see the "Design notes" asides inside the screens).
+- **Fidelity:** all 43 screens are high fidelity. There are no wireframe-only screens left. Some dialog backdrops are still simplified (see the "Design notes" asides inside the screens).
 - **Order and names:** The two-digit number in each image name is the screen order.
 
 ## Layout
@@ -60,7 +60,7 @@ All images in `png/` are exported at **2x** (twice the CSS pixel width and heigh
 | 22 | `png/22-states-empty-loading.png` | `source/StatesEmpty.dc.html` | 2000x1000 | States — empty Trip, Day, Backlog and Archive; loading |
 | 23 | `png/23-states-errors.png` | `source/StatesErrors.dc.html` | 2000x1180 | States — errors and limit reached |
 | 24 | `png/24-trip-list.png` | `source/TripList.dc.html` | 4660x920 | Trip list — sidebar, item menu, New Trip (Blank / Generate with AI), Delete Trip, phone |
-| 25 | `png/25-leg-detail.png` | `source/LegDetail.dc.html` | 3200x900 | Leg — chooser, detail, warning, cannot calculate, phone sheet |
+| 25 | `png/25-leg-detail.png` | `source/LegDetail.dc.html` | 3300x900 | Leg — chooser, detail, warning, cannot calculate, phone sheet |
 | 26 | `png/26-event-image.webp` | `source/EventImage.dc.html` | 2340x1060 | Event image — panel states and Event block |
 | 27 | `png/27-trip-list-nav.png` | `source/TripListNav.dc.html` | 4540x940 | Trip list — collapsed rail, drawer, pinned; Backlog/Archive collapse; switching Trips |
 | 28 | `png/28-states-generic.png` | `source/StatesGeneric.dc.html` | 2000x900 | Empty state, loading skeleton and error banner — one generic style each |
@@ -78,6 +78,7 @@ All images in `png/` are exported at **2x** (twice the CSS pixel width and heigh
 | 40 | `png/40-session-expired.png` | `source/SessionExpired.dc.html` | 2340x1956 | Session expired while editing — read-only Trip and banner |
 | 41 | `png/41-invite-editor.webp` | `source/InviteEditor.dc.html` | 2340x1956 | Invited Editor from an email link, logged out |
 | 42 | `png/42-notes-panel.png` | `source/NotesStates.dc.html` | 1960x2920 | Notes panel — new Note, list, open Note; desktop and phone, light and dark (current Notes design; replaces 17) |
+| 43 | `png/43-empty-slot.png` | `source/EmptySlot.dc.html` | 1500x1250 | Empty time slot — Add Event and Add Travel on hover (desktop) and tap (phone) |
 
 ## Notes
 

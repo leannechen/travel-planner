@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Add Event and Add Travel on an empty slot</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="hf.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Nunito:wght@700;800&amp;family=Noto+Sans+TC:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.col{position:absolute;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-lg);overflow:hidden}
+.col .dh{height:52px;padding:0 12px}
+.col .axis{height:auto;position:absolute;left:0;right:0;top:52px;bottom:0}
+.pop{position:absolute;background:var(--surface);border:1px solid var(--muted);border-radius:var(--r-xl);box-shadow:var(--sh-pop);padding:12px 14px;width:300px;z-index:20}
+.pop::before{content:"";position:absolute;left:50%;top:-7px;width:12px;height:12px;margin-left:-6px;background:var(--surface);border-left:1px solid var(--muted);border-top:1px solid var(--muted);transform:rotate(45deg)}
+.pop h3{margin:0 0 8px;font-size:14px;display:flex;align-items:center;gap:8px}
+.sg{display:flex;border:1px solid var(--border2);border-radius:var(--r-md);overflow:hidden}
+.sg span{flex:1;height:34px;display:flex;align-items:center;justify-content:center;gap:6px}
+.sg span.on{background:var(--text);color:var(--surface)}
+.row{display:flex;justify-content:space-between;padding:5px 0;border-top:1px solid var(--grid);font-size:12px}
+.wb{display:flex;gap:8px;align-items:flex-start;background:var(--warnbg);border:1px solid var(--warnb);color:var(--warn);border-radius:var(--r-md);padding:8px 10px;font-size:12px;margin-top:8px}
+.slotband{position:absolute;left:5px;right:5px;border:1.5px dashed var(--pri);border-radius:var(--r-md);background:var(--pri-tint);opacity:.85}
+.addpill{position:absolute;left:50%;transform:translateX(-50%);display:flex;height:30px;border:1px solid var(--pri);border-radius:999px;background:var(--card);box-shadow:var(--sh-pop);z-index:6;overflow:hidden}
+.addpill>span{display:inline-flex;gap:6px;align-items:center;padding:0 13px;font-size:12px;font-weight:600;color:var(--pri-ink);white-space:nowrap}
+.addpill>span+span{border-left:1px solid var(--border2)}
+.addpill>span.on{background:var(--pri-tint)}
+.addpill.ph2{height:44px}.addpill.ph2>span{font-size:14px;padding:0 18px}
+.ev .nl{color:var(--muted);font-style:italic}
+.wfroot{width:1500px;height:1250px}
+</style>
+</helmet>
+<div class="hf wfroot">
+<div class="cap" style="left:40px;top:14px;width:300px;white-space:normal;line-height:1.35">Desktop · hover an empty slot · both Events have a Google location</div><section class="col" style="left:40px;top:64px;width:300px;height:430px"><div class="dh"><h3>Day 1</h3><span class="muted">Tue 3 Nov</span></div><div class="axis"><button class="ev k-a" style="top:26px;height:78px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Fushimi Inari Taisha</span></span><span class="s">11:00 – 12:30</span><span class="s ">Fukakusa, Kyoto</span></button><div class="slotband" style="top:108px;height:44px"></div><div class="addpill " style="top:115px"><span class=""><svg class="i" style="width:13px;height:13px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg> Add Event</span><span class=""><svg class="i" style="width:13px;height:13px;" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="14" rx="3"></rect><path d="M5 11h14"></path><path d="M9 21l2-4M15 21l-2-4"></path></svg> <span>Add Travel</span></span></div><button class="ev k-a" style="top:156px;height:78px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Kiyomizu-dera</span></span><span class="s">13:30 – 15:00</span><span class="s ">Higashiyama, Kyoto</span></button></div></section><div class="cap" style="left:380px;top:14px;width:300px;white-space:normal;line-height:1.35">Desktop · hover an empty slot · one Event has no location</div><section class="col" style="left:380px;top:64px;width:300px;height:430px"><div class="dh"><h3>Day 1</h3><span class="muted">Tue 3 Nov</span></div><div class="axis"><button class="ev k-a" style="top:26px;height:78px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Fushimi Inari Taisha</span></span><span class="s">11:00 – 12:30</span><span class="s ">Fukakusa, Kyoto</span></button><div class="slotband" style="top:108px;height:44px"></div><div class="addpill " style="top:115px"><span class=""><svg class="i" style="width:13px;height:13px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg> Add Event</span></div><button class="ev k-a" style="top:156px;height:78px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Tea ceremony</span></span><span class="s">13:30 – 15:00</span><span class="s nl">No location</span></button></div></section><div class="cap" style="left:720px;top:14px;width:300px;white-space:normal;line-height:1.35">Desktop · hover empty time after the last Event</div><section class="col" style="left:720px;top:64px;width:300px;height:430px"><div class="dh"><h3>Day 1</h3><span class="muted">Tue 3 Nov</span></div><div class="axis"><button class="ev k-a" style="top:26px;height:78px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Fushimi Inari Taisha</span></span><span class="s">11:00 – 12:30</span><span class="s ">Fukakusa, Kyoto</span></button><div class="slotband" style="top:112px;height:96px"></div><div class="addpill " style="top:146px"><span class=""><svg class="i" style="width:13px;height:13px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg> Add Event</span></div></div></section><div class="cap" style="left:40px;top:530px;width:390px;white-space:normal;line-height:1.35">Phone · tap an empty slot · both Events have a Google location</div><section class="col" style="left:40px;top:590px;width:390px;height:620px"><div class="dh"><h3>Day 1</h3><span class="muted">Tue 3 Nov</span></div><div class="axis"><button class="ev k-a" style="top:26px;height:78px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Fushimi Inari Taisha</span></span><span class="s">11:00 – 12:30</span><span class="s ">Fukakusa, Kyoto</span></button><div class="slotband" style="top:108px;height:52px"></div><div class="addpill ph2" style="top:112px"><span class=""><svg class="i" style="width:16px;height:16px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg> Add Event</span><span class=""><svg class="i" style="width:16px;height:16px;" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="14" rx="3"></rect><path d="M5 11h14"></path><path d="M9 21l2-4M15 21l-2-4"></path></svg> <span>Add Travel</span></span></div><button class="ev k-a" style="top:164px;height:78px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Kiyomizu-dera</span></span><span class="s">13:30 – 15:00</span><span class="s ">Higashiyama, Kyoto</span></button></div></section><div class="cap" style="left:470px;top:530px;width:390px;white-space:normal;line-height:1.35">Phone · tap an empty slot · one Event has no location</div><section class="col" style="left:470px;top:590px;width:390px;height:620px"><div class="dh"><h3>Day 1</h3><span class="muted">Tue 3 Nov</span></div><div class="axis"><button class="ev k-a" style="top:26px;height:78px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Fushimi Inari Taisha</span></span><span class="s">11:00 – 12:30</span><span class="s ">Fukakusa, Kyoto</span></button><div class="slotband" style="top:108px;height:52px"></div><div class="addpill ph2" style="top:112px"><span class=""><svg class="i" style="width:16px;height:16px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg> Add Event</span></div><button class="ev k-a" style="top:164px;height:78px"><span class="t"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg><span>Tea ceremony</span></span><span class="s">13:30 – 15:00</span><span class="s nl">No location</span></button></div></section><aside class="mc" style="position:absolute;left:1060px;top:64px;width:380px"><h4>Design notes</h4>
+<div>An empty time slot between two Events shows its buttons on hover (desktop) or when tapped (phone). Nothing is shown at rest.</div>
+<div>Both neighbouring Events have a location set from Google: the slot offers “Add Event” and “Add Travel”.</div>
+<div>Otherwise it offers “Add Event” only: a neighbour has no location, or only a free-text place, or the slot is before the first Event or after the last one. A Day’s Lodging at the top counts as a neighbour for the first slot.</div>
+<div>“Add Event” opens a new Event in that slot. “Add Travel” opens the travel-mode chooser, with the Trip’s default mode selected (see the Leg board).</div>
+<div>Where a Leg already exists, the slot shows the Leg chip and not these buttons.</div>
+<div>The buttons sit in a small floating group centred on the slot, so they fit even when the gap is short; they appear above the neighbouring cards. The slot is outlined with a dashed highlight.</div>
+<div>On phone the buttons are 44 px high. Tapping outside, or the highlighted slot again, dismisses them.</div></aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1500,"height":1250}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

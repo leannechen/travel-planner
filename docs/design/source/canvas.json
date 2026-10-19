@@ -148,7 +148,7 @@
     "LegDetail.dc.html": {
       "h": 900,
       "title": "Leg — chooser, detail, warning, cannot calculate, phone sheet · High fidelity",
-      "w": 3200,
+      "w": 3300,
       "x": 4740,
       "y": 8900
     },
@@ -303,6 +303,14 @@
       "w": 1960,
       "x": 0,
       "y": 0
+    },
+    "EmptySlot.dc.html": {
+      "h": 1250,
+      "page": "page-72j84k",
+      "title": "Empty time slot — Add Event / Add Travel on hover (desktop) and tap (phone) · High fidelity",
+      "w": 1500,
+      "x": 0,
+      "y": 3100
     }
   },
   "createdOnFiles": {
@@ -461,7 +469,8 @@
     "Logout.dc.html",
     "SessionExpired.dc.html",
     "InviteEditor.dc.html",
-    "NotesStates.dc.html"
+    "NotesStates.dc.html",
+    "EmptySlot.dc.html"
   ],
   "pages": [
     {

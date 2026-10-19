@@ -23,8 +23,8 @@ import { useT } from "./preferences";
 import type { Params } from "./i18n";
 import type { MessageKey } from "./messages";
 import { endGesture, gestureJustEnded } from "./gesture";
-import { TriangleAlert } from "lucide-react";
-import { useMemo, useState, type MouseEvent, type PointerEvent } from "react";
+import { Plus, TriangleAlert } from "lucide-react";
+import { useEffect, useMemo, useState, type MouseEvent, type PointerEvent } from "react";
 
 export const PX_PER_HOUR = 64;
 export const SNAP_PX = (PX_PER_HOUR * SNAP_MINUTES) / 60;
@@ -127,6 +127,21 @@ export function DayTimeline({
   const t = useT();
   const placements = new Map(layoutDay(events).map((p) => [p.id, p]));
   const [resizing, setResizing] = useState<({ id: string } & EventTimes) | undefined>();
+  // The slot whose buttons are shown by a tap (touch screens); a hover or focus shows them too.
+  const [openSlot, setOpenSlot] = useState<string | undefined>();
+  useEffect(() => {
+    if (!openSlot) return;
+    const dismiss = (e: globalThis.PointerEvent) => {
+      if (!(e.target as HTMLElement).closest(".slot-row.open")) setOpenSlot(undefined);
+    };
+    const escape = (e: KeyboardEvent) => e.key === "Escape" && setOpenSlot(undefined);
+    document.addEventListener("pointerdown", dismiss);
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("pointerdown", dismiss);
+      document.removeEventListener("keydown", escape);
+    };
+  }, [openSlot]);
 
   const finishGesture = endGesture;
 
@@ -134,7 +149,7 @@ export function DayTimeline({
   // Keyboard users create through the Day's "Add event" button.
   function handleAxisClick(e: MouseEvent<HTMLUListElement>) {
     if (gestureJustEnded()) return;
-    if ((e.target as HTMLElement).closest(".event-card, .new-event, .leg-row")) return;
+    if ((e.target as HTMLElement).closest(".event-card, .new-event, .leg-row, .slot-actions")) return;
     const top = e.currentTarget.getBoundingClientRect().top;
     onCreateAt(minuteAtOffset(e.clientY - top, range, PX_PER_HOUR));
   }
@@ -208,14 +223,36 @@ export function DayTimeline({
           />
         );
       })}
-      {adjacentPairs(events).map(([from, to]) => (
-        <LegRow
-          key={`${from.id}>${to.id}`}
-          from={from}
-          to={to}
-          leg={legs.find((l) => l.fromEventId === from.id && l.toEventId === to.id)}
+      {adjacentPairs(events).map(([from, to]) => {
+        const leg = legs.find((l) => l.fromEventId === from.id && l.toEventId === to.id);
+        const key = `${from.id}>${to.id}`;
+        return leg ? (
+          <LegRow key={key} from={from} to={to} leg={leg} range={range} onOpen={onOpenLeg} />
+        ) : (
+          <SlotRow
+            key={key}
+            id={key}
+            from={from}
+            to={to}
+            startMinute={from.startMinute + from.durationMinutes}
+            endMinute={to.startMinute}
+            range={range}
+            open={openSlot === key}
+            onOpenChange={(open) => setOpenSlot(open ? key : undefined)}
+            onCreateAt={onCreateAt}
+            onOpenLeg={onOpenLeg}
+          />
+        );
+      })}
+      {edgeSlots(events, range).map((slot) => (
+        <SlotRow
+          key={slot.id}
+          {...slot}
           range={range}
-          onOpen={onOpenLeg}
+          open={openSlot === slot.id}
+          onOpenChange={(open) => setOpenSlot(open ? slot.id : undefined)}
+          onCreateAt={onCreateAt}
+          onOpenLeg={onOpenLeg}
         />
       ))}
       {draft && (
@@ -298,30 +335,18 @@ function EventCard({
   );
 }
 
-type LegRowProps = { from: Event; to: Event; leg?: Leg; range: Range; onOpen: (target: LegTarget, anchor: HTMLElement) => void };
+type LegRowProps = { from: Event; to: Event; leg: Leg; range: Range; onOpen: (target: LegTarget, anchor: HTMLElement) => void };
 
-// The space between two adjacent Events: the Leg between them, or a slot to add one (ADR 0002).
-// A slot needs a location on both Events; one that has lost its location keeps showing its Leg.
+// The Leg between two adjacent Events, drawn as a pill on the middle of the space between them.
+// A Leg stays when an Event loses its location, so it can still show it cannot be calculated.
 function LegRow({ from, to, leg, range, onOpen }: LegRowProps) {
   const t = useT();
   const top = toPx(from.startMinute + from.durationMinutes - range.startMinute);
   const bottom = toPx(to.startMinute - range.startMinute);
   const middle = (top + bottom) / 2;
-  const { fromPlaceId, toPlaceId } = legEndpoints(from, to);
   if (middle > toPx(range.endMinute - range.startMinute)) return null;
-  if (!leg && !(fromPlaceId && toPlaceId)) return null;
 
   const open = (e: MouseEvent<HTMLButtonElement>) => onOpen({ from, to, leg }, e.currentTarget);
-
-  if (!leg) {
-    return (
-      <li className="leg-row" style={{ top: middle }}>
-        <button type="button" className="leg-slot" aria-label={t("leg.addBetween", { from: from.title, to: to.title })} onClick={open}>
-          + {t("leg.add")}
-        </button>
-      </li>
-    );
-  }
 
   const Icon = MODE_ICONS[leg.mode];
   const gap = legGap(from, to);
@@ -339,6 +364,103 @@ function LegRow({ from, to, leg, range, onOpen }: LegRowProps) {
         {warning || none ? <TriangleAlert size={12} aria-hidden="true" /> : <Icon size={12} aria-hidden="true" />}
         {warning ? t("leg.pillShort", { duration, gap: formatDuration(Math.max(gap, 0), t) }) : duration}
       </button>
+    </li>
+  );
+}
+
+// How much empty time before the first Event or after the last one is offered as a slot.
+const EDGE_SLOT_MINUTES = 120;
+
+type Slot = {
+  id: string;
+  // The Events on each side; the slot before the first Event or after the last has one only.
+  from?: Event;
+  to?: Event;
+  startMinute: number;
+  endMinute: number;
+};
+
+// The empty time before the first Event and after the last one (the Events are not sorted).
+function edgeSlots(events: Event[], range: Range): Slot[] {
+  if (events.length === 0) return [];
+  const first = events.reduce((a, b) => (b.startMinute < a.startMinute ? b : a));
+  const last = events.reduce((a, b) => (b.startMinute + b.durationMinutes > a.startMinute + a.durationMinutes ? b : a));
+  const lastEnd = last.startMinute + last.durationMinutes;
+  const slots: Slot[] = [];
+  const before = Math.max(range.startMinute, first.startMinute - EDGE_SLOT_MINUTES);
+  if (before < first.startMinute) slots.push({ id: `<${first.id}`, to: first, startMinute: before, endMinute: first.startMinute });
+  const after = Math.min(range.endMinute, lastEnd + EDGE_SLOT_MINUTES);
+  if (lastEnd < after) slots.push({ id: `${last.id}>`, from: last, startMinute: lastEnd, endMinute: after });
+  return slots;
+}
+
+type SlotRowProps = Slot & {
+  range: Range;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCreateAt: (startMinute: number) => void;
+  onOpenLeg: (target: LegTarget, anchor: HTMLElement) => void;
+};
+
+// An empty stretch of the Day. Its buttons show on hover or focus, or after a tap on a touch
+// screen: "Add Event" always, and "Add Travel" between two Events that both have a Google place.
+function SlotRow({ from, to, startMinute, endMinute, range, open, onOpenChange, onCreateAt, onOpenLeg }: SlotRowProps) {
+  const t = useT();
+  const top = toPx(startMinute - range.startMinute);
+  if (top > toPx(range.endMinute - range.startMinute)) return null;
+  const endpoints = from && to ? legEndpoints(from, to) : undefined;
+  const canTravel = !!(from && to && endpoints?.fromPlaceId && endpoints.toPlaceId);
+  const where = from && to
+    ? t("slot.between", { from: from.title, to: to.title })
+    : from
+      ? t("slot.after", { title: from.title })
+      : t("slot.before", { title: to!.title });
+
+  // On a touch screen the first tap only shows the buttons, so nothing is triggered unseen.
+  const touchReveal = (e: MouseEvent) => {
+    if (open || !window.matchMedia("(hover: none)").matches) return false;
+    e.stopPropagation();
+    onOpenChange(true);
+    return true;
+  };
+
+  return (
+    <li
+      className={open ? "slot-row open" : "slot-row"}
+      style={{ top, height: toPx(endMinute - startMinute) }}
+      onClick={(e) => {
+        // A tap on the empty stretch itself toggles the buttons; a click elsewhere creates as usual.
+        if ((e.target as HTMLElement).closest(".slot-actions") || !window.matchMedia("(hover: none)").matches) return;
+        e.stopPropagation();
+        onOpenChange(!open);
+      }}
+    >
+      <div className="slot-actions">
+        <button
+          type="button"
+          aria-label={t("slot.addEventLabel", { where })}
+          onClick={(e) => {
+            if (touchReveal(e)) return;
+            onOpenChange(false);
+            onCreateAt(startMinute);
+          }}
+        >
+          <Plus size={14} aria-hidden="true" /> {t("slot.addEvent")}
+        </button>
+        {canTravel && (
+          <button
+            type="button"
+            aria-label={t("leg.addBetween", { from: from!.title, to: to!.title })}
+            onClick={(e) => {
+              if (touchReveal(e)) return;
+              onOpenChange(false);
+              onOpenLeg({ from: from!, to: to! }, e.currentTarget);
+            }}
+          >
+            <MODE_ICONS.transit size={14} aria-hidden="true" /> {t("leg.add")}
+          </button>
+        )}
+      </div>
     </li>
   );
 }

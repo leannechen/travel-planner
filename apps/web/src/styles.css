@@ -1256,7 +1256,7 @@ main.has-panel .topbar {
 }
 
 .slot-actions button + button {
-  border-left: 1px solid var(--border2);
+  border-left: 1px solid color-mix(in srgb, var(--pri) 45%, transparent);
 }
 
 .slot-actions button:hover {

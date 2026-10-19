@@ -4,35 +4,35 @@
   "boards": {
     "AccountMenu.dc.html": {
       "h": 2266,
-      "title": "Account menu — logged out, logged in, open · High fidelity",
+      "title": "#38 · Account menu — logged out, logged in, open · High fidelity",
       "w": 5780,
       "x": 0,
       "y": 22778
     },
     "ConfirmEvent.dc.html": {
       "h": 880,
-      "title": "Archive and delete confirmations, toasts, phone · High fidelity",
+      "title": "#20 · Archive and delete confirmations, toasts, phone · High fidelity",
       "w": 2000,
       "x": 2460,
       "y": 5800
     },
     "DSComponents.dc.html": {
       "h": 1180,
-      "title": "Design system — components and their states",
+      "title": "#30 · Design system — components and their states",
       "w": 2400,
       "x": 1980,
       "y": 12880
     },
     "DSOverlays.dc.html": {
       "h": 1180,
-      "title": "Design system — dialogs, popovers, banners, tooltips and the shortcut format",
+      "title": "#31 · Design system — dialogs, popovers, banners, tooltips and the shortcut format",
       "w": 1800,
       "x": 4460,
       "y": 12880
     },
     "DSTokens.dc.html": {
       "h": 1180,
-      "title": "Design system — color tokens (light and dark), type scale, spacing, radius, shadow",
+      "title": "#29 · Design system — color tokens (light and dark), type scale, spacing, radius, shadow",
       "w": 1900,
       "x": 0,
       "y": 12880
@@ -40,7 +40,7 @@
     "DayDelete.dc.html": {
       "expand": "fill",
       "h": 900,
-      "title": "Delete Day — confirmation and undo toast · High fidelity",
+      "title": "#13 · Delete Day — confirmation and undo toast · High fidelity",
       "w": 1440,
       "x": 2780,
       "y": 3100
@@ -48,49 +48,49 @@
     "DayDrag.dc.html": {
       "expand": "fill",
       "h": 900,
-      "title": "Dragging a Day — lifted Day, drop position, live renumbering · High fidelity",
+      "title": "#12 · Dragging a Day — lifted Day, drop position, live renumbering · High fidelity",
       "w": 1440,
       "x": 1260,
       "y": 3100
     },
     "DayHeader.dc.html": {
       "h": 800,
-      "title": "Day header — handle, states and Day menu (desktop) · High fidelity",
+      "title": "#11 · Day header — handle, states and Day menu (desktop) · High fidelity",
       "w": 1180,
       "x": 0,
       "y": 3100
     },
     "DayMenuPhone.dc.html": {
       "h": 930,
-      "title": "Day menu and delete confirmation — phone · High fidelity",
+      "title": "#14 · Day menu and delete confirmation — phone · High fidelity",
       "w": 1330,
       "x": 4300,
       "y": 3100
     },
     "DaySwapLodging.dc.html": {
       "h": 940,
-      "title": "Swapping two Days — the 3-night stay stays in place · High fidelity",
+      "title": "#15 · Swapping two Days — the 3-night stay stays in place · High fidelity",
       "w": 1440,
       "x": 5710,
       "y": 3100
     },
     "Dialogs.dc.html": {
       "h": 900,
-      "title": "Dialogs — Share (on / off), Export, Trip settings · High fidelity",
+      "title": "#19 · Dialogs — Share (on / off), Export, Trip settings · High fidelity",
       "w": 2380,
       "x": 0,
       "y": 5800
     },
     "EventImage.dc.html": {
       "h": 1060,
-      "title": "Event image — panel states and Event block · High fidelity",
+      "title": "#26 · Event image — panel states and Event block · High fidelity",
       "w": 2340,
       "x": 0,
       "y": 10100
     },
     "EventPanel.dc.html": {
       "h": 900,
-      "title": "Event panel — phone bottom sheet · High fidelity",
+      "title": "#03 · Event panel — phone bottom sheet · High fidelity",
       "w": 470,
       "x": 1990,
       "y": 0
@@ -98,7 +98,7 @@
     "EventPanelModal.dc.html": {
       "expand": "fill",
       "h": 900,
-      "title": "Event panel — expanded: modal (Collapse → side panel) · High fidelity",
+      "title": "#05 · Event panel — expanded: modal (Collapse → side panel) · High fidelity",
       "w": 1440,
       "x": 4060,
       "y": 0
@@ -106,77 +106,77 @@
     "EventPanelSide.dc.html": {
       "expand": "fill",
       "h": 900,
-      "title": "Event panel — default: side panel (Expand → modal) · High fidelity",
+      "title": "#04 · Event panel — default: side panel (Expand → modal) · High fidelity",
       "w": 1440,
       "x": 2540,
       "y": 0
     },
     "ExportImage.dc.html": {
       "h": 1120,
-      "title": "Exported image — poster · High fidelity",
+      "title": "#21 · Exported image — poster · High fidelity",
       "w": 1960,
       "x": 4540,
       "y": 5800
     },
     "GuestTooltip.dc.html": {
       "h": 1956,
-      "title": "Guest workspace — tooltip on “Log in to save your progress” · High fidelity",
+      "title": "#35 · Guest workspace — tooltip on “Log in to save your progress” · High fidelity",
       "w": 2340,
       "x": 0,
       "y": 15740
     },
     "GuestWorkspace.dc.html": {
       "h": 960,
-      "title": "Guest workspace — Log in to save, phone banner and “…” menu, login note · High fidelity",
+      "title": "#34 · Guest workspace — Log in to save, phone banner and “…” menu, login note · High fidelity",
       "w": 2940,
       "x": 7600,
       "y": 4300
     },
     "InviteEditor.dc.html": {
       "h": 1956,
-      "title": "Invited Editor from an email link, logged out · High fidelity",
+      "title": "#41 · Invited Editor from an email link, logged out · High fidelity",
       "w": 2340,
       "x": 0,
       "y": 29316
     },
     "Landing.dc.html": {
       "h": 1000,
-      "title": "Landing — desktop and phone · High fidelity",
+      "title": "#16 · Landing — desktop and phone · High fidelity",
       "w": 2300,
       "x": 0,
       "y": 4300
     },
     "LegDetail.dc.html": {
       "h": 900,
-      "title": "Leg — chooser, detail, warning, cannot calculate, phone sheet · High fidelity",
+      "title": "#25 · Leg — chooser, detail, warning, cannot calculate, phone sheet · High fidelity",
       "w": 3300,
       "x": 4740,
       "y": 8900
     },
     "LodgingBanner.dc.html": {
       "h": 900,
-      "title": "Lodging banner in Day columns — 3 nights, Day 1 to Day 4 · High fidelity",
+      "title": "#10 · Lodging banner in Day columns — 3 nights, Day 1 to Day 4 · High fidelity",
       "w": 1400,
       "x": 5450,
       "y": 1500
     },
     "LoginHosted.dc.html": {
       "h": 2456,
-      "title": "Hosted login page (Auth0, themed) — opened directly from every entry point; log in, sign up, wrong password · High fidel",
+      "title": "#36 · Hosted login page (Auth0, themed) — opened directly from every entry point; log in, sign up, wrong password · High fidel",
       "w": 5780,
       "x": 0,
       "y": 17816
     },
     "LoginReturn.dc.html": {
       "h": 2266,
-      "title": "Returning to the app after login — Trip added, Trip list, login didn’t complete · High fidelity",
+      "title": "#37 · Returning to the app after login — Trip added, Trip list, login didn’t complete · High fidelity",
       "w": 5780,
       "x": 0,
       "y": 20392
     },
     "Logout.dc.html": {
       "h": 1956,
-      "title": "Log out — Landing with “You’re logged out” toast · High fidelity",
+      "title": "#39 · Log out — Landing with “You’re logged out” toast · High fidelity",
       "w": 2340,
       "x": 0,
       "y": 25164
@@ -184,7 +184,7 @@
     "Main.dc.html": {
       "expand": "fill",
       "h": 900,
-      "title": "Trip workspace — desktop · High fidelity",
+      "title": "#01 · Trip workspace — desktop · High fidelity",
       "w": 1440,
       "x": 0,
       "y": 0
@@ -192,7 +192,7 @@
     "MainCollapsed.dc.html": {
       "expand": "fill",
       "h": 900,
-      "title": "Trip workspace — desktop, both side panels collapsed · High fidelity",
+      "title": "#33 · Trip workspace — desktop, both side panels collapsed · High fidelity",
       "w": 1440,
       "x": 7100,
       "y": 0
@@ -200,7 +200,7 @@
     "MainDark.dc.html": {
       "expand": "fill",
       "h": 900,
-      "title": "Trip workspace — desktop, dark theme · High fidelity",
+      "title": "#32 · Trip workspace — desktop, dark theme · High fidelity",
       "w": 1440,
       "x": 0,
       "y": 14340
@@ -208,91 +208,91 @@
     "MapView.dc.html": {
       "expand": "fill",
       "h": 900,
-      "title": "Map View · High fidelity",
+      "title": "#06 · Map View · High fidelity",
       "w": 1440,
       "x": 5580,
       "y": 0
     },
     "NotesPanel.dc.html": {
       "h": 1200,
-      "title": "Notes panel — open on Schedule and Map, movable, states, phone sheet · High fidelity",
+      "title": "#17 · Notes panel — open on Schedule and Map, movable, states, phone sheet · High fidelity",
       "w": 3040,
       "x": 2380,
       "y": 4300
     },
     "PanelKinds.dc.html": {
       "h": 1080,
-      "title": "Event panel by kind — desktop (Attraction · Meal · Lodging · Transport) · High fidelity",
+      "title": "#07 · Event panel by kind — desktop (Attraction · Meal · Lodging · Transport) · High fidelity",
       "w": 1840,
       "x": 0,
       "y": 1500
     },
     "PanelKindsPhone.dc.html": {
       "h": 1260,
-      "title": "Event panel by kind — phone bottom sheets · High fidelity",
+      "title": "#08 · Event panel by kind — phone bottom sheets · High fidelity",
       "w": 1710,
       "x": 1920,
       "y": 1500
     },
     "PanelSwitch.dc.html": {
       "h": 1040,
-      "title": "Switching kind — Attraction to Lodging, before and after · High fidelity (after state)",
+      "title": "#09 · Switching kind — Attraction to Lodging, before and after · High fidelity (after state)",
       "w": 1660,
       "x": 3710,
       "y": 1500
     },
     "Phone.dc.html": {
       "h": 844,
-      "title": "Trip workspace — phone · High fidelity",
+      "title": "#02 · Trip workspace — phone · High fidelity",
       "w": 390,
       "x": 1520,
       "y": 0
     },
     "SessionExpired.dc.html": {
       "h": 1956,
-      "title": "Session expired while editing — read-only Trip and banner · High fidelity",
+      "title": "#40 · Session expired while editing — read-only Trip and banner · High fidelity",
       "w": 2340,
       "x": 0,
       "y": 27240
     },
     "StatesEmpty.dc.html": {
       "h": 1000,
-      "title": "States — empty Trip, Day, Backlog and Archive; loading · High fidelity",
+      "title": "#22 · States — empty Trip, Day, Backlog and Archive; loading · High fidelity",
       "w": 2000,
       "x": 0,
       "y": 7220
     },
     "StatesErrors.dc.html": {
       "h": 1180,
-      "title": "States — errors and limit reached · High fidelity",
+      "title": "#23 · States — errors and limit reached · High fidelity",
       "w": 2000,
       "x": 2080,
       "y": 7220
     },
     "StatesGeneric.dc.html": {
       "h": 900,
-      "title": "Empty state, loading skeleton and error banner — one generic style each · High fidelity",
+      "title": "#28 · Empty state, loading skeleton and error banner — one generic style each · High fidelity",
       "w": 2000,
       "x": 0,
       "y": 11500
     },
     "TripList.dc.html": {
       "h": 920,
-      "title": "Trip list — sidebar, item menu, New Trip (Blank / Generate with AI), Delete Trip, phone · High fidelity",
+      "title": "#24 · Trip list — sidebar, item menu, New Trip (Blank / Generate with AI), Delete Trip, phone · High fidelity",
       "w": 4660,
       "x": 0,
       "y": 8900
     },
     "TripListNav.dc.html": {
       "h": 940,
-      "title": "Trip list — collapsed rail, drawer, pinned; Backlog/Archive collapse; switching Trips · High fidelity",
+      "title": "#27 · Trip list — collapsed rail, drawer, pinned; Backlog/Archive collapse; switching Trips · High fidelity",
       "w": 4540,
       "x": 2420,
       "y": 10100
     },
     "Viewer.dc.html": {
       "h": 900,
-      "title": "Viewer mode — read-only workspace and Event details · High fidelity",
+      "title": "#18 · Viewer mode — read-only workspace and Event details · High fidelity",
       "w": 2040,
       "x": 5500,
       "y": 4300
@@ -300,7 +300,7 @@
     "NotesStates.dc.html": {
       "h": 2920,
       "page": "page-72j84k",
-      "title": "Notes panel — new Note, list, open Note; desktop and phone, light and dark · High fidelity",
+      "title": "#42 · Notes panel — new Note, list, open Note; desktop and phone, light and dark · High fidelity",
       "w": 1960,
       "x": 0,
       "y": 0
@@ -308,7 +308,7 @@
     "EmptySlot.dc.html": {
       "h": 1250,
       "page": "page-72j84k",
-      "title": "Empty time slot — Add Event / Add Travel on hover (desktop) and tap (phone) · High fidelity",
+      "title": "#43 · Empty time slot — Add Event / Add Travel on hover (desktop) and tap (phone) · High fidelity",
       "w": 1500,
       "x": 0,
       "y": 3100
@@ -316,10 +316,18 @@
     "OpeningHours.dc.html": {
       "h": 1740,
       "page": "page-72j84k",
-      "title": "Opening hours — Event panel section states, conflict label, read-only, phone · High fidelity",
+      "title": "#44 · Opening hours — Event panel section states, conflict label, read-only, phone · High fidelity",
       "w": 1960,
       "x": 0,
       "y": 4470
+    },
+    "TripDates.dc.html": {
+      "h": 1320,
+      "page": "page-72j84k",
+      "title": "#45 · Trip dates — start date entry points, Trip settings, date picker, Day headers · High fidelity",
+      "w": 1960,
+      "x": 0,
+      "y": 6360
     }
   },
   "createdOnFiles": {
@@ -480,7 +488,8 @@
     "InviteEditor.dc.html",
     "NotesStates.dc.html",
     "EmptySlot.dc.html",
-    "OpeningHours.dc.html"
+    "OpeningHours.dc.html",
+    "TripDates.dc.html"
   ],
   "pages": [
     {

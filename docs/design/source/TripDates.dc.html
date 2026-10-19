@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Trip dates</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="hf.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Nunito:wght@700;800&amp;family=Noto+Sans+TC:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.wfroot{position:relative;overflow:hidden;width:1960px;height:1320px;background:var(--surface2)}
+button{font:inherit;color:inherit;cursor:pointer;text-align:left}
+.i{width:16px;height:16px;flex:none}
+.lbl{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:10px 0 4px;display:block}
+.td-t{position:absolute;left:40px;top:20px;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.td-row{position:absolute;left:40px;display:flex;gap:40px;align-items:flex-start}
+.td-item{display:flex;flex-direction:column;gap:8px}
+.td-cap{font-size:12px;font-weight:600;color:var(--text);text-transform:uppercase;letter-spacing:.05em}
+.td-cp{font-size:12px;color:var(--muted);line-height:1.45}
+.td-bw{border:1px solid var(--border2);border-radius:var(--r-lg);overflow:hidden;background:var(--surface)}
+.td-bar{position:static;width:auto}
+.td-date{display:inline-flex;gap:6px;align-items:center;height:34px;padding:0 10px;border:1px solid transparent;border-radius:var(--r-md);background:transparent;color:var(--muted);font-size:13px;white-space:nowrap}
+.td-date.hv{background:var(--pri-tint);color:var(--pri-ink)}
+.td-date.add{border:1px dashed var(--border2);color:var(--pri-ink);font-weight:600}
+.td-bd{background:rgba(20,24,30,.5);border-radius:var(--r-lg);padding:28px 25px;display:flex;justify-content:center;width:440px;box-sizing:border-box}
+.dlg{position:relative}
+.dlg .x{position:absolute;right:10px;top:10px}
+.sg{display:flex;border:1px solid var(--border2);border-radius:var(--r-md);overflow:hidden}
+.sg span{flex:1;height:34px;display:flex;align-items:center;justify-content:center;gap:6px}
+.sg span.on{background:var(--text);color:#fff}
+.help{font-size:12px;color:var(--muted);margin-top:6px}
+.td-cal{position:absolute;left:0;top:44px;width:300px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-md);box-shadow:var(--sh-pop);padding:10px;z-index:10}
+.td-ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.td-wd,.td-g{display:grid;grid-template-columns:repeat(7,1fr);text-align:center}
+.td-wd span{font-size:11px;color:var(--muted);padding:3px 0}
+.td-g span{height:34px;display:flex;align-items:center;justify-content:center;border-radius:var(--r-sm);font-size:13px}
+.td-g span:nth-child(1){grid-column-start:1}
+.td-g span.sel{background:var(--pri-strong);color:var(--onpri);font-weight:700}
+.td-menu{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-md);box-shadow:var(--sh-pop);padding:4px}
+.td-mi{padding:9px 10px;border-radius:var(--r-sm);font-size:14px}
+.td-mi.hi{background:var(--pri-tint);color:var(--pri-ink);font-weight:600}
+.td-mi.dg{color:var(--danger)}
+.td-days{display:flex;border:1px solid var(--border2);border-radius:var(--r-lg);overflow:hidden;background:var(--surface)}
+.td-col{flex:1;border-left:1px solid var(--border)}.td-col:first-child{border-left:0}
+.td-dh b,.td-dh span{white-space:nowrap}.td-dh span{font-size:12px}
+.td-dh{height:44px;display:flex;align-items:center;gap:6px;padding:0 10px;border-bottom:1px solid var(--border)}
+.td-ax{height:80px;background-image:linear-gradient(to bottom,var(--grid) 1px,transparent 1px);background-size:100% 26px}
+.td-pt{display:flex;gap:6px;padding:10px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-lg);margin-bottom:10px}
+.td-tab{flex:1;height:44px;border:1px solid var(--border2);border-radius:var(--r-md);display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;line-height:1.2}
+.td-tab small{font-size:11px;color:var(--muted);font-weight:500}
+.td-tab.on{background:var(--pri-strong);color:var(--onpri);border-color:var(--pri-strong)}.td-tab.on small{color:rgba(255,255,255,.85)}
+.td-side{display:flex;flex-direction:column;gap:12px;width:380px;line-height:1.5}
+</style>
+</helmet>
+<div class="hf wfroot">
+<div class="td-t">Trip dates — where to set the start date and what it drives</div>
+<div class="td-row" style="top:52px"><div class="td-item" style="width:560px"><div class="td-cap">1 · Desktop top bar · dates set</div><div class="td-bw"><header class="topbar td-bar"><span class="logo"><svg class="i" style="width:17px;height:17px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"></path><path d="M9 4v14M15 6v14"></path></svg></span><button class="title" aria-haspopup="true" aria-label="Trips: Kyoto &amp; Osaka">Kyoto &amp; Osaka<svg class="i" style="color:var(--muted)" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button><button class="td-date" aria-label="Trip dates: Tue 3 to Sat 7 Nov, 5 days. Opens Trip settings"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style=""><rect x="3" y="4" width="18" height="17" rx="2"></rect><path d="M3 10h18M8 2v4M16 2v4"></path></svg>Tue 3 – Sat 7 Nov · 5 days</button></header></div><div class="td-cp" style="margin-top:0px">The date range is a button. Clicking it opens Trip settings (#19). Proposed; today it is plain text.</div></div><div class="td-item" style="width:560px"><div class="td-cap">2 · Desktop top bar · hover</div><div class="td-bw"><header class="topbar td-bar"><span class="logo"><svg class="i" style="width:17px;height:17px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"></path><path d="M9 4v14M15 6v14"></path></svg></span><button class="title" aria-haspopup="true" aria-label="Trips: Kyoto &amp; Osaka">Kyoto &amp; Osaka<svg class="i" style="color:var(--muted)" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button><button class="td-date hv" aria-label="Trip dates. Opens Trip settings"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style=""><rect x="3" y="4" width="18" height="17" rx="2"></rect><path d="M3 10h18M8 2v4M16 2v4"></path></svg>Tue 3 – Sat 7 Nov · 5 days</button></header></div><div class="td-cp" style="margin-top:0px">Hover and focus show a tinted background so it reads as clickable.</div></div><div class="td-item" style="width:560px"><div class="td-cap">3 · Desktop top bar · no dates</div><div class="td-bw"><header class="topbar td-bar"><span class="logo"><svg class="i" style="width:17px;height:17px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"></path><path d="M9 4v14M15 6v14"></path></svg></span><button class="title" aria-haspopup="true" aria-label="Trips: Kyoto &amp; Osaka">Kyoto &amp; Osaka<svg class="i" style="color:var(--muted)" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button><button class="td-date add" aria-label="Add dates. Opens Trip settings"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style=""><rect x="3" y="4" width="18" height="17" rx="2"></rect><path d="M3 10h18M8 2v4M16 2v4"></path></svg>Add dates</button><span class="muted">5 days</span></header></div><div class="td-cp" style="margin-top:0px">“Add dates” takes the place of the range and opens the same dialog.</div></div></div>
+<div class="td-row" style="top:240px"><div class="td-item" style="width:200px"><div class="td-cap">4 · Phone “…” menu</div><div class="td-menu" style="width:200px"><div class="td-mi">Export</div><div class="td-mi">Language</div><div class="td-mi hi">Trip settings</div><div class="td-mi">Theme</div></div><div class="td-cp" style="margin-top:0px">Phone has no date text in its top bar, so Trip settings is in the “…” menu.</div></div><div class="td-item" style="width:200px"><div class="td-cap">5 · Trip list item “⋯” menu (existing)</div><div class="td-menu" style="width:200px"><div class="td-mi">Rename</div><div class="td-mi hi">Trip settings</div><div class="td-mi">Export…</div><div class="td-mi">Share…</div><div class="td-mi dg">Delete Trip…</div></div><div class="td-cp" style="margin-top:0px">Desktop: Trip title → Trip list → “⋯” on the Trip. Exists today (#24).</div></div><div class="td-item" style="width:440px"><div class="td-cap">6 · Trip settings · dates set</div><div class="td-bd"><section class="dlg" role="dialog" aria-modal="true" style="width:390px"><button class="ib x" aria-label="Close settings"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style=""><path d="M6 6l12 12M18 6L6 18"></path></svg></button><h2>Trip settings <span class="muted" style="font-size:12px;font-weight:400;margin-left:auto;margin-right:26px">Saved</span></h2>
+<span class="lbl" style="margin-top:4px">Trip title</span><div class="in"><input aria-label="Trip title" value="Kyoto &amp; Osaka"></div>
+<span class="lbl">Start date <span class="muted" style="font-weight:400">(optional)</span></span><div style="position:relative"><div style="display:flex;gap:8px"><div class="in" style="flex:1"><input aria-label="Start date" value="Tue 3 Nov 2026"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style=""><rect x="3" y="4" width="18" height="17" rx="2"></rect><path d="M3 10h18M8 2v4M16 2v4"></path></svg></div><button class="btn">Clear</button></div></div>
+<div class="help">Dates follow the start date by Day position. Without a date, Days are just Day 1, Day 2…</div>
+<span class="lbl">Default travel mode</span>
+<div class="sg" role="radiogroup" aria-label="Default travel mode"><span>Drive</span><span class="on">Public transit</span><span>Walk</span></div>
+<div class="help">Each Leg can override it.</div></section></div><div class="td-cp" style="margin-top:0px">Start date is optional. Changing it shifts every Day at once. Saved at once, no confirmation.</div></div><div class="td-item" style="width:440px"><div class="td-cap">7 · Trip settings · no dates</div><div class="td-bd"><section class="dlg" role="dialog" aria-modal="true" style="width:390px"><button class="ib x" aria-label="Close settings"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style=""><path d="M6 6l12 12M18 6L6 18"></path></svg></button><h2>Trip settings <span class="muted" style="font-size:12px;font-weight:400;margin-left:auto;margin-right:26px">Saved</span></h2>
+<span class="lbl" style="margin-top:4px">Trip title</span><div class="in"><input aria-label="Trip title" value="Kyoto &amp; Osaka"></div>
+<span class="lbl">Start date <span class="muted" style="font-weight:400">(optional)</span></span><div style="position:relative"><div style="display:flex;gap:8px"><div class="in" style="flex:1"><input aria-label="Start date" placeholder="Pick a date" value=""><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style=""><rect x="3" y="4" width="18" height="17" rx="2"></rect><path d="M3 10h18M8 2v4M16 2v4"></path></svg></div><button class="btn" disabled style="opacity:.45">Clear</button></div></div>
+<div class="help">Dates follow the start date by Day position. Without a date, Days are just Day 1, Day 2…</div>
+<span class="lbl">Default travel mode</span>
+<div class="sg" role="radiogroup" aria-label="Default travel mode"><span>Drive</span><span class="on">Public transit</span><span>Walk</span></div>
+<div class="help">Each Leg can override it.</div></section></div><div class="td-cp" style="margin-top:0px">Empty field with a hint. “Clear” is disabled.</div></div><div class="td-item" style="width:440px"><div class="td-cap">8 · Date picker</div><div class="td-bd"><section class="dlg" role="dialog" aria-modal="true" style="width:390px"><button class="ib x" aria-label="Close settings"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style=""><path d="M6 6l12 12M18 6L6 18"></path></svg></button><h2>Trip settings <span class="muted" style="font-size:12px;font-weight:400;margin-left:auto;margin-right:26px">Saved</span></h2>
+<span class="lbl" style="margin-top:4px">Trip title</span><div class="in"><input aria-label="Trip title" value="Kyoto &amp; Osaka"></div>
+<span class="lbl">Start date <span class="muted" style="font-weight:400">(optional)</span></span><div style="position:relative"><div style="display:flex;gap:8px"><div class="in" style="flex:1"><input aria-label="Start date" value="Tue 3 Nov 2026"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style=""><rect x="3" y="4" width="18" height="17" rx="2"></rect><path d="M3 10h18M8 2v4M16 2v4"></path></svg></div><button class="btn">Clear</button></div><div class="td-cal" role="dialog" aria-label="Choose start date"><div class="td-ch"><button class="ib" aria-label="Previous month"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style=""><path d="M15 6l-6 6 6 6"></path></svg></button><b>November 2026</b><button class="ib" aria-label="Next month"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style=""><path d="M9 6l6 6-6 6"></path></svg></button></div><div class="td-wd"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div><div class="td-g"><span class="">1</span><span class="">2</span><span class="sel">3</span><span class="">4</span><span class="">5</span><span class="">6</span><span class="">7</span><span class="">8</span><span class="">9</span><span class="">10</span><span class="">11</span><span class="">12</span><span class="">13</span><span class="">14</span><span class="">15</span><span class="">16</span><span class="">17</span><span class="">18</span><span class="">19</span><span class="">20</span><span class="">21</span><span class="">22</span><span class="">23</span><span class="">24</span><span class="">25</span><span class="">26</span><span class="">27</span><span class="">28</span><span class="">29</span><span class="">30</span></div></div></div>
+<div class="help">Dates follow the start date by Day position. Without a date, Days are just Day 1, Day 2…</div>
+<span class="lbl">Default travel mode</span>
+<div class="sg" role="radiogroup" aria-label="Default travel mode"><span>Drive</span><span class="on">Public transit</span><span>Walk</span></div>
+<div class="help">Each Leg can override it.</div></section></div><div class="td-cp" style="margin-top:100px">Opens from the field. Picking a day sets the start date (Day 1). Typing a date also works.</div></div></div>
+<div class="td-row" style="top:780px"><div class="td-item" style="width:500px"><div class="td-cap">9 · Day headers · with dates</div><div class="td-days"><div class="td-col"><div class="td-dh"><b>Day 1</b><span class="muted">11/03・Tue</span></div><div class="td-ax"></div></div><div class="td-col"><div class="td-dh"><b>Day 2</b><span class="muted">11/04・Wed</span></div><div class="td-ax"></div></div><div class="td-col"><div class="td-dh"><b>Day 3</b><span class="muted">11/05・Thu</span></div><div class="td-ax"></div></div><div class="td-col"><div class="td-dh"><b>Day 4</b><span class="muted">11/06・Fri</span></div><div class="td-ax"></div></div></div><div class="td-cp" style="margin-top:0px">Each Day shows its date as “11/03・Tue”: start date plus its position (Day 1 = start date). Proposed format; other boards still show “Tue 3 Nov”.</div></div><div class="td-item" style="width:500px"><div class="td-cap">10 · Day headers · no dates</div><div class="td-days"><div class="td-col"><div class="td-dh"><b>Day 1</b></div><div class="td-ax"></div></div><div class="td-col"><div class="td-dh"><b>Day 2</b></div><div class="td-ax"></div></div><div class="td-col"><div class="td-dh"><b>Day 3</b></div><div class="td-ax"></div></div><div class="td-col"><div class="td-dh"><b>Day 4</b></div><div class="td-ax"></div></div></div><div class="td-cp" style="margin-top:0px">Days are just Day 1, Day 2… Nothing is checked against opening hours.</div></div><div class="td-item" style="width:360px"><div class="td-cap">11 · Phone Day tabs</div><div class="td-pt"><span class="td-tab">Day 1<small>11/03</small></span><span class="td-tab on">Day 2<small>11/04</small></span><span class="td-tab">Day 3<small>11/05</small></span><span class="td-tab">Day 4<small>11/06</small></span></div><div class="td-pt"><span class="td-tab">Day 1</span><span class="td-tab on">Day 2</span><span class="td-tab">Day 3</span><span class="td-tab">Day 4</span></div><div class="td-cp" style="margin-top:0px">Top: with dates (second line). Bottom: without dates.</div></div></div>
+<div class="td-row" style="top:810px;left:1540px"><aside class="td-side">
+<div class="mc"><h4>Rules</h4><div>A Trip may have a start date, set when creating it (Blank Trip) or in Trip settings. It is optional.</div><div>Each Day shows a date: start date plus (position − 1). Dates follow position, so reordering Days moves the contents, not the numbers or dates.</div><div>Changing the start date moves every Day’s date at once. Clearing it removes all dates. Both save at once with no confirmation.</div></div>
+<div class="mc"><h4>What uses the dates</h4><div>Day headers, phone Day tabs, the top-bar range, exports.</div><div>Opening-hours check: needs a start date; without one the week is shown and nothing is flagged (#44).</div></div>
+<div class="mc"><h4>Ways in</h4><div>Desktop: date range or “Add dates” in the top bar (proposed), or Trip list “⋯”. Phone: “…” menu. New Trip form has the same field.</div><div>Proposed here, not yet in the workspace boards: the clickable date range and the “Add dates” button, and the date picker.</div></div>
+</aside></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1960,"height":1320}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

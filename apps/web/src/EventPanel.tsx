@@ -259,7 +259,9 @@ export function EventPanel({
   useEffect(() => {
     if (!menuOpen) return;
     const onPointer = (e: PointerEvent) => {
-      if (!split.current?.contains(e.target as Node)) setMenuOpen(false);
+      // A tap on the scrim is handled by the scrim, which only closes the menu.
+      const target = e.target as HTMLElement;
+      if (!split.current?.contains(target) && !target.closest(".sheet-scrim")) setMenuOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
@@ -304,7 +306,7 @@ export function EventPanel({
   return (
     <>
     {/* Phone: the page behind the sheet cannot be used; tapping it closes the sheet like OK. */}
-    {phone && <div className="sheet-scrim" onClick={() => void finish()} />}
+    {phone && <div className="sheet-scrim" onClick={() => (menuOpen ? setMenuOpen(false) : void finish())} />}
     <aside
       className="event-panel"
       aria-label={t("event.panel")}
@@ -552,15 +554,13 @@ export function EventPanel({
       {phone && (
         <footer className="sheet-footer">
           <p className="sheet-status" role="status">
-            {status.kind === "saving" ? (
-              t("generic.saving")
-            ) : (
-              status.kind !== "error" && (
-                <>
-                  <Check size={14} aria-hidden="true" />
-                  {t("event.autosaved")}
-                </>
-              )
+            {status.kind === "saving" && t("generic.saving")}
+            {status.kind === "error" && <span className="sheet-error">{status.message}</span>}
+            {status.kind !== "saving" && status.kind !== "error" && (saved.current || status.kind === "saved") && (
+              <>
+                <Check size={14} aria-hidden="true" />
+                {t("event.autosaved")}
+              </>
             )}
           </p>
           <div className="sheet-actions">
@@ -587,19 +587,19 @@ export function EventPanel({
                     className="btn lg split-more"
                     aria-label={t("event.moreActions")}
                     aria-expanded={menuOpen}
+                    aria-controls="split-menu"
                     onClick={() => setMenuOpen(!menuOpen)}
                   >
                     <ChevronDown size={16} aria-hidden="true" />
                   </button>
                 )}
                 {menuOpen && (
-                  <ul className="split-menu" role="menu">
+                  <ul className="split-menu" id="split-menu">
                     {(["archive", "delete"] as const).map((action) => (
                       <li key={action}>
                         <button
                           type="button"
-                          role="menuitemradio"
-                          aria-checked={footerAction === action}
+                          aria-pressed={footerAction === action}
                           className={action === "delete" ? "danger" : undefined}
                           onClick={() => {
                             setFooterAction(action);

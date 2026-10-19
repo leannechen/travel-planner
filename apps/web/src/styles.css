@@ -1642,7 +1642,7 @@ main.has-panel .topbar {
   }
 
   .toast {
-    z-index: 12;
+    z-index: 14;
     bottom: 68px;
     max-width: calc(100vw - 24px);
     white-space: normal;
@@ -1764,7 +1764,7 @@ main.has-panel .topbar {
   /* The Event panel is a bottom sheet above the drawer bar: a handle, a scrolling body and a
      footer with OK and the Archive/Delete split button. */
   .event-panel {
-    z-index: 11;
+    z-index: 13;
     top: auto;
     left: 0;
     display: flex;
@@ -1780,9 +1780,14 @@ main.has-panel .topbar {
 
   .sheet-scrim {
     position: fixed;
-    z-index: 10;
+    z-index: 12;
     inset: 0;
     background: rgba(0, 0, 0, 0.3);
+  }
+
+  /* Below the Notes sheet (10), unlike the Event sheet's scrim, which covers Notes too. */
+  .sheet-scrim.notes-scrim {
+    z-index: 10;
   }
 
   .sheet-handle {
@@ -1851,6 +1856,10 @@ main.has-panel .topbar {
     margin: 0 0 8px;
     color: var(--muted);
     font-size: 12px;
+  }
+
+  .sheet-status .sheet-error {
+    color: var(--danger);
   }
 
   .sheet-status svg {

@@ -220,7 +220,7 @@ export function NotesPanel({ tripId, notes, onAdd, onUpdate, onDelete, onClose, 
   return (
     <>
     {/* Phone: the page behind the sheet cannot be used; tapping it closes the panel (saving first). */}
-    {phone && <div className="sheet-scrim" onClick={() => void close()} />}
+    {phone && <div className="sheet-scrim notes-scrim" onClick={() => void close()} />}
     <section
       ref={panel}
       className="notes-panel"

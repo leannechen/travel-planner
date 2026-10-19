@@ -543,7 +543,7 @@ export async function addTodo(
   });
 }
 
-async function ownsTrip(db: Db, ownerId: string, tripId: string) {
+export async function ownsTrip(db: Db, ownerId: string, tripId: string) {
   const [trip] = await db
     .select({ id: trips.id })
     .from(trips)

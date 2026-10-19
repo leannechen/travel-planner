@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { trips, users, days, events } from "./db/schema";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { startTestApp } from "../test/test-app";
+import { PlaceProviderError } from "./places";
 
 let app: Awaited<ReturnType<typeof startTestApp>>;
 
@@ -1456,6 +1457,26 @@ describe("places", () => {
     expect(held.status).toBe(400);
   });
 
+  it("refuses an unknown place on an update, and accepts the same place twice", async () => {
+    const { trip } = await createTrip("Kyoto");
+    const dayId = await dayOf(trip.id);
+    const created = eventSchema.parse(await (await post(`/api/trips/${trip.id}/days/${dayId}/events`, { title: "Ferry", kind: "transport" })).json());
+    const patch = (body: unknown) =>
+      fetch(`${app.baseUrl}/api/trips/${trip.id}/events/${created.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    expect((await patch({ placeId: "fake:nowhere" })).status).toBe(400);
+    expect((await patch({ destinationId: "fake:nowhere" })).status).toBe(400);
+    expect((await patch({ placeId: "fake:nara-park", destinationId: "fake:nara-park" })).status).toBe(200);
+  });
+
+  it("answers 404 for a Trip that does not exist before looking up any place", async () => {
+    const res = await post(`/api/trips/00000000-0000-4000-8000-000000000999/backlog/events`, { title: "x", placeId: "fake:nara-park" });
+    expect(res.status).toBe(404);
+  });
+
   it("brings the place back when a deleted Event is restored", async () => {
     const { trip } = await createTrip("Kyoto");
     const dayId = await dayOf(trip.id);
@@ -1465,5 +1486,30 @@ describe("places", () => {
     const deleted = await (await fetch(`${app.baseUrl}/api/trips/${trip.id}/events/${created.id}`, { method: "DELETE" })).json();
     const restored = eventSchema.parse(await (await post(`/api/trips/${trip.id}/events/restore`, deleted)).json());
     expect(restored.placeId).toBe("fake:nara-park");
+  });
+});
+
+describe("places when the provider fails", () => {
+  it("answers 502 for a search and for saving a place, not 500", async () => {
+    const failing = await startTestApp({
+      search: () => Promise.reject(new PlaceProviderError("Place search failed (503)")),
+      get: () => Promise.reject(new PlaceProviderError("Place lookup failed (503)")),
+    });
+    try {
+      await failing.reset();
+      expect((await fetch(`${failing.baseUrl}/api/places/search?q=x`)).status).toBe(502);
+      expect((await fetch(`${failing.baseUrl}/api/places?ids=a`)).status).toBe(502);
+      const trip = tripSchema.parse(
+        await (await fetch(`${failing.baseUrl}/api/trips`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: "T" }) })).json(),
+      );
+      const res = await fetch(`${failing.baseUrl}/api/trips/${trip.id}/backlog/events`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title: "x", placeId: "p" }),
+      });
+      expect(res.status).toBe(502);
+    } finally {
+      await failing.stop();
+    }
   });
 });

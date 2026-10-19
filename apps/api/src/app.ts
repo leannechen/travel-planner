@@ -21,7 +21,7 @@ import express from "express";
 import { z, ZodError } from "zod";
 import type { Db } from "./db/client";
 import { DEV_USER_ID } from "./dev-user";
-import { getPlaces, placeProviderFromEnv, searchPlaces, type PlaceProvider } from "./places";
+import { getPlaces, PlaceProviderError, placeProviderFromEnv, searchPlaces, type PlaceProvider } from "./places";
 import {
   addEvent,
   addHeldEvent,
@@ -34,6 +34,7 @@ import {
   deleteTodo,
   insertDay,
   listTrips,
+  ownsTrip,
   reorderDays,
   restoreDay,
   restoreEvent,
@@ -103,6 +104,10 @@ export function createApp(db: Db, options: { places?: PlaceProvider } = {}) {
   app.post("/api/trips/:tripId/days/:dayId/events", async (req, res) => {
     const { tripId, dayId } = dayParamsSchema.parse(req.params);
     const input = createEventInputSchema.parse(req.body);
+    if (!(await ownsTrip(db, DEV_USER_ID, tripId))) {
+      res.status(404).json({ error: "Trip not found" });
+      return;
+    }
     if (await unknownPlace(input.placeId, input.destinationId)) {
       res.status(400).json({ error: UNKNOWN_PLACE });
       return;
@@ -122,6 +127,10 @@ export function createApp(db: Db, options: { places?: PlaceProvider } = {}) {
   app.post("/api/trips/:tripId/:area/events", async (req, res) => {
     const { tripId, area } = areaParamsSchema.parse(req.params);
     const input = createEventInputSchema.parse(req.body);
+    if (!(await ownsTrip(db, DEV_USER_ID, tripId))) {
+      res.status(404).json({ error: "Trip not found" });
+      return;
+    }
     if (await unknownPlace(input.placeId, input.destinationId)) {
       res.status(400).json({ error: UNKNOWN_PLACE });
       return;
@@ -141,6 +150,10 @@ export function createApp(db: Db, options: { places?: PlaceProvider } = {}) {
   app.patch("/api/trips/:tripId/events/:eventId", async (req, res) => {
     const { tripId, eventId } = eventIdParamsSchema.parse(req.params);
     const input = updateEventInputSchema.parse(req.body);
+    if (!(await ownsTrip(db, DEV_USER_ID, tripId))) {
+      res.status(404).json({ error: "Trip not found" });
+      return;
+    }
     if (await unknownPlace(input.placeId, input.destinationId)) {
       res.status(400).json({ error: UNKNOWN_PLACE });
       return;
@@ -340,7 +353,7 @@ export function createApp(db: Db, options: { places?: PlaceProvider } = {}) {
       return;
     }
     // The place provider could not be reached or refused the request.
-    if (err instanceof Error && /^Place (search|lookup) failed/.test(err.message)) {
+    if (err instanceof PlaceProviderError) {
       res.status(502).json({ error: "Places are not available right now" });
       return;
     }

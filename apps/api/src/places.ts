@@ -11,6 +11,9 @@ export type PlaceProvider = {
   get(id: string): Promise<Place | undefined>;
 };
 
+// The provider could not be reached, timed out, or gave an answer that makes no sense.
+export class PlaceProviderError extends Error {}
+
 // How long cached place data may be used before it is fetched again.
 export const PLACE_CACHE_DAYS = 30;
 const MAX_SEARCH_RESULTS = 8;
@@ -57,29 +60,40 @@ function fromGoogle(raw: unknown): Place | undefined {
   return { id, name: displayName?.text ?? "", address: formattedAddress ?? "", lat: location.latitude, lng: location.longitude };
 }
 
+const REQUEST_TIMEOUT_MS = 5000;
+
 const FIELDS = "id,displayName,formattedAddress,location";
 
 // Google Places API (New). Place search is a text query; details are read by place id.
 export function googlePlaceProvider(apiKey: string, fetchFn: typeof fetch = fetch): PlaceProvider {
   const base = "https://places.googleapis.com/v1";
+  // Sends a request and reads the JSON answer; every failure becomes a PlaceProviderError.
+  async function call(what: string, url: string, init: RequestInit): Promise<{ status: number; body?: unknown }> {
+    try {
+      const res = await fetchFn(url, { ...init, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+      // An id Google does not accept is answered with 400 or 404: the place is unknown, not a failure.
+      if (init.method !== "POST" && (res.status === 400 || res.status === 404)) return { status: res.status };
+      if (!res.ok) throw new PlaceProviderError(`Place ${what} failed (${res.status})`);
+      return { status: res.status, body: await res.json() };
+    } catch (err) {
+      if (err instanceof PlaceProviderError) throw err;
+      throw new PlaceProviderError(`Place ${what} failed (${err instanceof Error ? err.message : "unknown error"})`);
+    }
+  }
   return {
     async search(query) {
-      const res = await fetchFn(`${base}/places:searchText`, {
+      const { body } = await call("search", `${base}/places:searchText`, {
         method: "POST",
         headers: { "content-type": "application/json", "X-Goog-Api-Key": apiKey, "X-Goog-FieldMask": FIELDS.split(",").map((f) => `places.${f}`).join(",") },
         body: JSON.stringify({ textQuery: query, maxResultCount: MAX_SEARCH_RESULTS }),
       });
-      if (!res.ok) throw new Error(`Place search failed (${res.status})`);
-      const body = (await res.json()) as { places?: unknown[] };
-      return (body.places ?? []).map(fromGoogle).filter((p): p is Place => p !== undefined);
+      return ((body as { places?: unknown[] }).places ?? []).map(fromGoogle).filter((p): p is Place => p !== undefined);
     },
     async get(id) {
-      const res = await fetchFn(`${base}/places/${encodeURIComponent(id)}`, {
+      const { body } = await call("lookup", `${base}/places/${encodeURIComponent(id)}`, {
         headers: { "X-Goog-Api-Key": apiKey, "X-Goog-FieldMask": FIELDS },
       });
-      if (res.status === 404) return undefined;
-      if (!res.ok) throw new Error(`Place lookup failed (${res.status})`);
-      return fromGoogle(await res.json());
+      return body === undefined ? undefined : fromGoogle(body);
     },
   };
 }
@@ -90,10 +104,12 @@ export function placeProviderFromEnv(env: NodeJS.ProcessEnv = process.env): Plac
 }
 
 async function remember(db: Db, found: Place[], now: Date) {
-  if (found.length === 0) return;
+  // One row per id: a repeated id in one statement makes Postgres refuse the whole insert.
+  const once = [...new Map(found.map((p) => [p.id, p])).values()];
+  if (once.length === 0) return;
   await db
     .insert(places)
-    .values(found.map((p) => ({ ...p, fetchedAt: now })))
+    .values(once.map((p) => ({ ...p, fetchedAt: now })))
     .onConflictDoUpdate({
       target: places.id,
       set: { name: sql`excluded."name"`, address: sql`excluded."address"`, lat: sql`excluded."lat"`, lng: sql`excluded."lng"`, fetchedAt: now },
@@ -112,20 +128,23 @@ export async function searchPlaces(db: Db, provider: PlaceProvider, query: strin
 export async function getPlaces(db: Db, provider: PlaceProvider, ids: string[], now = new Date()): Promise<Place[]> {
   const unique = [...new Set(ids)];
   if (unique.length === 0) return [];
-  const rows = await db.select().from(places).where(inArray(places.id, unique));
+  const rows = new Map((await db.select().from(places).where(inArray(places.id, unique))).map((r) => [r.id, r]));
   const oldest = now.getTime() - PLACE_CACHE_DAYS * 24 * 60 * 60 * 1000;
   const known = new Map<string, Place>();
   const refetch: string[] = [];
   for (const id of unique) {
-    const row = rows.find((r) => r.id === id);
+    const row = rows.get(id);
     if (row && row.fetchedAt.getTime() > oldest) known.set(id, placeSchema.parse({ id, name: row.name, address: row.address, lat: row.lat, lng: row.lng }));
     else refetch.push(id);
   }
-  const fetched = await Promise.all(refetch.map((id) => provider.get(id)));
-  const fresh = fetched.filter((p): p is Place => p !== undefined);
+  const settled = await Promise.allSettled(refetch.map((id) => provider.get(id)));
+  const fresh = settled.flatMap((r) => (r.status === "fulfilled" && r.value ? [r.value] : []));
+  // What did arrive is kept even when another lookup failed.
   await remember(db, fresh, now);
   for (const p of fresh) known.set(p.id, p);
+  const failed = settled.find((r) => r.status === "rejected");
+  if (failed) throw failed.reason;
   const gone = refetch.filter((id) => !known.has(id));
   if (gone.length > 0) await db.delete(places).where(inArray(places.id, gone));
-  return ids.flatMap((id) => (known.has(id) ? [known.get(id)!] : [])).filter((p, i, all) => all.findIndex((q) => q.id === p.id) === i);
+  return unique.flatMap((id) => known.get(id) ?? []);
 }

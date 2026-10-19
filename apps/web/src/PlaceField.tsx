@@ -20,7 +20,10 @@ type Props = {
 // address, and can be removed. Only the place's id is passed on (ADR 0007).
 export function PlaceField({ label, value, onChange, optional }: Props) {
   const t = useT();
-  const place = usePlace(value);
+  const { place, status: lookup } = usePlace(value);
+  const removeButton = useRef<HTMLButtonElement>(null);
+  // Set when a place was just chosen: the field changes, so focus moves to its Remove button.
+  const focusRemove = useRef(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Place[]>([]);
   const [state, setState] = useState<"idle" | "searching" | "error">("idle");
@@ -28,6 +31,13 @@ export function PlaceField({ label, value, onChange, optional }: Props) {
   const [open, setOpen] = useState(false);
   const listId = useId();
   const input = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (value && focusRemove.current) {
+      focusRemove.current = false;
+      removeButton.current?.focus();
+    }
+  }, [value]);
 
   // Searches shortly after typing stops; a slower earlier answer never replaces a newer one.
   useEffect(() => {
@@ -49,7 +59,10 @@ export function PlaceField({ label, value, onChange, optional }: Props) {
           setState("idle");
         })
         .catch(() => {
-          if (!stale) setState("error");
+          if (stale) return;
+          // The old results belong to an earlier text; they must not stay next to the error.
+          setResults([]);
+          setState("error");
         });
     }, SEARCH_DELAY_MS);
     return () => {
@@ -63,6 +76,7 @@ export function PlaceField({ label, value, onChange, optional }: Props) {
     setQuery("");
     setResults([]);
     setOpen(false);
+    focusRemove.current = true;
     onChange(found.id);
   }
 
@@ -81,10 +95,10 @@ export function PlaceField({ label, value, onChange, optional }: Props) {
         <div className="place-chosen">
           <MapPin size={16} aria-hidden="true" />
           <span className="place-text">
-            <strong>{place?.name ?? "…"}</strong>
+            {place ? <strong>{place.name}</strong> : lookup === "loading" ? <strong>…</strong> : <small>{t("place.unavailable")}</small>}
             {place?.address && <small>{place.address}</small>}
           </span>
-          <button type="button" className="ib" aria-label={t("place.remove", { label })} title={t("place.remove", { label })} onClick={clear}>
+          <button ref={removeButton} type="button" className="ib" aria-label={t("place.remove", { label })} title={t("place.remove", { label })} onClick={clear}>
             <X size={14} aria-hidden="true" />
           </button>
         </div>
@@ -136,6 +150,7 @@ export function PlaceField({ label, value, onChange, optional }: Props) {
         </span>
       </label>
       {showList && (
+        <div className="place-popup">
         <ul id={listId} role="listbox" aria-label={label} className="place-results">
           {results.map((found, index) => (
             <li
@@ -154,10 +169,11 @@ export function PlaceField({ label, value, onChange, optional }: Props) {
               <small>{found.address}</small>
             </li>
           ))}
-          {state === "searching" && results.length === 0 && <li className="place-note">{t("place.searching")}</li>}
-          {state === "error" && <li className="place-note" role="alert">{t("place.error")}</li>}
-          {state === "idle" && results.length === 0 && <li className="place-note">{t("place.none")}</li>}
         </ul>
+        {state === "searching" && results.length === 0 && <p className="place-note" role="status">{t("place.searching")}</p>}
+        {state === "error" && <p className="place-note" role="alert">{t("place.error")}</p>}
+        {state === "idle" && results.length === 0 && <p className="place-note" role="status">{t("place.none")}</p>}
+        </div>
       )}
     </div>
   );

@@ -111,6 +111,61 @@ describe("PlaceField", () => {
     expect(await screen.findByRole("combobox")).toBeTruthy();
   });
 
+  it("moves focus to the Remove button after a place is chosen, and back to the search when removed", async () => {
+    const user = userEvent.setup();
+    renderApp(<Harness onChange={vi.fn()} />);
+    await user.type(screen.getByRole("combobox"), "k");
+    await screen.findByRole("option", { name: /Kinkaku-ji/ });
+    await user.keyboard("{Enter}");
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Remove Location" })));
+    await user.keyboard("{Enter}");
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("combobox")));
+  });
+
+  it("lets Escape reach the panel when no results are showing", async () => {
+    const user = userEvent.setup();
+    const onKeyDown = vi.fn();
+    renderApp(
+      <div onKeyDown={onKeyDown}>
+        <Harness onChange={vi.fn()} />
+      </div>,
+    );
+    await user.click(screen.getByRole("combobox"));
+    await user.keyboard("{Escape}");
+    expect(onKeyDown).toHaveBeenCalledWith(expect.objectContaining({ key: "Escape" }));
+  });
+
+  it("drops the earlier results when a search fails", async () => {
+    const user = userEvent.setup();
+    renderApp(<Harness onChange={vi.fn()} />);
+    await user.type(screen.getByRole("combobox"), "k");
+    await screen.findByRole("option", { name: /Kinkaku-ji/ });
+    vi.mocked(searchPlaces).mockRejectedValueOnce(new Error("down"));
+    await user.type(screen.getByRole("combobox"), "a");
+    await screen.findByRole("alert");
+    expect(screen.queryByRole("option")).toBeNull();
+  });
+
+  it("keeps the status messages out of the listbox", async () => {
+    const user = userEvent.setup();
+    vi.mocked(searchPlaces).mockResolvedValueOnce([]);
+    renderApp(<Harness onChange={vi.fn()} />);
+    await user.type(screen.getByRole("combobox"), "zzz");
+    const note = await screen.findByText("No places found");
+    expect(screen.getByRole("listbox").contains(note)).toBe(false);
+  });
+
+  it("says so when a chosen place is no longer known, or its lookup fails", async () => {
+    vi.mocked(getPlaces).mockResolvedValueOnce([]);
+    renderApp(<Harness initial="gone-1" onChange={vi.fn()} />);
+    expect(await screen.findByText("This place is no longer available")).toBeTruthy();
+    cleanup();
+    vi.mocked(getPlaces).mockRejectedValueOnce(new Error("down"));
+    renderApp(<Harness initial="broken-1" onChange={vi.fn()} />);
+    expect(await screen.findByText("This place is no longer available")).toBeTruthy();
+    expect(screen.queryByText("…")).toBeNull();
+  });
+
   it("ignores a slow answer that arrives after a newer search", async () => {
     const user = userEvent.setup();
     let slow!: (places: Place[]) => void;

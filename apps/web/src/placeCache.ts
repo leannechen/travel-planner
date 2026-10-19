@@ -7,27 +7,32 @@ const known = new Map<string, Place>();
 
 export const rememberPlaces = (places: Place[]) => places.forEach((p) => known.set(p.id, p));
 
-// The place for an id, or undefined while it loads (or when the provider no longer knows it).
-export function usePlace(id: string): Place | undefined {
-  const [place, setPlace] = useState<Place | undefined>(() => known.get(id));
+export type PlaceLookup = { status: "none" | "loading" | "found" | "missing" | "error"; place?: Place };
+
+// The place for an id. "missing" means the provider no longer knows it, "error" that the lookup failed.
+export function usePlace(id: string): PlaceLookup {
+  const [lookup, setLookup] = useState<PlaceLookup>(() => initial(id));
   useEffect(() => {
-    if (!id) {
-      setPlace(undefined);
-      return;
-    }
-    const cached = known.get(id);
-    setPlace(cached);
-    if (cached) return;
+    setLookup(initial(id));
+    if (!id || known.has(id)) return;
     let cancelled = false;
     getPlaces([id])
       .then((found) => {
         rememberPlaces(found);
-        if (!cancelled) setPlace(found[0]);
+        if (!cancelled) setLookup(found[0] ? { status: "found", place: found[0] } : { status: "missing" });
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (!cancelled) setLookup({ status: "error" });
+      });
     return () => {
       cancelled = true;
     };
   }, [id]);
-  return place;
+  return lookup;
+}
+
+function initial(id: string): PlaceLookup {
+  if (!id) return { status: "none" };
+  const place = known.get(id);
+  return place ? { status: "found", place } : { status: "loading" };
 }

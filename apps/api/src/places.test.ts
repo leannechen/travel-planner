@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { startTestApp } from "../test/test-app";
 import { places } from "./db/schema";
-import { fakePlaceProvider, getPlaces, googlePlaceProvider, PLACE_CACHE_DAYS, searchPlaces, type PlaceProvider } from "./places";
+import { fakePlaceProvider, getPlaces, googlePlaceProvider, PLACE_CACHE_DAYS, PlaceProviderError, searchPlaces, type PlaceProvider } from "./places";
 
 let app: Awaited<ReturnType<typeof startTestApp>>;
 
@@ -67,6 +67,24 @@ describe("getPlaces", () => {
     expect(await app.db.select().from(places).where(eq(places.id, "fake:gone"))).toEqual([]);
   });
 
+  it("keeps what arrived when another lookup fails, and then reports the failure", async () => {
+    const inner = fakePlaceProvider();
+    const provider: PlaceProvider = {
+      search: inner.search,
+      get: (id) => (id === "fake:broken" ? Promise.reject(new PlaceProviderError("down")) : inner.get(id)),
+    };
+    await expect(getPlaces(app.db, provider, ["fake:nara-park", "fake:broken"])).rejects.toThrow("down");
+    const rows = await app.db.select().from(places).where(eq(places.id, "fake:nara-park"));
+    expect(rows).toHaveLength(1);
+  });
+
+  it("caches a search whose results repeat an id", async () => {
+    const nara = (await fakePlaceProvider().get("fake:nara-park"))!;
+    const provider: PlaceProvider = { search: async () => [nara, nara], get: async () => nara };
+    expect(await searchPlaces(app.db, provider, "nara")).toHaveLength(2);
+    expect(await app.db.select().from(places)).toHaveLength(1);
+  });
+
   it("keeps the order of the ids and skips repeats", async () => {
     const found = await getPlaces(app.db, fakePlaceProvider(), ["fake:todai-ji", "fake:nara-park", "fake:todai-ji"]);
     expect(found.map((p) => p.id)).toEqual(["fake:todai-ji", "fake:nara-park"]);
@@ -92,6 +110,24 @@ describe("Google place provider", () => {
       url.endsWith("/ChIJ123") ? reply(googlePlace) : reply({}, 404)) as unknown as typeof fetch);
     expect((await provider.get("ChIJ123"))?.name).toBe("Kinkaku-ji");
     expect(await provider.get("missing")).toBeUndefined();
+  });
+
+  it("reads a place with the field mask and the encoded id, and treats a rejected id as unknown", async () => {
+    const fetchFn = vi.fn(() => reply({}, 400));
+    const provider = googlePlaceProvider("KEY", fetchFn as unknown as typeof fetch);
+    expect(await provider.get("fake:nara park")).toBeUndefined();
+    const [url, init] = fetchFn.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("https://places.googleapis.com/v1/places/fake%3Anara%20park");
+    expect(init.headers).toMatchObject({ "X-Goog-FieldMask": "id,displayName,formattedAddress,location" });
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("turns a network failure or a bad body into a provider error", async () => {
+    const down = googlePlaceProvider("KEY", (() => Promise.reject(new TypeError("fetch failed"))) as unknown as typeof fetch);
+    await expect(down.search("x")).rejects.toBeInstanceOf(PlaceProviderError);
+    await expect(down.get("x")).rejects.toBeInstanceOf(PlaceProviderError);
+    const garbled = googlePlaceProvider("KEY", (() => Promise.resolve(new Response("<html>", { status: 200 }))) as unknown as typeof fetch);
+    await expect(garbled.search("x")).rejects.toBeInstanceOf(PlaceProviderError);
   });
 
   it("fails on other errors", async () => {

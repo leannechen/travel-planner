@@ -1098,7 +1098,7 @@ main.has-panel .topbar {
   overflow-wrap: anywhere;
 }
 
-.place-results {
+.place-popup {
   position: absolute;
   z-index: 3;
   right: 0;
@@ -1116,6 +1116,12 @@ main.has-panel .topbar {
   text-transform: none;
 }
 
+.place-results {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
 .place-results li {
   display: grid;
   padding: 8px 10px;
@@ -1130,14 +1136,16 @@ main.has-panel .topbar {
   background: var(--pri-tint);
 }
 
-.place-results small,
-.place-results .place-note {
+.place-results small {
   color: var(--muted);
   font-size: 12px;
 }
 
-.place-results .place-note {
-  cursor: default;
+.place-note {
+  margin: 0;
+  padding: 8px 10px;
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .event-panel a {

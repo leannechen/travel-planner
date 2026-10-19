@@ -2,7 +2,11 @@ import { useDraggable } from "@dnd-kit/react";
 import { Modifier, type DragOperation } from "@dnd-kit/abstract";
 import { Accessibility, PointerActivationConstraints, PointerSensor } from "@dnd-kit/dom";
 import {
+  adjacentPairs,
   formatMinute,
+  legEndpoints,
+  legGap,
+  legTooShort,
   layoutDay,
   minuteAtOffset,
   MINUTES_PER_DAY,
@@ -11,12 +15,15 @@ import {
   resizeTop,
   SNAP_MINUTES,
   type Event,
+  type Leg,
 } from "@travel-planner/shared";
 import { KindIcon } from "./kinds";
+import { formatDuration, MODE_ICONS, modeKey } from "./legFormat";
 import { useT } from "./preferences";
 import type { Params } from "./i18n";
 import type { MessageKey } from "./messages";
 import { endGesture, gestureJustEnded } from "./gesture";
+import { TriangleAlert } from "lucide-react";
 import { useMemo, useState, type MouseEvent, type PointerEvent } from "react";
 
 export const PX_PER_HOUR = 64;
@@ -61,7 +68,12 @@ type Props = {
   onSelectEvent: (eventId: string) => void;
   onCreateAt: (startMinute: number) => void;
   onChangeTimes: (eventId: string, times: EventTimes) => void;
+  // The Legs of this Day, and what opens when one (or the slot for a new one) is clicked.
+  legs: Leg[];
+  onOpenLeg: (target: LegTarget, anchor: HTMLElement) => void;
 };
+
+export type LegTarget = { from: Event; to: Event; leg?: Leg };
 
 // A drag starts after the pointer moves a few pixels, so a plain click still selects. The
 // constraints are created for each press, as the library does by default.
@@ -109,6 +121,8 @@ export function DayTimeline({
   onSelectEvent,
   onCreateAt,
   onChangeTimes,
+  legs,
+  onOpenLeg,
 }: Props) {
   const t = useT();
   const placements = new Map(layoutDay(events).map((p) => [p.id, p]));
@@ -120,7 +134,7 @@ export function DayTimeline({
   // Keyboard users create through the Day's "Add event" button.
   function handleAxisClick(e: MouseEvent<HTMLUListElement>) {
     if (gestureJustEnded()) return;
-    if ((e.target as HTMLElement).closest(".event-card, .new-event")) return;
+    if ((e.target as HTMLElement).closest(".event-card, .new-event, .leg-row")) return;
     const top = e.currentTarget.getBoundingClientRect().top;
     onCreateAt(minuteAtOffset(e.clientY - top, range, PX_PER_HOUR));
   }
@@ -194,6 +208,16 @@ export function DayTimeline({
           />
         );
       })}
+      {adjacentPairs(events).map(([from, to]) => (
+        <LegRow
+          key={`${from.id}>${to.id}`}
+          from={from}
+          to={to}
+          leg={legs.find((l) => l.fromEventId === from.id && l.toEventId === to.id)}
+          range={range}
+          onOpen={onOpenLeg}
+        />
+      ))}
       {draft && (
         <li
           className="new-event"
@@ -270,6 +294,51 @@ function EventCard({
           <div className="resize-handle bottom" onPointerDown={(e) => onResizeStart("bottom", e)} />
         </>
       )}
+    </li>
+  );
+}
+
+type LegRowProps = { from: Event; to: Event; leg?: Leg; range: Range; onOpen: (target: LegTarget, anchor: HTMLElement) => void };
+
+// The space between two adjacent Events: the Leg between them, or a slot to add one (ADR 0002).
+// A slot needs a location on both Events; one that has lost its location keeps showing its Leg.
+function LegRow({ from, to, leg, range, onOpen }: LegRowProps) {
+  const t = useT();
+  const top = toPx(from.startMinute + from.durationMinutes - range.startMinute);
+  const bottom = toPx(to.startMinute - range.startMinute);
+  const middle = (top + bottom) / 2;
+  const { fromPlaceId, toPlaceId } = legEndpoints(from, to);
+  if (middle > toPx(range.endMinute - range.startMinute)) return null;
+  if (!leg && !(fromPlaceId && toPlaceId)) return null;
+
+  const open = (e: MouseEvent<HTMLButtonElement>) => onOpen({ from, to, leg }, e.currentTarget);
+
+  if (!leg) {
+    return (
+      <li className="leg-row" style={{ top: middle }}>
+        <button type="button" className="leg-slot" aria-label={t("leg.addBetween", { from: from.title, to: to.title })} onClick={open}>
+          + {t("leg.add")}
+        </button>
+      </li>
+    );
+  }
+
+  const Icon = MODE_ICONS[leg.mode];
+  const gap = legGap(from, to);
+  const warning = legTooShort(leg, gap);
+  const none = leg.durationMinutes === null;
+  const duration = none ? t("leg.cantCalculate") : formatDuration(leg.durationMinutes!, t);
+  return (
+    <li className="leg-row" style={{ top: middle }}>
+      <button
+        type="button"
+        className={warning || none ? "leg-pill warn" : "leg-pill"}
+        aria-label={t("leg.pill", { mode: t(modeKey(leg.mode)), duration })}
+        onClick={open}
+      >
+        {warning || none ? <TriangleAlert size={12} aria-hidden="true" /> : <Icon size={12} aria-hidden="true" />}
+        {warning ? t("leg.pillShort", { duration, gap: formatDuration(Math.max(gap, 0), t) }) : duration}
+      </button>
     </li>
   );
 }

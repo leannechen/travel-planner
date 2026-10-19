@@ -3,17 +3,20 @@ import {
   dayDeletionSchema,
   deletedEventSchema,
   eventSchema,
+  legSchema,
   meSchema,
   noteSchema,
   placeSchema,
   todoSchema,
   tripSchema,
   type CreateEventInput,
+  type CreateLegInput,
   type CreateTripInput,
   type DeletedEvent,
   type HoldingArea,
   type RestoreDayInput,
   type Note,
+  type TravelMode,
   type UpdateEventInput,
   type UpdateNoteInput,
   type UpdateTodoInput,
@@ -113,3 +116,16 @@ export async function deleteNote(tripId: string, noteId: string): Promise<void> 
 }
 
 export const restoreNote = (tripId: string, note: Note) => request(`/api/trips/${tripId}/notes/restore`, noteSchema, { note });
+
+export const listLegs = (tripId: string) => request(`/api/trips/${tripId}/legs`, z.array(legSchema));
+
+export const createLeg = (tripId: string, input: CreateLegInput) => request(`/api/trips/${tripId}/legs`, legSchema, input);
+
+export const updateLegMode = (tripId: string, legId: string, mode: TravelMode) =>
+  request(`/api/trips/${tripId}/legs/${legId}`, legSchema, { mode }, "PATCH");
+
+// The server answers 204 with no body.
+export async function deleteLeg(tripId: string, legId: string): Promise<void> {
+  const res = await fetch(`/api/trips/${tripId}/legs/${legId}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+}

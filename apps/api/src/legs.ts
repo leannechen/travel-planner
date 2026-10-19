@@ -79,10 +79,10 @@ function byDay(all: DayEvent[]): DayEvent[][] {
 
 const pairKey = (from: string, to: string) => `${from}>${to}`;
 
-export type CreatedLeg = Leg | "not-adjacent" | "exists";
+export type CreatedLeg = Leg | "not-adjacent" | "no-location" | "exists";
 
-// Creates the Leg between two adjacent Events (ADR 0002). A Leg whose Events have no location is
-// created too, and shows "cannot calculate".
+// Creates the Leg between two adjacent Events (ADR 0002). Both Events need a location; a Leg
+// already created shows "cannot calculate" if one is cleared later.
 export async function createLeg(db: Db, deps: LegDeps, tripId: string, input: CreateLegInput): Promise<CreatedLeg> {
   const all = await dayEvents(db, tripId);
   let pair: [DayEvent, DayEvent] | undefined;
@@ -92,12 +92,13 @@ export async function createLeg(db: Db, deps: LegDeps, tripId: string, input: Cr
   }
   if (!pair) return "not-adjacent";
   const [from, to] = pair;
+  const { fromPlaceId, toPlaceId } = legEndpoints(from, to);
+  if (!fromPlaceId || !toPlaceId) return "no-location";
   const [already] = await db
     .select({ id: legs.id })
     .from(legs)
     .where(and(eq(legs.fromEventId, from.id), eq(legs.toEventId, to.id)));
   if (already) return "exists";
-  const { fromPlaceId, toPlaceId } = legEndpoints(from, to);
   const result = await calculate(db, deps, input.mode, fromPlaceId, toPlaceId);
   const [row] = await db
     .insert(legs)

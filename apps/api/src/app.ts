@@ -237,6 +237,10 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
       res.status(400).json({ error: "The two Events are not next to each other in a Day" });
       return;
     }
+    if (result === "no-location") {
+      res.status(400).json({ error: "Both Events need a location" });
+      return;
+    }
     if (result === "exists") {
       res.status(409).json({ error: "These Events already have a Leg" });
       return;

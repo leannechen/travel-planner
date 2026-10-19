@@ -48,6 +48,19 @@ export function adjacentPairs<T extends Timed>(events: T[]): [T, T][] {
   return pairs;
 }
 
+// The Legs that still join adjacent Events of their Day, for showing a change before the server
+// has answered. The server decides for good (PRD §3.3).
+export function keepAdjacentLegs<L extends Pick<Leg, "dayId" | "fromEventId" | "toEventId">>(
+  days: { id: string; events: Event[] }[],
+  legs: L[],
+): L[] {
+  const adjacent = new Set<string>();
+  for (const day of days) {
+    for (const [a, b] of adjacentPairs(day.events.filter((e) => e.kind !== "lodging"))) adjacent.add(`${day.id}:${a.id}>${b.id}`);
+  }
+  return legs.filter((leg) => adjacent.has(`${leg.dayId}:${leg.fromEventId}>${leg.toEventId}`));
+}
+
 // The places a Leg runs between: it leaves from where the first Event ends (a Transport event's
 // destination) and arrives where the second begins (a Transport event's departure place).
 export function legEndpoints(

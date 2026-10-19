@@ -10,20 +10,24 @@ import {
   moveEvent,
   planDayDeletion,
   pxToMinutes,
+  type CreateLegInput,
   type Day,
   type DayDeletionPlan,
   type Event,
   type HoldingArea,
+  type Leg,
+  type TravelMode,
   type Todo,
   type Trip,
 } from "@travel-planner/shared";
 import { ChevronLeft, ChevronRight, CircleHelp, Map as MapIcon, Plus, Trash2 } from "lucide-react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { deleteDay, insertDay, reorderDays, restoreDay } from "./api";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { accessibility, DayTimeline, HourLabels, PX_PER_HOUR, sensors, type EventTimes } from "./DayTimeline";
 import { endGesture } from "./gesture";
 import { HoldingAreas } from "./HoldingAreas";
+import { LegPopover } from "./LegPopover";
 import { LodgingBanners, staysOf } from "./LodgingBanners";
 import { TodosPanel } from "./TodosPanel";
 import { useIsPhone } from "./phone";
@@ -43,6 +47,9 @@ type Props = {
   onCreateAt: (dayId: string, startMinute: number) => void;
   onAddToBacklog: () => void;
   onMove: (eventId: string, move: EventMove) => void;
+  onCreateLeg: (input: CreateLegInput) => Promise<Leg>;
+  onChangeLegMode: (leg: Leg, mode: TravelMode) => Promise<void>;
+  onDeleteLeg: (leg: Leg) => Promise<void>;
   // The page shows one toast at a time; a new one replaces the old.
   onToast: (toast: Toasted | undefined) => void;
   notesOpen: boolean;
@@ -74,7 +81,7 @@ function dropTargetAt(root: HTMLElement, x: number, y: number, draggedId: string
   return undefined;
 }
 
-export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectEvent, onCreateAt, onAddToBacklog, onMove, onToast, notesOpen, onToggleNotes, onShowShortcuts, footer, onAddTodo, onToggleTodo, onDeleteTodo }: Props) {
+export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectEvent, onCreateAt, onAddToBacklog, onMove, onCreateLeg, onChangeLegMode, onDeleteLeg, onToast, notesOpen, onToggleNotes, onShowShortcuts, footer, onAddTodo, onToggleTodo, onDeleteTodo }: Props) {
   const t = useT();
   const root = useRef<HTMLElement>(null);
   const [error, setError] = useState<string | undefined>();
@@ -150,6 +157,18 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
       setBusy(false);
     }
   }
+
+  // The Leg popover: the Events it is about and the element it points at. The Leg itself is read
+  // from the Trip, so the popover shows the latest answer and goes when the Leg does.
+  const [legUi, setLegUi] = useState<{ fromId: string; toId: string; anchor: HTMLElement } | undefined>();
+  const legFrom = legUi && allEvents(trip).find((e) => e.id === legUi.fromId);
+  const legTo = legUi && allEvents(trip).find((e) => e.id === legUi.toId);
+  const legShown = legUi && trip.legs.find((l) => l.fromEventId === legUi.fromId && l.toEventId === legUi.toId);
+  const closeLeg = useCallback(() => setLegUi(undefined), []);
+  const legLost = legUi && (!legFrom || !legTo || legFrom.dayId !== legTo.dayId);
+  useEffect(() => {
+    if (legLost) closeLeg();
+  }, [legLost, closeLeg]);
 
   const phone = useIsPhone();
   // Phone: one Day at a time, and one of the drawers (Backlog, Archive, Todos) open at most.
@@ -390,6 +409,8 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
                     onSelectEvent={onSelectEvent}
                     onChangeTimes={(eventId: string, times: EventTimes) => onMove(eventId, times)}
                     onCreateAt={(startMinute) => onCreateAt(day.id, startMinute)}
+                    legs={trip.legs.filter((l) => l.dayId === day.id)}
+                    onOpenLeg={(target, anchor) => setLegUi({ fromId: target.from.id, toId: target.to.id, anchor })}
                   />
                 </div>,
               ];
@@ -399,6 +420,19 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
           {(!phone || drawer === "todos") && <TodosPanel id={phone ? `drawer-${trip.id}` : undefined} trip={trip} onSelectEvent={phone ? selectFromDrawer : onSelectEvent} onAdd={onAddTodo} onToggle={onToggleTodo} onDelete={onDeleteTodo} />}
         </div>
       </DragDropProvider>
+      {legUi && legFrom && legTo && !legLost && (
+        <LegPopover
+          anchor={legUi.anchor}
+          from={legFrom}
+          to={legTo}
+          leg={legShown}
+          defaultMode={trip.travelMode}
+          onCreate={(mode) => onCreateLeg({ fromEventId: legFrom.id, toEventId: legTo.id, mode })}
+          onChangeMode={onChangeLegMode}
+          onDelete={onDeleteLeg}
+          onClose={closeLeg}
+        />
+      )}
       {phone && (
         <>
           {footer}

@@ -7,6 +7,7 @@ import {
   dropEventTodos,
   isHoldingArea,
   moveEvent,
+  keepAdjacentLegs,
   needsTodoConfirmation,
   neighbour,
   noteTitle,
@@ -21,22 +22,26 @@ import {
   type Todo,
   type TodoDeletionSummary,
 } from "@travel-planner/shared";
-import type { CreateEventInput, Day, Event, Trip, UpdateEventInput } from "@travel-planner/shared";
+import type { CreateEventInput, CreateLegInput, Day, Event, Leg, TravelMode, Trip, UpdateEventInput } from "@travel-planner/shared";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   addEvent,
   addHeldEvent,
   addNote,
   addTodo,
+  createLeg,
   createTrip,
   deleteEvent,
+  deleteLeg,
   deleteNote,
   deleteTodo,
   getMe,
+  listLegs,
   listTrips,
   restoreEvent,
   restoreNote,
   updateEvent,
+  updateLegMode,
   updateNote,
   updateTodo,
 } from "./api";
@@ -128,10 +133,51 @@ export function App() {
     setTrips((current) => [trip, ...(current ?? [])]);
   }
 
+  // Legs between Events that stop being adjacent go at once; the server decides for good and
+  // `refreshLegs` brings its answer (including recalculated durations) afterwards.
   function setTripAreas(tripId: string, change: (areas: Areas) => Areas) {
     setTrips((current) =>
-      current?.map((trip) => (trip.id === tripId ? { ...trip, ...change(trip) } : trip)),
+      current?.map((trip) => {
+        if (trip.id !== tripId) return trip;
+        const changed = { ...trip, ...change(trip) };
+        return { ...changed, legs: keepAdjacentLegs(changed.days, changed.legs) };
+      }),
     );
+  }
+
+  function setTripLegs(tripId: string, change: (legs: Leg[]) => Leg[]) {
+    setTrips((current) => current?.map((trip) => (trip.id === tripId ? { ...trip, legs: change(trip.legs) } : trip)));
+  }
+
+  // Only the newest answer counts: a slower, older list must not undo a Leg changed since.
+  const legRequests = useRef(0);
+  async function refreshLegs(tripId: string) {
+    const n = ++legRequests.current;
+    try {
+      const fresh = await listLegs(tripId);
+      if (n === legRequests.current) setTripLegs(tripId, () => fresh);
+    } catch {
+      // The Legs on screen stay as they are until the next change.
+    }
+  }
+
+  async function handleCreateLeg(tripId: string, input: CreateLegInput) {
+    legRequests.current++;
+    const leg = await createLeg(tripId, input);
+    setTripLegs(tripId, (legs) => [...legs.filter((l) => l.id !== leg.id), leg]);
+    return leg;
+  }
+
+  async function handleChangeLegMode(tripId: string, leg: Leg, mode: TravelMode) {
+    legRequests.current++;
+    const changed = await updateLegMode(tripId, leg.id, mode);
+    setTripLegs(tripId, (legs) => legs.map((l) => (l.id === changed.id ? changed : l)));
+  }
+
+  async function handleDeleteLeg(tripId: string, leg: Leg) {
+    legRequests.current++;
+    await deleteLeg(tripId, leg.id);
+    setTripLegs(tripId, (legs) => legs.filter((l) => l.id !== leg.id));
   }
 
   function setTripNotes(tripId: string, change: (notes: Note[]) => Note[]) {
@@ -170,6 +216,7 @@ export function App() {
   // The server's answer after a Day change; the Backlog comes along when the change moves Events.
   function handleDaysChange(tripId: string, newDays: Day[], backlog?: Event[]) {
     setTripAreas(tripId, (areas) => ({ ...areas, days: newDays, backlog: backlog ?? areas.backlog }));
+    void refreshLegs(tripId);
     // A new Event set up on a Day that no longer exists cannot be saved.
     const draftDay = selection && "draft" in selection ? selection.draft.dayId : undefined;
     if (selection?.tripId === tripId && draftDay && !isHoldingArea(draftDay) && !newDays.some((d) => d.id === draftDay)) {
@@ -181,6 +228,7 @@ export function App() {
     const panel = panelKeyRef.current;
     const event = isHoldingArea(place) ? await addHeldEvent(tripId, place, input) : await addEvent(tripId, place, input);
     setTripAreas(tripId, (areas) => upsertEvent(areas, event));
+    void refreshLegs(tripId);
     // Follow the new Event only if the user is still on the panel that created it.
     if (panelKeyRef.current === panel) setSelection({ tripId, eventId: event.id });
     return event;
@@ -213,6 +261,7 @@ export function App() {
     const n = beginSave(eventId);
     const event = await updateEvent(tripId, eventId, input);
     applySaved(tripId, event, n);
+    void refreshLegs(tripId);
     if (input.area === "archive" && current?.holding !== "archive") showArchived();
     return event;
   }
@@ -246,6 +295,7 @@ export function App() {
     }
     setTripAreas(tripId, (areas) => removeEvent(areas, event.id));
     setTripTodos(tripId, (todos) => dropEventTodos(todos, event.id));
+    void refreshLegs(tripId);
     if (selection && "eventId" in selection && selection.eventId === event.id) select(undefined);
     setToast({ id: Date.now(), message: t("event.deleted", { title: event.title }), undo: () => undoDeleteEvent(tripId, deleted) });
   }
@@ -256,6 +306,7 @@ export function App() {
     try {
       const event = await restoreEvent(tripId, deleted);
       setTripAreas(tripId, (areas) => upsertEvent(areas, event));
+      void refreshLegs(tripId);
       setTripTodos(tripId, (todos) => [...todos, ...deleted.todos]);
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : t("day.undoFailed"));
@@ -521,6 +572,7 @@ export function App() {
     const patch: UpdateEventInput = { ...times, ...(holding ? { area: holding } : dayId ? { dayId } : {}) };
     try {
       applySaved(tripId, await updateEvent(tripId, eventId, patch), n);
+      void refreshLegs(tripId);
       if (move.holding === "archive" && current.holding !== "archive") showArchived();
     } catch (err) {
       // A newer save has taken over; its own result decides what is shown.
@@ -535,6 +587,8 @@ export function App() {
         }),
       );
       setSaveError(err instanceof Error ? err.message : t("event.moveFailed"));
+      // Legs dropped for the move that failed come back.
+      void refreshLegs(tripId);
     }
   }
 
@@ -561,6 +615,9 @@ export function App() {
             selectedEventId={mine && "eventId" in mine ? mine.eventId : undefined}
             draft={mine && "draft" in mine ? mine.draft : undefined}
             onMove={(eventId, move) => handleMove(trip.id, eventId, move)}
+            onCreateLeg={(input) => handleCreateLeg(trip.id, input)}
+            onChangeLegMode={(leg, mode) => handleChangeLegMode(trip.id, leg, mode)}
+            onDeleteLeg={(leg) => handleDeleteLeg(trip.id, leg)}
             onToast={setToast}
             notesOpen={notesTripId === trip.id}
             onToggleNotes={() => toggleNotes(trip.id)}

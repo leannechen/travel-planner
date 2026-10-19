@@ -1151,6 +1151,245 @@ main.has-panel .topbar {
   font-size: 12px;
 }
 
+/* ---------- legs ---------- */
+/* The row sits on the middle of the space between two Events; its button is centred on it. */
+.leg-row {
+  position: absolute;
+  z-index: 4;
+  right: 0;
+  left: 0;
+  height: 0;
+  display: flex;
+  justify-content: center;
+  list-style: none;
+  cursor: default;
+}
+
+.leg-pill,
+.leg-slot {
+  position: absolute;
+  top: -11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 11px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.leg-pill {
+  border: 1px solid var(--border2);
+  background: var(--surface);
+  color: var(--muted);
+  box-shadow: var(--sh-card);
+}
+
+.leg-pill:hover {
+  border-color: var(--pri);
+  color: var(--pri-ink);
+}
+
+.leg-pill.warn {
+  border-color: var(--warnb);
+  background: var(--warnbg);
+  color: var(--warn);
+}
+
+/* The slot to add a Leg shows when the pointer or focus is on it; touch screens always show it. */
+.leg-slot {
+  border: 1px dashed var(--pri);
+  background: var(--pri-tint);
+  color: var(--pri-ink);
+  opacity: 0;
+}
+
+.leg-row:hover .leg-slot,
+.leg-slot:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .leg-slot {
+    opacity: 0.85;
+  }
+}
+
+.leg-popover {
+  position: fixed;
+  z-index: 15;
+  width: 300px;
+  padding: 12px 14px 14px;
+  border: 1px solid var(--border2);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--sh-pop);
+  color: var(--text);
+  font-size: 13px;
+}
+
+.leg-popover h3 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 10px;
+  font-size: 14px;
+}
+
+.leg-popover .seg {
+  display: flex;
+  margin: 0 0 10px;
+  border: 1px solid var(--border2);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+
+.leg-popover .seg button {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 0;
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 500;
+}
+
+.leg-popover .seg button + button {
+  border-left: 1px solid var(--border2);
+}
+
+.leg-popover .seg button[aria-pressed="true"] {
+  background: var(--pri-strong);
+  color: var(--onpri);
+}
+
+.leg-label {
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.leg-facts {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 12px;
+  margin: 0 0 10px;
+}
+
+.leg-facts dt {
+  color: var(--muted);
+}
+
+.leg-facts dd {
+  margin: 0;
+  font-weight: 600;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.leg-facts dd.warn {
+  color: var(--warn);
+}
+
+.leg-warning,
+.leg-note,
+.leg-error {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  font-size: 12px;
+}
+
+.leg-warning {
+  display: flex;
+  gap: 7px;
+  border: 1px solid var(--warnb);
+  background: var(--warnbg);
+  color: var(--warn);
+}
+
+.leg-warning svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+.leg-note {
+  background: var(--surface2);
+  color: var(--muted);
+}
+
+.leg-error {
+  background: var(--danger-tint);
+  color: var(--danger);
+}
+
+.leg-popover a {
+  display: inline-block;
+  margin-bottom: 10px;
+  color: var(--pri-ink);
+}
+
+.leg-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.leg-actions .btn.pri {
+  border-color: var(--pri-strong);
+  background: var(--pri-strong);
+  color: var(--onpri);
+}
+
+.leg-actions .btn.dng-q {
+  margin-right: auto;
+  color: var(--danger);
+}
+
+.leg-saved {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+@media (max-width: 40rem) {
+  .leg-popover.sheet {
+    z-index: 15;
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    max-height: 88vh;
+    padding: 0 16px 16px;
+    overflow-y: auto;
+    border-width: 1px 0 0;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .leg-popover .sheet-handle {
+    margin: 10px auto 12px;
+  }
+
+  .leg-popover .seg button {
+    height: 40px;
+  }
+
+  .leg-actions .btn {
+    height: 40px;
+  }
+}
+
 .event-panel a {
   color: var(--pri-ink);
   font-weight: 500;

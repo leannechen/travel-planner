@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { adjacentPairs, legEndpoints, legGap, legTooShort, routeUrl } from "./legs";
+import { adjacentPairs, keepAdjacentLegs, legEndpoints, legGap, legTooShort, routeUrl } from "./legs";
 
 const ev = (id: string, startMinute: number, durationMinutes: number) => ({ id, startMinute, durationMinutes });
 const ids = (pairs: [{ id: string }, { id: string }][]) => pairs.map(([a, b]) => `${a.id}>${b.id}`);
@@ -70,5 +70,24 @@ describe("routeUrl", () => {
       destination_place_id: "b",
       travelmode: "walking",
     });
+  });
+});
+
+describe("keepAdjacentLegs", () => {
+  const event = (id: string, startMinute: number, kind = "attraction") =>
+    ({ id, startMinute, durationMinutes: 60, kind }) as Parameters<typeof keepAdjacentLegs>[0][number]["events"][number];
+  const leg = (dayId: string, fromEventId: string, toEventId: string) => ({ dayId, fromEventId, toEventId });
+
+  it("keeps the Legs of adjacent Events and drops the others", () => {
+    const days = [{ id: "d1", events: [event("a", 60), event("b", 200), event("c", 400)] }];
+    expect(keepAdjacentLegs(days, [leg("d1", "a", "b"), leg("d1", "a", "c")])).toEqual([leg("d1", "a", "b")]);
+  });
+
+  it("drops a Leg whose Event is on another Day or in no Day, and ignores Lodging", () => {
+    const days = [
+      { id: "d1", events: [event("a", 60), event("stay", 100, "lodging"), event("b", 200)] },
+      { id: "d2", events: [event("c", 60)] },
+    ];
+    expect(keepAdjacentLegs(days, [leg("d1", "a", "b"), leg("d1", "a", "c"), leg("d1", "a", "gone")])).toEqual([leg("d1", "a", "b")]);
   });
 });

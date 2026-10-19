@@ -83,13 +83,13 @@ describe("creating a Leg", () => {
     expect(await legsOf(tripId)).toEqual([leg]);
   });
 
-  it("creates a Leg that cannot be calculated when an Event has no place", async () => {
+  it("needs a location on both Events", async () => {
     const { tripId, dayId } = await newTrip();
     const a = await addEvent(tripId, dayId, { startMinute: 540, placeId: FUSHIMI });
     const b = await addEvent(tripId, dayId, { startMinute: 720 });
     const res = await send("POST", `/api/trips/${tripId}/legs`, { fromEventId: a.id, toEventId: b.id, mode: "drive" });
-    expect(res.status).toBe(201);
-    expect(legSchema.parse(await res.json())).toMatchObject({ durationMinutes: null, distanceMeters: null });
+    expect(res.status).toBe(400);
+    expect(await legsOf(tripId)).toEqual([]);
     expect(calls.estimate).toBe(0);
   });
 

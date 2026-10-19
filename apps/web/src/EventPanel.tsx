@@ -417,18 +417,20 @@ export function EventPanel({
             onChange={(e) => change({ title: e.target.value })}
           />
         </label>
-        <label>
-          {fields.kind === "lodging" ? t("event.checkInDay") : t("event.day")}
-          <select value={fields.dayId} onChange={(e) => changePlace(e.target.value)}>
-            {days.map((d) => (
-              <option key={d.id} value={d.id}>
-                {t("day.title", { n: d.position })}
-              </option>
-            ))}
-            <option value="backlog">{t("event.backlogOption")}</option>
-            <option value="archive">{t("area.archive")}</option>
-          </select>
-        </label>
+        {phone && (
+          <label>
+            {fields.kind === "lodging" ? t("event.checkInDay") : t("event.day")}
+            <select value={fields.dayId} onChange={(e) => changePlace(e.target.value)}>
+              {days.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {t("day.title", { n: d.position })}
+                </option>
+              ))}
+              <option value="backlog">{t("event.backlogOption")}</option>
+              <option value="archive">{t("area.archive")}</option>
+            </select>
+          </label>
+        )}
         {phone && <p className="hint">{t("event.dayHint")}</p>}
         {fields.kind === "lodging" ? (
           <>

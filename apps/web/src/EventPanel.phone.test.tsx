@@ -173,6 +173,12 @@ describe("EventPanel on a phone", () => {
 });
 
 describe("EventPanel on a desktop", () => {
+  it("has no Day list, since Events are dragged between Days", () => {
+    setPhone(false);
+    setup();
+    expect(screen.queryByRole("combobox", { name: "Day" })).toBeNull();
+  });
+
   it("keeps the close button and has no footer or scrim", () => {
     setPhone(false);
     setup();

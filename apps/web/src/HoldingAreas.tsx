@@ -67,18 +67,19 @@ type Props = {
   footer?: ReactNode;
   // Phone drawer: show only this area, always open.
   only?: HoldingArea;
+  id?: string;
 };
 
 // The Backlog (Events still being considered) and the Archive (Events given up on), side by side
 // with the Days. Both are collapsible and both accept dragged Events.
-export function HoldingAreas({ backlog, archive, selectedEventId, dropTarget, onSelectEvent, onAddToBacklog, onMoveTo, footer, only }: Props) {
+export function HoldingAreas({ backlog, archive, selectedEventId, dropTarget, onSelectEvent, onAddToBacklog, onMoveTo, footer, only, id }: Props) {
   const t = useT();
   const area = (name: HoldingArea) => (dropTarget === name ? "holding-area drop-target" : "holding-area");
   return (
-    <aside className={only ? "holding-areas only" : "holding-areas"} aria-label={t("area.holding")}>
+    <aside id={id} className={only ? "holding-areas only" : "holding-areas"} aria-label={t("area.holding")}>
       {only !== "archive" && (
       <details className={area("backlog")} data-drop="backlog" open>
-        <summary>
+        <summary tabIndex={only ? -1 : undefined} onClick={only ? (e) => e.preventDefault() : undefined}>
           <h3>
             {t("area.backlog")} <span className="count">{backlog.length}</span>
           </h3>
@@ -116,7 +117,7 @@ export function HoldingAreas({ backlog, archive, selectedEventId, dropTarget, on
       )}
       {only !== "backlog" && (
       <details className={area("archive")} data-drop="archive" open={only === "archive" || undefined}>
-        <summary>
+        <summary tabIndex={only ? -1 : undefined} onClick={only ? (e) => e.preventDefault() : undefined}>
           <h3>
             {t("area.archive")} <span className="count">{archive.length}</span>
           </h3>

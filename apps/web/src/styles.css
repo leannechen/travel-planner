@@ -1618,7 +1618,21 @@ main.has-panel .topbar {
 
   .workspace {
     margin-bottom: 0;
-    padding-bottom: 64px;
+  }
+
+  main.has-panel .topbar {
+    padding-right: 60px;
+  }
+
+  .notes-panel {
+    z-index: 10;
+  }
+
+  .toast {
+    z-index: 12;
+    bottom: 68px;
+    max-width: calc(100vw - 24px);
+    white-space: normal;
   }
 
   .topbar {
@@ -1702,12 +1716,11 @@ main.has-panel .topbar {
     background: rgba(0, 0, 0, 0.25);
   }
 
+  /* Sticky, so each Trip's bar sits at the bottom of its own Trip. */
   .drawer-bar {
-    position: fixed;
+    position: sticky;
     z-index: 9;
-    right: 0;
     bottom: 0;
-    left: 0;
     display: flex;
     height: 56px;
     border-top: 1px solid var(--border2);
@@ -1741,7 +1754,7 @@ main.has-panel .topbar {
     border-radius: 16px 16px 0 0;
   }
 
-  /* On a phone the switches are behind a "..." button at the bottom right. */
+  /* On a phone the switches are behind a "..." button at the top right. */
   .sidebar {
     position: fixed;
     z-index: 9;

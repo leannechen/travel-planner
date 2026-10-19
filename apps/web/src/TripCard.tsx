@@ -157,10 +157,22 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
   const [drawer, setDrawer] = useState<"backlog" | "archive" | "todos" | undefined>();
   const shownDay = trip.days.find((d) => d.id === dayId) ?? trip.days[0];
   const selectedDayId = trip.days.find((d) => d.events.some((e) => e.id === selectedEventId))?.id;
-  // Selecting an Event (from the Todos, say) brings its Day into view.
+  // Selecting an Event (from the Todos, say), or setting up a new one, brings its Day into view.
+  const focusDayId = selectedDayId ?? (draft && trip.days.some((d) => d.id === draft.dayId) ? draft.dayId : undefined);
   useEffect(() => {
-    if (selectedDayId) setDayId(selectedDayId);
-  }, [selectedDayId]);
+    if (focusDayId) setDayId(focusDayId);
+  }, [focusDayId]);
+  // Esc closes the open drawer; marked handled so the page's own Esc (clear the selection) stays out.
+  useEffect(() => {
+    if (!drawer) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.preventDefault();
+      setDrawer(undefined);
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [drawer]);
   const selectFromDrawer = (eventId: string) => {
     setDrawer(undefined);
     onSelectEvent(eventId);
@@ -248,7 +260,13 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
             disabled={busy}
             aria-label={t("day.add")}
             title={t("day.add")}
-            onClick={() => changeDays(() => insertDay(trip.id, lastPosition + 1))}
+            onClick={() =>
+              changeDays(async () => {
+                const days = await insertDay(trip.id, lastPosition + 1);
+                setDayId(days[days.length - 1]?.id);
+                return days;
+              })
+            }
           >
             <Plus size={16} aria-hidden="true" />
           </button>
@@ -274,6 +292,7 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
         <div className="trip-layout">
           {(!phone || drawer === "backlog" || drawer === "archive") && (
           <HoldingAreas
+            id={phone ? `drawer-${trip.id}` : undefined}
             only={phone ? (drawer as "backlog" | "archive") : undefined}
             backlog={trip.backlog}
             archive={trip.archive}
@@ -377,7 +396,7 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
             })}
             {!phone && <div style={{ gridColumn: 2 + lastPosition * 2, gridRow: 1 }}>{insertButton(lastPosition + 1)}</div>}
           </div>
-          {(!phone || drawer === "todos") && <TodosPanel trip={trip} onSelectEvent={phone ? selectFromDrawer : onSelectEvent} onAdd={onAddTodo} onToggle={onToggleTodo} onDelete={onDeleteTodo} />}
+          {(!phone || drawer === "todos") && <TodosPanel id={phone ? `drawer-${trip.id}` : undefined} trip={trip} onSelectEvent={phone ? selectFromDrawer : onSelectEvent} onAdd={onAddTodo} onToggle={onToggleTodo} onDelete={onDeleteTodo} />}
         </div>
       </DragDropProvider>
       {phone && (
@@ -392,7 +411,7 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
                 ["todos", t("todo.panel"), trip.todos.length],
               ] as const
             ).map(([id, label, count]) => (
-              <button key={id} type="button" aria-expanded={drawer === id} className={drawer === id ? "on" : undefined} onClick={() => setDrawer(drawer === id ? undefined : id)}>
+              <button key={id} type="button" aria-expanded={drawer === id} aria-controls={`drawer-${trip.id}`} className={drawer === id ? "on" : undefined} onClick={() => setDrawer(drawer === id ? undefined : id)}>
                 <span>
                   {label} <span className="count">{count}</span>
                 </span>

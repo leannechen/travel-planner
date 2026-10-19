@@ -26,6 +26,7 @@ function setup(event: Event, startDate: string | null = "2026-11-03") {
     onDeleteTodo: vi.fn(),
     onDelete: vi.fn(),
     startDate: startDate ?? undefined,
+    onOpenTripSettings: vi.fn(),
     onTurnOnOpeningHours: vi.fn(async () => "on" as const),
     onRemoveOpeningHours: vi.fn(async () => undefined),
   };

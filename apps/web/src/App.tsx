@@ -41,6 +41,7 @@ import {
   restoreEvent,
   restoreNote,
   turnOffOpeningHours,
+  updateTrip,
   turnOnOpeningHours,
   updateEvent,
   updateLegMode,
@@ -50,6 +51,7 @@ import {
 import { ConfirmDialog } from "./ConfirmDialog";
 import { EventPanel } from "./EventPanel";
 import { rememberOpeningHours } from "./openingHours";
+import { TripSettingsDialog } from "./TripSettingsDialog";
 import { tripStartDate } from "./tripDates";
 import { useUnsavedGuard } from "./unsavedGuard";
 import { UnsavedDialog } from "./UnsavedDialog";
@@ -133,6 +135,14 @@ export function App() {
     listTrips().then(setTrips, (e: Error) => setError(e.message));
     getMe().then((me) => setMeId(me.id), () => undefined);
   }, []);
+
+  // The Trip whose settings are open.
+  const [settingsTripId, setSettingsTripId] = useState<string | undefined>();
+
+  async function handleChangeStartDate(tripId: string, startDate: string | null) {
+    const saved = await updateTrip(tripId, { startDate });
+    setTrips((current) => current?.map((trip) => (trip.id === tripId ? { ...trip, startDate: saved.startDate } : trip)));
+  }
 
   async function handleCreateTrip(title: string) {
     const trip = await createTrip({ title });
@@ -649,6 +659,7 @@ export function App() {
           <TripCard
             key={trip.id}
             trip={trip}
+            onOpenSettings={() => setSettingsTripId(trip.id)}
             onDaysChange={handleDaysChange}
             selectedEventId={mine && "eventId" in mine ? mine.eventId : undefined}
             draft={mine && "draft" in mine ? mine.draft : undefined}
@@ -709,6 +720,7 @@ export function App() {
           onDeleteTodo={(todo) => handleDeleteTodo(selectedTrip.id, todo)}
           onDelete={(event) => handleDeleteEvent(selectedTrip.id, event)}
           startDate={tripStartDate(selectedTrip)}
+          onOpenTripSettings={() => setSettingsTripId(selectedTrip.id)}
           onTurnOnOpeningHours={(eventId) => handleTurnOnHours(selectedTrip.id, eventId)}
           onRemoveOpeningHours={(eventId) => handleTurnOffHours(selectedTrip.id, eventId)}
           quiet={"eventId" in selection && selection.quiet}
@@ -725,6 +737,14 @@ export function App() {
           tripId={notesTripId}
           onClose={() => setNotesTripId(undefined)}
           closeRef={closeNotes}
+        />
+      )}
+      {settingsTripId && trips?.some((t) => t.id === settingsTripId) && (
+        <TripSettingsDialog
+          tripTitle={trips.find((t) => t.id === settingsTripId)!.title}
+          startDate={tripStartDate(trips.find((t) => t.id === settingsTripId)!)}
+          onChangeStartDate={(startDate) => handleChangeStartDate(settingsTripId, startDate)}
+          onClose={() => setSettingsTripId(undefined)}
         />
       )}
       {sheetOpen && <ShortcutSheet onClose={() => setSheetOpen(false)} />}

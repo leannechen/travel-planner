@@ -2116,6 +2116,19 @@ main.has-panel .topbar {
     font-weight: 700;
   }
 
+  .day-tab {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .day-tab small {
+    font-size: 11px;
+    font-weight: 500;
+    opacity: 0.8;
+  }
+
   .day-tab.on {
     border-color: var(--pri-strong);
     background: var(--pri-strong);
@@ -2652,4 +2665,79 @@ main.has-panel .topbar {
 
 .event-warning svg {
   flex: none;
+}
+
+/* ---------- Trip dates (design 45) ---------- */
+.trip-dates {
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.day-head h3 small {
+  margin-left: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.oh-inline-link {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--pri-ink);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.settings-dialog {
+  width: min(440px, calc(100vw - 32px));
+}
+
+.settings-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-head h2 {
+  flex: 1;
+  margin: 0;
+}
+
+.settings-trip {
+  margin: 4px 0 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.settings-field {
+  display: grid;
+  gap: 6px;
+}
+
+.settings-field label {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.settings-date {
+  display: flex;
+  gap: 8px;
+}
+
+.settings-date input {
+  flex: 1;
+  height: 36px;
+}
+
+.settings-field .hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
 }

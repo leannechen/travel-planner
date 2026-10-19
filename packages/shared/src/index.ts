@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { legSchema, travelModeSchema } from "./legs";
+import { startDateSchema } from "./trip-dates";
 
 export const healthResponseSchema = z.object({
   status: z.literal("ok"),
@@ -142,9 +143,14 @@ export const tripSchema = z.object({
   // Legs between adjacent Events of the Days, and the mode a new Leg starts with.
   legs: z.array(legSchema),
   travelMode: travelModeSchema,
+  // The first Day's calendar date, or null: Days are then just Day 1, Day 2... (PRD §3.1).
+  startDate: startDateSchema.nullable(),
 });
 
-export const createTripInputSchema = z.object({ title, travelMode: travelModeSchema.optional() });
+export const createTripInputSchema = z.object({ title, travelMode: travelModeSchema.optional(), startDate: startDateSchema.nullable().optional() });
+// Trip settings: so far only the start date (null clears it).
+export const updateTripInputSchema = z.object({ startDate: startDateSchema.nullable() });
+export type UpdateTripInput = z.infer<typeof updateTripInputSchema>;
 export const createEventInputSchema = z.object({
   title,
   kind: kindSchema.default("attraction"),
@@ -230,6 +236,7 @@ export * from "./opening-hours";
 export * from "./time-edit";
 export * from "./time-layout";
 export * from "./todo-removal";
+export * from "./trip-dates";
 export * from "./transport";
 
 export const createTodoInputSchema = z.object({ text: todoText, eventId: z.uuid().nullable().default(null) });

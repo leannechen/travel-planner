@@ -9,6 +9,7 @@ import {
   openingHoursSchema,
   placeSchema,
   todoSchema,
+  startDateSchema,
   tripSchema,
   type CreateEventInput,
   type CreateLegInput,
@@ -20,6 +21,7 @@ import {
   type TravelMode,
   type UpdateEventInput,
   type UpdateNoteInput,
+  type UpdateTripInput,
   type UpdateTodoInput,
 } from "@travel-planner/shared";
 import { z } from "zod";
@@ -61,6 +63,10 @@ export const getOpeningHours = (ids: string[]) =>
 export const listTrips = () => request("/api/trips", z.array(tripSchema));
 
 export const createTrip = (input: CreateTripInput) => request("/api/trips", tripSchema, input);
+
+// Trip settings; the answer is the start date as saved.
+export const updateTrip = (tripId: string, input: UpdateTripInput) =>
+  request(`/api/trips/${tripId}`, z.object({ startDate: startDateSchema.nullable() }), input, "PATCH");
 
 export const addEvent = (tripId: string, dayId: string, input: CreateEventInput) =>
   request(`/api/trips/${tripId}/days/${dayId}/events`, eventSchema, input);

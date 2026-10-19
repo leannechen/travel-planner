@@ -24,6 +24,7 @@ import {
   type Event,
   type Trip,
   type UpdateEventInput,
+  type UpdateTripInput,
 } from "@travel-planner/shared";
 import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import type { Db } from "./db/client";
@@ -114,7 +115,7 @@ export async function listTrips(db: Db, ownerId: string): Promise<Trip[]> {
   const rows = await db.query.trips.findMany({
     where: eq(trips.ownerId, ownerId),
     orderBy: [desc(trips.createdAt), desc(trips.id)],
-    columns: { id: true, title: true, travelMode: true },
+    columns: { id: true, title: true, travelMode: true, startDate: true },
     with: {
       days: {
         orderBy: asc(days.position),
@@ -157,7 +158,7 @@ export async function createTrip(db: Db, ownerId: string, input: CreateTripInput
   return db.transaction(async (tx) => {
     const [trip] = await tx
       .insert(trips)
-      .values({ ownerId, title: input.title, travelMode: input.travelMode })
+      .values({ ownerId, title: input.title, travelMode: input.travelMode, startDate: input.startDate })
       .returning();
     const [day] = await tx.insert(days).values({ tripId: trip!.id, position: 1 }).returning();
     return {
@@ -170,8 +171,19 @@ export async function createTrip(db: Db, ownerId: string, input: CreateTripInput
       notes: [],
       legs: [],
       travelMode: trip!.travelMode,
+      startDate: trip!.startDate,
     };
   });
+}
+
+// Changes the Trip's settings; undefined when it is not owned by this user.
+export async function updateTrip(db: Db, ownerId: string, tripId: string, input: UpdateTripInput): Promise<{ startDate: string | null } | undefined> {
+  const [row] = await db
+    .update(trips)
+    .set({ startDate: input.startDate })
+    .where(and(eq(trips.id, tripId), eq(trips.ownerId, ownerId)))
+    .returning({ startDate: trips.startDate });
+  return row;
 }
 
 // Returns undefined when the Day is not in a Trip owned by this user.

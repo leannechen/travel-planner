@@ -21,12 +21,12 @@ import {
   type Todo,
   type Trip,
 } from "@travel-planner/shared";
-import { ChevronLeft, ChevronRight, CircleHelp, Map as MapIcon, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, CircleHelp, Map as MapIcon, Plus, Settings, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { deleteDay, insertDay, reorderDays, restoreDay } from "./api";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { eventConflicts, hoursPlaceIds, useOpeningHours } from "./openingHours";
-import { tripStartDate } from "./tripDates";
+import { dayLabel, formatTripRange, tripStartDate, weekdayKey } from "./tripDates";
 import { accessibility, DayTimeline, HourLabels, PX_PER_HOUR, sensors, type EventTimes } from "./DayTimeline";
 import { endGesture } from "./gesture";
 import { HoldingAreas } from "./HoldingAreas";
@@ -35,13 +35,15 @@ import { LodgingBanners, staysOf } from "./LodgingBanners";
 import { TodosPanel } from "./TodosPanel";
 import { useIsPhone } from "./phone";
 import { keyOf, tip } from "./shortcuts";
-import { useT } from "./preferences";
+import { usePreferences, useT } from "./preferences";
 
 // What a move changes: the time, and/or the place (a Day id in `dayId`, or a holding area).
 export type EventMove = Partial<Pick<Event, "startMinute" | "durationMinutes" | "dayId" | "holding">>;
 
 type Props = {
   trip: Trip;
+  // Opens Trip settings (the start date).
+  onOpenSettings: () => void;
   onDaysChange: (tripId: string, days: Day[], backlog?: Event[]) => void;
   selectedEventId?: string;
   // A new Event being set up in the panel.
@@ -84,8 +86,9 @@ function dropTargetAt(root: HTMLElement, x: number, y: number, draggedId: string
   return undefined;
 }
 
-export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectEvent, onCreateAt, onAddToBacklog, onMove, onCreateLeg, onChangeLegMode, onDeleteLeg, onToast, notesOpen, onToggleNotes, onShowShortcuts, footer, onAddTodo, onToggleTodo, onDeleteTodo }: Props) {
+export function TripCard({ trip, onOpenSettings, onDaysChange, selectedEventId, draft, onSelectEvent, onCreateAt, onAddToBacklog, onMove, onCreateLeg, onChangeLegMode, onDeleteLeg, onToast, notesOpen, onToggleNotes, onShowShortcuts, footer, onAddTodo, onToggleTodo, onDeleteTodo }: Props) {
   const t = useT();
+  const { language } = usePreferences();
   const root = useRef<HTMLElement>(null);
   const [error, setError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
@@ -260,6 +263,15 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
           <MapIcon size={18} />
         </span>
         <h2>{trip.title}</h2>
+        {!phone && (
+          <span className="trip-dates">
+            {startDate && `${formatTripRange(startDate, trip.days.length, language)} · `}
+            {t("trip.days", { count: trip.days.length })}
+          </span>
+        )}
+        <button type="button" className="ib" title={t("trip.settings")} aria-label={t("trip.settings")} onClick={onOpenSettings}>
+          <Settings size={16} aria-hidden="true" />
+        </button>
         <span className="spacer" />
         <button type="button" className="btn" aria-pressed={notesOpen} title={tip(t("notes.title"), "notes")} onClick={onToggleNotes}>
           {t("notes.title")} <span className="count">{trip.notes.length}</span>
@@ -283,6 +295,7 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
               onClick={() => setDayId(day.id)}
             >
               {t("day.title", { n: day.position })}
+              {startDate && <small>{dayLabel(startDate, day.position).short}</small>}
             </button>
           ))}
           <button
@@ -357,7 +370,14 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
                   aria-label={t("day.title", { n: day.position })}
                   style={{ gridColumn: dayColumn, gridRow: 1 }}
                 >
-                  <h3>{t("day.title", { n: day.position })}</h3>
+                  <h3>
+                    {t("day.title", { n: day.position })}
+                    {startDate && !phone && (
+                      <small>
+                        {dayLabel(startDate, day.position).short}・{t(weekdayKey(dayLabel(startDate, day.position).weekday))}
+                      </small>
+                    )}
+                  </h3>
                   <div>
                     <button
                       type="button"

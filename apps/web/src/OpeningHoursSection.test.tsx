@@ -24,6 +24,7 @@ function setup(props: Partial<Parameters<typeof OpeningHoursSection>[0]> = {}) {
     weekday: 4 as number | undefined,
     dated: true,
     conflict: false,
+    onSetDate: vi.fn(),
     onTurnOn: vi.fn(async () => "on" as const),
     onRemove: vi.fn(async () => undefined),
     ...props,
@@ -93,8 +94,14 @@ describe("Opening hours section", () => {
     setup({ weekday: undefined, dated: false });
     expect(screen.getByText("Whole week")).toBeTruthy();
     expect(screen.getByText("Closed")).toBeTruthy();
-    expect(screen.getByText("Add a start date to this Trip to check these hours against your plan.")).toBeTruthy();
+    expect(screen.getByText(/to this Trip to check these hours against your plan\./)).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Whole week/ })).toBeNull();
+  });
+
+  it("links the note to Trip settings", async () => {
+    const props = setup({ weekday: undefined, dated: false });
+    await userEvent.click(screen.getByRole("button", { name: "Add a start date" }));
+    expect(props.onSetDate).toHaveBeenCalledOnce();
   });
 
   it("lists the week without the note for an Event outside a Day of a dated Trip", () => {

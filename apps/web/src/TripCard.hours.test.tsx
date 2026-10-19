@@ -14,10 +14,11 @@ const off = makeEvent({ title: "Not asked", startMinute: 20 * 60, durationMinute
 const lodging = makeEvent({ title: "Inn", kind: "lodging", nights: 1, startMinute: 20 * 60, placeId: "fake:kinkaku-ji", openingHoursOn: true });
 
 function setup(events = [onTime, late, off]) {
-  const trip = makeTrip({ days: [makeDay(1, events)] });
+  const trip = makeTrip({ days: [makeDay(1, events)], startDate: "2026-11-03" });
   renderApp(
     <TripCard
       trip={trip}
+      onOpenSettings={vi.fn()}
       onDaysChange={vi.fn()}
       onSelectEvent={vi.fn()}
       onCreateAt={vi.fn()}
@@ -78,5 +79,60 @@ describe("Event cards and opening hours", () => {
     setup();
     await waitFor(() => expect(getOpeningHours).toHaveBeenCalled());
     expect(card("Evening visit").classList.contains("warn")).toBe(false);
+  });
+});
+
+describe("Trip dates on the Trip", () => {
+  const render = (startDate: string | null, days = 3) => {
+    cleanup();
+    const trip = makeTrip({ days: Array.from({ length: days }, (_, i) => makeDay(i + 1)), startDate });
+    const onOpenSettings = vi.fn();
+    renderApp(
+      <TripCard
+        trip={trip}
+        onOpenSettings={onOpenSettings}
+        onDaysChange={vi.fn()}
+        onSelectEvent={vi.fn()}
+        onCreateAt={vi.fn()}
+        onAddToBacklog={vi.fn()}
+        onMove={vi.fn()}
+        onCreateLeg={vi.fn()}
+        onChangeLegMode={vi.fn()}
+        onDeleteLeg={vi.fn()}
+        onToast={vi.fn()}
+        notesOpen={false}
+        onToggleNotes={vi.fn()}
+        onShowShortcuts={vi.fn()}
+        onAddTodo={vi.fn()}
+        onToggleTodo={vi.fn()}
+        onDeleteTodo={vi.fn()}
+      />,
+    );
+    return onOpenSettings;
+  };
+
+  it("shows each Day's date and weekday, and the range with the day count", () => {
+    render("2026-11-03");
+    expect(screen.getByText("11/03・Tue")).toBeTruthy();
+    expect(screen.getByText("11/05・Thu")).toBeTruthy();
+    expect(screen.getByText("Tue 3 – Thu 5 Nov · 3 days")).toBeTruthy();
+  });
+
+  it("shows only Day numbers and the day count without a start date", () => {
+    render(null);
+    expect(screen.queryByText(/11\/0/)).toBeNull();
+    expect(screen.getByText("3 days")).toBeTruthy();
+  });
+
+  it("opens Trip settings from the gear button", async () => {
+    const onOpenSettings = render(null);
+    screen.getByRole("button", { name: "Trip settings" }).click();
+    expect(onOpenSettings).toHaveBeenCalledOnce();
+  });
+
+  it("puts the date under the Day name on phone tabs", () => {
+    setPhone(true);
+    render("2026-11-03");
+    expect(screen.getByRole("button", { name: /Day 2/ }).textContent).toContain("11/04");
   });
 });

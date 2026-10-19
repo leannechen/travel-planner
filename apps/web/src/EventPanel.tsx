@@ -92,6 +92,8 @@ type Props = {
   onDelete: (event: Event) => void;
   // The Trip's start date ("YYYY-MM-DD"), which the opening-hours check needs.
   startDate?: string;
+  // Opens Trip settings, where the start date is set.
+  onOpenTripSettings: () => void;
   // Opening hours are turned on and off at once, not with Save. "none": Google has no hours for the place.
   onTurnOnOpeningHours: (eventId: string) => Promise<"on" | "none">;
   onRemoveOpeningHours: (eventId: string) => Promise<void>;
@@ -118,6 +120,7 @@ export function EventPanel({
   onDeleteTodo,
   onDelete,
   startDate,
+  onOpenTripSettings,
   onTurnOnOpeningHours,
   onRemoveOpeningHours,
   quiet,
@@ -598,6 +601,7 @@ export function EventPanel({
             weekday={openingWeekday}
             dated={startDate !== undefined}
             conflict={eventConflicts(event, dayPosition, startDate, placeHours)}
+            onSetDate={onOpenTripSettings}
             onTurnOn={() => onTurnOnOpeningHours(event.id)}
             onRemove={() => onRemoveOpeningHours(event.id)}
           />

@@ -1,10 +1,8 @@
 import { dayWindows, formatWindows, hoursSummary, type OpeningHours } from "@travel-planner/shared";
 import { ChevronDown, ChevronUp, Clock, Info, LoaderCircle, TriangleAlert, X } from "lucide-react";
 import { useState } from "react";
-import type { MessageKey } from "./messages";
 import { useT } from "./preferences";
-
-const DAY_KEYS: MessageKey[] = ["opening.day0", "opening.day1", "opening.day2", "opening.day3", "opening.day4", "opening.day5", "opening.day6"];
+import { weekdayKey } from "./tripDates";
 
 // Monday first, as the week is listed.
 const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0] as const;
@@ -21,6 +19,8 @@ type Props = {
   // Whether the Trip has a start date, which the check needs.
   dated: boolean;
   conflict: boolean;
+  // Opens Trip settings, where the start date is set; the note without a date links to it.
+  onSetDate: () => void;
   // Turns them on; "none" when Google has no hours for the place. Rejects when the request fails.
   onTurnOn: () => Promise<"on" | "none">;
   onRemove: () => Promise<void>;
@@ -28,7 +28,7 @@ type Props = {
 
 // The Opening hours section of the Event panel (PRD §3.5, design 44): a button to get them from
 // Google, then the hours, a note when they may conflict with the Event's time, and a way to remove them.
-export function OpeningHoursSection({ on, hours, fetching, weekday, dated, conflict, onTurnOn, onRemove }: Props) {
+export function OpeningHoursSection({ on, hours, fetching, weekday, dated, conflict, onSetDate, onTurnOn, onRemove }: Props) {
   const t = useT();
   const [pending, setPending] = useState(false);
   const [note, setNote] = useState<"none" | "error" | undefined>();
@@ -97,7 +97,7 @@ export function OpeningHoursSection({ on, hours, fetching, weekday, dated, confl
         ? t("opening.daily", { hours: summary.text })
         : weekday === undefined
           ? t("opening.wholeWeek")
-          : t("opening.dayHours", { day: t(DAY_KEYS[weekday]!), hours: dayText(weekday) });
+          : t("opening.dayHours", { day: t(weekdayKey(weekday)), hours: dayText(weekday) });
 
   return (
     <div className="oh">
@@ -116,7 +116,7 @@ export function OpeningHoursSection({ on, hours, fetching, weekday, dated, confl
         <div className="oh-wk" id="oh-week">
           {WEEK_ORDER.map((day) => (
             <div key={day} className={[formatWindows(dayWindows(hours, day)) ? "" : "cl", day === weekday ? "now" : ""].filter(Boolean).join(" ") || undefined}>
-              <span>{t(DAY_KEYS[day]!)}</span>
+              <span>{t(weekdayKey(day))}</span>
               <span>{dayText(day)}</span>
             </div>
           ))}
@@ -125,7 +125,12 @@ export function OpeningHoursSection({ on, hours, fetching, weekday, dated, confl
       {!dated && !closed && (
         <p className="oh-note">
           <Info size={14} aria-hidden="true" />
-          <span>{t("opening.needDate")}</span>
+          <span>
+            <button type="button" className="oh-inline-link" onClick={onSetDate}>
+              {t("opening.needDateLink")}
+            </button>
+            {t("opening.needDateRest")}
+          </span>
         </p>
       )}
       <div className="oh-acts">

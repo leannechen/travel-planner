@@ -5,6 +5,7 @@ import {
   createNoteInputSchema,
   createTodoInputSchema,
   createTripInputSchema,
+  updateTripInputSchema,
   deletedEventSchema,
   restoreNoteInputSchema,
   holdingAreaSchema,
@@ -48,6 +49,7 @@ import {
   setOpeningHours,
   updateEvent,
   updateNote,
+  updateTrip,
   updateTodo,
 } from "./trips";
 
@@ -118,6 +120,17 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
   app.post("/api/trips", async (req, res) => {
     const input = createTripInputSchema.parse(req.body);
     res.status(201).json(await createTrip(db, DEV_USER_ID, input));
+  });
+
+  app.patch("/api/trips/:tripId", async (req, res) => {
+    const { tripId } = tripParamsSchema.parse(req.params);
+    const input = updateTripInputSchema.parse(req.body);
+    const trip = await updateTrip(db, DEV_USER_ID, tripId, input);
+    if (!trip) {
+      res.status(404).json({ error: "Trip not found" });
+      return;
+    }
+    res.json(trip);
   });
 
   app.post("/api/trips/:tripId/days/:dayId/events", async (req, res) => {

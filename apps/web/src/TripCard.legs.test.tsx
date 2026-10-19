@@ -22,6 +22,7 @@ function setup(legs: Leg[] = [], events = [a, b, c]) {
   const trip = makeTrip({ days: [day], legs, travelMode: "walk" });
   const props = {
     trip,
+    onOpenSettings: vi.fn(),
     onDaysChange: vi.fn(),
     onSelectEvent: vi.fn(),
     onCreateAt: vi.fn(),
@@ -206,6 +207,7 @@ describe("Legs on the timeline", () => {
       onAddTodo: vi.fn(),
       onToggleTodo: vi.fn(),
       onDeleteTodo: vi.fn(),
+      onOpenSettings: vi.fn(),
     };
     const rendered = renderApp(<TripCard {...props} />);
     return { ...props, rerenderWith: (next: typeof trip) => rendered.rerender(<PreferencesProvider><TripCard {...props} trip={next} /></PreferencesProvider>) };

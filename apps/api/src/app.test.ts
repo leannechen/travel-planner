@@ -1489,6 +1489,42 @@ describe("places", () => {
   });
 });
 
+describe("Trip start date", () => {
+  const list = async () => z.array(tripSchema).parse(await (await fetch(`${app.baseUrl}/api/trips`)).json());
+  const patchTrip = (id: string, body: unknown) =>
+    fetch(`${app.baseUrl}/api/trips/${id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+
+  it("has none unless given at creation", async () => {
+    expect((await createTrip("Plain")).trip.startDate).toBeNull();
+    const dated = tripSchema.parse(await (await post("/api/trips", { title: "Dated", startDate: "2026-11-03" })).json());
+    expect(dated.startDate).toBe("2026-11-03");
+    expect((await list()).find((t) => t.id === dated.id)?.startDate).toBe("2026-11-03");
+  });
+
+  it("is set, changed and cleared", async () => {
+    const { trip } = await createTrip("Kyoto");
+    expect(await (await patchTrip(trip.id, { startDate: "2026-11-03" })).json()).toEqual({ startDate: "2026-11-03" });
+    expect((await list()).find((t) => t.id === trip.id)?.startDate).toBe("2026-11-03");
+    await patchTrip(trip.id, { startDate: "2026-12-01" });
+    expect((await list()).find((t) => t.id === trip.id)?.startDate).toBe("2026-12-01");
+    expect(await (await patchTrip(trip.id, { startDate: null })).json()).toEqual({ startDate: null });
+    expect((await list()).find((t) => t.id === trip.id)?.startDate).toBeNull();
+  });
+
+  it("refuses a date that does not exist or is not a date, at creation and later", async () => {
+    const { trip } = await createTrip("Kyoto");
+    for (const startDate of ["2026-02-30", "soon", "", 5]) {
+      expect((await patchTrip(trip.id, { startDate })).status, String(startDate)).toBe(400);
+    }
+    expect((await patchTrip(trip.id, {})).status).toBe(400);
+    expect((await post("/api/trips", { title: "x", startDate: "2026-02-30" })).status).toBe(400);
+  });
+
+  it("answers 404 for a Trip that is not there", async () => {
+    expect((await patchTrip("00000000-0000-4000-8000-000000000000", { startDate: null })).status).toBe(404);
+  });
+});
+
 describe("opening hours", () => {
   async function eventAt(placeId: string | null, kind: "attraction" | "lodging" = "attraction") {
     const { trip } = await createTrip("Kyoto");

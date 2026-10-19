@@ -99,6 +99,13 @@
       "when": 1792420553965,
       "tag": "0013_opening_hours",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1792422687076,
+      "tag": "0014_trip_start_date",
+      "breakpoints": true
     }
   ]
 }

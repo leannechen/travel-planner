@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { boolean, check, doublePrecision, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { boolean, check, date, doublePrecision, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import type { OpeningHours } from "@travel-planner/shared";
 
 export const users = pgTable("users", {
@@ -17,6 +17,8 @@ export const trips = pgTable("trips", {
   title: text().notNull(),
   // The mode a new Leg of the Trip starts with.
   travelMode: travelMode().notNull().default("transit"),
+  // The first Day's calendar date ("YYYY-MM-DD"), or null.
+  startDate: date({ mode: "string" }),
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });
 

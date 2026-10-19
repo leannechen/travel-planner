@@ -33,6 +33,7 @@ function setup(event: Event | undefined | null = makeEvent({ dayId: days[0]!.id,
     onToggleTodo: vi.fn(),
     onDeleteTodo: vi.fn(),
     onDelete: vi.fn(),
+    onOpenTripSettings: vi.fn(),
     onTurnOnOpeningHours: vi.fn(),
     onRemoveOpeningHours: vi.fn(),
   };

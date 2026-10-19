@@ -253,6 +253,27 @@ export function EventPanel({
     }
   }
 
+  // The Archive/Delete menu closes on a click outside it or on Escape (marked handled, so the
+  // sheet's own Escape stays out).
+  const split = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onPointer = (e: PointerEvent) => {
+      if (!split.current?.contains(e.target as Node)) setMenuOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.stopPropagation();
+      setMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointer);
+    document.addEventListener("keydown", onKey, true);
+    return () => {
+      document.removeEventListener("pointerdown", onPointer);
+      document.removeEventListener("keydown", onKey, true);
+    };
+  }, [menuOpen]);
+
   // Phone footer: closes the sheet once the pending changes are saved; a failed save keeps it open.
   async function finish() {
     commit();
@@ -528,14 +549,23 @@ export function EventPanel({
       {phone && (
         <footer className="sheet-footer">
           <p className="sheet-status" role="status">
-            {status.kind === "saving" ? t("generic.saving") : status.kind !== "error" && t("event.autosaved")}
+            {status.kind === "saving" ? (
+              t("generic.saving")
+            ) : (
+              status.kind !== "error" && (
+                <>
+                  <Check size={14} aria-hidden="true" />
+                  {t("event.autosaved")}
+                </>
+              )
+            )}
           </p>
           <div className="sheet-actions">
             {event && (
-              <div className="split">
+              <div className="split" ref={split}>
                 <button
                   type="button"
-                  className={footerAction === "delete" || event.holding === "archive" ? "split-main danger" : "split-main"}
+                  className={footerAction === "delete" || event.holding === "archive" ? "btn lg split-main dng-q" : "btn lg split-main"}
                   onClick={() => {
                     if (footerAction === "delete" || event.holding === "archive") onDelete(event);
                     else void archiveAndClose();
@@ -551,7 +581,7 @@ export function EventPanel({
                 {event.holding !== "archive" && (
                   <button
                     type="button"
-                    className="split-more"
+                    className="btn lg split-more"
                     aria-label={t("event.moreActions")}
                     aria-expanded={menuOpen}
                     onClick={() => setMenuOpen(!menuOpen)}
@@ -585,7 +615,7 @@ export function EventPanel({
                 )}
               </div>
             )}
-            <button type="button" className="primary ok" onClick={() => void finish()}>
+            <button type="button" className="btn lg pri ok" onClick={() => void finish()}>
               {t("event.ok")}
             </button>
           </div>

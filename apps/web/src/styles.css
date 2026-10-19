@@ -215,6 +215,10 @@ button:where(:not([class])),
   white-space: nowrap;
 }
 
+.btn svg {
+  flex: none;
+}
+
 button:where(:not([class])):hover,
 .btn:hover {
   background: var(--surface2);
@@ -1819,45 +1823,55 @@ main.has-panel .topbar {
   }
 
   .sheet-status {
-    margin: 0 0 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin: 0 0 8px;
     color: var(--muted);
     font-size: 12px;
-    text-align: center;
+  }
+
+  .sheet-status svg {
+    color: var(--ok);
   }
 
   .sheet-actions {
     display: flex;
-    gap: 10px;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn.lg {
+    height: 44px;
+    padding: 0 16px;
+    font-size: 14px;
   }
 
   .split {
     position: relative;
-    display: flex;
+    display: inline-flex;
+    flex: none;
   }
 
   .split-main {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    min-height: 48px;
-    padding: 0 16px;
+    border-right: 0;
     border-radius: var(--r-md) 0 0 var(--r-md);
   }
 
   .split-main:only-child {
+    border-right: 1px solid var(--border2);
     border-radius: var(--r-md);
   }
 
   .split-more {
-    min-width: 44px;
-    min-height: 48px;
+    width: 38px;
     padding: 0;
-    border-left: 0;
+    justify-content: center;
     border-radius: 0 var(--r-md) var(--r-md) 0;
   }
 
-  .split-main.danger {
-    border-color: var(--danger);
+  .btn.dng-q {
     color: var(--danger);
   }
 
@@ -1866,9 +1880,9 @@ main.has-panel .topbar {
     z-index: 2;
     bottom: calc(100% + 8px);
     left: 0;
-    width: 17rem;
+    width: 280px;
     margin: 0;
-    padding: 6px;
+    padding: 4px;
     list-style: none;
     border: 1px solid var(--border2);
     border-radius: var(--r-md);
@@ -1880,11 +1894,17 @@ main.has-panel .topbar {
     display: flex;
     gap: 10px;
     width: 100%;
+    height: auto;
     padding: 10px;
     border: 0;
+    border-radius: var(--r-sm);
     background: transparent;
     box-shadow: none;
     text-align: left;
+  }
+
+  .split-menu button:hover {
+    background: var(--surface2);
   }
 
   .split-menu button.danger {
@@ -1904,11 +1924,11 @@ main.has-panel .topbar {
 
   .sheet-actions .ok {
     flex: 1;
-    min-height: 48px;
-    border-color: var(--pri-strong);
+    justify-content: center;
     background: var(--pri-strong);
+    border-color: var(--pri-strong);
     color: var(--onpri);
-    font-weight: 700;
+    font-weight: 600;
   }
 
   /* On a phone the switches are behind a "..." button at the top right. */

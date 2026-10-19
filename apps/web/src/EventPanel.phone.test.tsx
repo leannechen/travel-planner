@@ -149,11 +149,13 @@ describe("EventPanel on a phone", () => {
     expect(screen.queryByRole("button", { name: /Archive/ })).toBeNull();
   });
 
-  it("saves a place chosen in the Location field, and Transport has From and To", async () => {
+  it("saves a place chosen in the Location field on Save, and Transport has From and To", async () => {
     const user = userEvent.setup();
     const props = setup();
     await user.type(screen.getByRole("combobox", { name: "Location" }), "kin");
     await user.click(await screen.findByRole("option", { name: /Kinkaku-ji/ }));
+    expect(props.onUpdate).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(props.onUpdate).toHaveBeenCalledWith(props.event.id, expect.objectContaining({ placeId: "p1" })));
     await user.selectOptions(screen.getByRole("combobox", { name: "Kind" }), "transport");
     expect(screen.getByText(/From/)).toBeTruthy();

@@ -8,7 +8,8 @@ import { EventPanel, type PanelApi } from "./EventPanel";
 import { UnsavedDialog } from "./UnsavedDialog";
 import { makeDay, makeEvent, renderApp, setPhone } from "./test-helpers";
 
-vi.mock("./api", () => ({ searchPlaces: vi.fn(async () => []), getPlaces: vi.fn(async () => []) }));
+const kinkaku = { id: "p1", name: "Kinkaku-ji", address: "Kita Ward, Kyoto", lat: 35, lng: 135 };
+vi.mock("./api", () => ({ searchPlaces: vi.fn(async () => [kinkaku]), getPlaces: vi.fn(async () => []) }));
 vi.mock("./MarkdownEditor", () => ({
   MarkdownEditor: ({ label }: { label: string }) => <textarea aria-label={label} />,
 }));
@@ -54,6 +55,19 @@ describe("Event panel saves on Save", () => {
     await user.click(screen.getByRole("textbox", { name: "Description" }));
     await user.tab();
     expect(props.onUpdate).not.toHaveBeenCalled();
+  });
+
+  it("a chosen location is unsaved until Save, for an existing and a new Event", async () => {
+    const user = userEvent.setup();
+    for (const event of [undefined, null]) {
+      const props = setup(event === undefined ? undefined : null);
+      await user.type(screen.getByRole("combobox", { name: "Location" }), "kin");
+      await user.click(await screen.findByRole("option", { name: /Kinkaku-ji/ }));
+      expect(props.onUpdate).not.toHaveBeenCalled();
+      expect(props.onCreate).not.toHaveBeenCalled();
+      expect(props.apiRef.current!.isDirty()).toBe(true);
+      cleanup();
+    }
   });
 
   it("Save sends the changes and closes", async () => {

@@ -92,8 +92,8 @@ type Props = {
 
 
 // Edits one Event. Typed fields are saved by Save (or Enter), which also closes the panel; closing
-// any other way with unsaved changes is first confirmed by the page. Choosing a Day, Kind, Transport
-// type or place is not typing, so it saves at once. A new Event is created by saving it with a
+// any other way with unsaved changes is first confirmed by the page. Choosing a Day, Kind or Transport
+// type is not typing, so it saves at once. A new Event is created by saving it with a
 // title. Remount it (key) for another Event.
 export function EventPanel({
   days,
@@ -321,6 +321,7 @@ export function EventPanel({
     apiRef.current = {
       isDirty: () => {
         const plan = planEventSave(latest.current, saved.current);
+        if (plan.kind === "wait") return !saved.current && JSON.stringify(latest.current) !== untouched.current;
         return plan.kind === "update" || plan.kind === "create" || plan.kind === "error";
       },
       save: saveNow,
@@ -521,29 +522,20 @@ export function EventPanel({
               label={t("place.from")}
               optional
               value={fields.placeId}
-              onChange={(placeId) => {
-                change({ placeId });
-                commit();
-              }}
+              onChange={(placeId) => change({ placeId })}
             />
             <PlaceField
               label={t("place.to")}
               optional
               value={fields.destinationId}
-              onChange={(destinationId) => {
-                change({ destinationId });
-                commit();
-              }}
+              onChange={(destinationId) => change({ destinationId })}
             />
           </>
         ) : (
           <PlaceField
             label={t("place.location")}
             value={fields.placeId}
-            onChange={(placeId) => {
-              change({ placeId });
-              commit();
-            }}
+            onChange={(placeId) => change({ placeId })}
           />
         )}
         {showsBookingLink(fields.kind) && (

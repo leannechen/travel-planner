@@ -3,6 +3,7 @@ import { Modifier, type DragOperation } from "@dnd-kit/abstract";
 import { Accessibility, PointerActivationConstraints, PointerSensor } from "@dnd-kit/dom";
 import {
   adjacentPairs,
+  DEFAULT_DURATION_MINUTES,
   formatMinute,
   legEndpoints,
   legGap,
@@ -236,6 +237,7 @@ export function DayTimeline({
             to={to}
             startMinute={from.startMinute + from.durationMinutes}
             endMinute={to.startMinute}
+            createAt={from.startMinute + from.durationMinutes}
             range={range}
             open={openSlot === key}
             onOpenChange={(open) => setOpenSlot(open ? key : undefined)}
@@ -378,6 +380,9 @@ type Slot = {
   to?: Event;
   startMinute: number;
   endMinute: number;
+  // Where "Add Event" starts the new Event; the end of the Event before, or for the stretch before
+  // the first Event, an hour before it so the new one fits.
+  createAt: number;
 };
 
 // The empty time before the first Event and after the last one (the Events are not sorted).
@@ -388,9 +393,15 @@ function edgeSlots(events: Event[], range: Range): Slot[] {
   const lastEnd = last.startMinute + last.durationMinutes;
   const slots: Slot[] = [];
   const before = Math.max(range.startMinute, first.startMinute - EDGE_SLOT_MINUTES);
-  if (before < first.startMinute) slots.push({ id: `<${first.id}`, to: first, startMinute: before, endMinute: first.startMinute });
+  if (before < first.startMinute) slots.push({
+      id: `<${first.id}`,
+      to: first,
+      startMinute: before,
+      endMinute: first.startMinute,
+      createAt: Math.max(before, first.startMinute - DEFAULT_DURATION_MINUTES),
+    });
   const after = Math.min(range.endMinute, lastEnd + EDGE_SLOT_MINUTES);
-  if (lastEnd < after) slots.push({ id: `${last.id}>`, from: last, startMinute: lastEnd, endMinute: after });
+  if (lastEnd < after) slots.push({ id: `${last.id}>`, from: last, startMinute: lastEnd, endMinute: after, createAt: lastEnd });
   return slots;
 }
 
@@ -404,7 +415,7 @@ type SlotRowProps = Slot & {
 
 // An empty stretch of the Day. Its buttons show on hover or focus, or after a tap on a touch
 // screen: "Add Event" always, and "Add Travel" between two Events that both have a Google place.
-function SlotRow({ from, to, startMinute, endMinute, range, open, onOpenChange, onCreateAt, onOpenLeg }: SlotRowProps) {
+function SlotRow({ from, to, startMinute, endMinute, createAt, range, open, onOpenChange, onCreateAt, onOpenLeg }: SlotRowProps) {
   const t = useT();
   const top = toPx(startMinute - range.startMinute);
   if (top > toPx(range.endMinute - range.startMinute)) return null;
@@ -417,8 +428,10 @@ function SlotRow({ from, to, startMinute, endMinute, range, open, onOpenChange, 
       : t("slot.before", { title: to!.title });
 
   // On a touch screen the first tap only shows the buttons, so nothing is triggered unseen.
+  const touched = (e: MouseEvent) =>
+    (e.nativeEvent as globalThis.PointerEvent).pointerType === "touch" || window.matchMedia("(hover: none)").matches;
   const touchReveal = (e: MouseEvent) => {
-    if (open || !window.matchMedia("(hover: none)").matches) return false;
+    if (open || !touched(e)) return false;
     e.stopPropagation();
     onOpenChange(true);
     return true;
@@ -430,7 +443,7 @@ function SlotRow({ from, to, startMinute, endMinute, range, open, onOpenChange, 
       style={{ top, height: toPx(endMinute - startMinute) }}
       onClick={(e) => {
         // A tap on the empty stretch itself toggles the buttons; a click elsewhere creates as usual.
-        if ((e.target as HTMLElement).closest(".slot-actions") || !window.matchMedia("(hover: none)").matches) return;
+        if ((e.target as HTMLElement).closest(".slot-actions") || !touched(e)) return;
         e.stopPropagation();
         onOpenChange(!open);
       }}
@@ -442,7 +455,7 @@ function SlotRow({ from, to, startMinute, endMinute, range, open, onOpenChange, 
           onClick={(e) => {
             if (touchReveal(e)) return;
             onOpenChange(false);
-            onCreateAt(startMinute);
+            onCreateAt(createAt);
           }}
         >
           <Plus size={14} aria-hidden="true" /> {t("slot.addEvent")}

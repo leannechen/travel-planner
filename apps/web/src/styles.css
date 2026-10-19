@@ -1211,7 +1211,18 @@ main.has-panel .topbar {
   border: 1.5px dashed transparent;
   border-radius: var(--r-md);
   list-style: none;
-  cursor: default;
+}
+
+/* Where the Events touch or the gap is short the row has no height; this strip keeps it reachable
+   without the hidden buttons (which are taller) blocking the cards. */
+.slot-row::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  height: max(100%, 12px);
+  transform: translateY(-50%);
 }
 
 .slot-row:hover,
@@ -1233,12 +1244,14 @@ main.has-panel .topbar {
   background: var(--surface);
   box-shadow: var(--sh-card);
   opacity: 0;
+  pointer-events: none;
 }
 
 .slot-row:hover .slot-actions,
 .slot-row:focus-within .slot-actions,
 .slot-row.open .slot-actions {
   opacity: 1;
+  pointer-events: auto;
 }
 
 .slot-actions button {

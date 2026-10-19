@@ -110,6 +110,30 @@ describe("Leg slots", () => {
     expect(add.closest(".slot-row")?.classList.contains("open")).toBe(false);
   });
 
+  it("Add Event before the first Event starts an hour before it", async () => {
+    const user = userEvent.setup();
+    const { props, dayId } = setup();
+    await user.click(screen.getByRole("button", { name: "Add Event before Station" }));
+    expect(props.onCreateAt).toHaveBeenCalledWith(dayId, 480);
+  });
+
+  it("Add Event after the last Event starts where it ends", async () => {
+    const user = userEvent.setup();
+    const { props, dayId } = setup();
+    await user.click(screen.getByRole("button", { name: "Add Event after Lunch idea" }));
+    expect(props.onCreateAt).toHaveBeenCalledWith(dayId, 840);
+  });
+
+  it("Esc dismisses the buttons shown by a tap", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("matchMedia", (query: string) => ({ matches: query === "(hover: none)", media: query, addEventListener() {}, removeEventListener() {} }));
+    setup();
+    const add = screen.getByRole("button", { name: "Add Event between Station and Golden Pavilion" });
+    await user.click(add);
+    await user.keyboard("{Escape}");
+    expect(add.closest(".slot-row")?.classList.contains("open")).toBe(false);
+  });
+
   it("chooses the mode, starting with the Trip's default, and creates the Leg on OK", async () => {
     const user = userEvent.setup();
     const { props, ids } = setup();
@@ -180,6 +204,7 @@ describe("Legs on the timeline", () => {
     expect(pill.textContent).toContain("25 min");
     // The Leg takes the place of the slot.
     expect(screen.queryByRole("button", { name: /Add travel between/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Add Event between Station and Golden Pavilion" })).toBeNull();
     await user.click(pill);
     const dialog = screen.getByRole("dialog", { name: "Leg · 25 min" });
     expect(within(dialog).getByText("Station")).toBeTruthy();

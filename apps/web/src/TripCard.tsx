@@ -18,7 +18,7 @@ import {
   type Trip,
 } from "@travel-planner/shared";
 import { ChevronLeft, ChevronRight, CircleHelp, Map as MapIcon, Plus, Trash2 } from "lucide-react";
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { deleteDay, insertDay, reorderDays, restoreDay } from "./api";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { accessibility, DayTimeline, HourLabels, PX_PER_HOUR, sensors, type EventTimes } from "./DayTimeline";
@@ -26,6 +26,7 @@ import { endGesture } from "./gesture";
 import { HoldingAreas } from "./HoldingAreas";
 import { LodgingBanners, staysOf } from "./LodgingBanners";
 import { TodosPanel } from "./TodosPanel";
+import { useIsPhone } from "./phone";
 import { keyOf, tip } from "./shortcuts";
 import { useT } from "./preferences";
 
@@ -150,6 +151,20 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
     }
   }
 
+  const phone = useIsPhone();
+  // Phone: one Day at a time, and one of the drawers (Backlog, Archive, Todos) open at most.
+  const [dayId, setDayId] = useState(trip.days[0]?.id);
+  const [drawer, setDrawer] = useState<"backlog" | "archive" | "todos" | undefined>();
+  const shownDay = trip.days.find((d) => d.id === dayId) ?? trip.days[0];
+  const selectedDayId = trip.days.find((d) => d.events.some((e) => e.id === selectedEventId))?.id;
+  // Selecting an Event (from the Todos, say) brings its Day into view.
+  useEffect(() => {
+    if (selectedDayId) setDayId(selectedDayId);
+  }, [selectedDayId]);
+  const selectFromDrawer = (eventId: string) => {
+    setDrawer(undefined);
+    onSelectEvent(eventId);
+  };
   const dayIds = trip.days.map((d) => d.id);
   const lastPosition = trip.days.length;
   // One range for every Day, so the Days line up side by side.
@@ -191,7 +206,8 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
   }
 
   // Grid: hour labels, then for each Day a narrow column for its Insert button and a Day column.
-  const columns = `auto ${trip.days.map(() => "auto minmax(14rem, 1fr)").join(" ")} auto`;
+  const shownDays = phone && shownDay ? [shownDay] : trip.days;
+  const columns = phone ? "auto minmax(0, 1fr)" : `auto ${trip.days.map(() => "auto minmax(14rem, 1fr)").join(" ")} auto`;
   const deleting = pendingDelete;
 
   return (
@@ -213,6 +229,31 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
         </button>
       </div>
       {error && <p role="alert">{error}</p>}
+      {phone && (
+        <nav className="day-tabs" aria-label={t("day.tabs")}>
+          {trip.days.map((day) => (
+            <button
+              key={day.id}
+              type="button"
+              className={day.id === shownDay?.id ? "day-tab on" : "day-tab"}
+              aria-pressed={day.id === shownDay?.id}
+              onClick={() => setDayId(day.id)}
+            >
+              {t("day.title", { n: day.position })}
+            </button>
+          ))}
+          <button
+            type="button"
+            className="day-tab add"
+            disabled={busy}
+            aria-label={t("day.add")}
+            title={t("day.add")}
+            onClick={() => changeDays(() => insertDay(trip.id, lastPosition + 1))}
+          >
+            <Plus size={16} aria-hidden="true" />
+          </button>
+        </nav>
+      )}
       <DragDropProvider
         sensors={sensors}
         plugins={(defaults) => [...defaults.filter((p) => p !== Accessibility), accessibility(events, t)]}
@@ -231,27 +272,35 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
         }}
       >
         <div className="trip-layout">
+          {(!phone || drawer === "backlog" || drawer === "archive") && (
           <HoldingAreas
+            only={phone ? (drawer as "backlog" | "archive") : undefined}
             backlog={trip.backlog}
             archive={trip.archive}
             selectedEventId={selectedEventId}
             dropTarget={dropTarget}
-            onSelectEvent={onSelectEvent}
-            onAddToBacklog={onAddToBacklog}
+            onSelectEvent={phone ? selectFromDrawer : onSelectEvent}
+            onAddToBacklog={() => {
+              setDrawer(undefined);
+              onAddToBacklog();
+            }}
             onMoveTo={(eventId, area: HoldingArea) => onMove(eventId, { holding: area })}
-            footer={footer}
+            footer={phone ? undefined : footer}
           />
+          )}
           <div className="days-grid" style={{ gridTemplateColumns: columns }}>
             <div className="axis-cell" style={{ gridColumn: 1, gridRow: 3 }}>
               <HourLabels range={range} />
             </div>
-            {trip.days.map((day, index) => {
+            {shownDays.map((day, index) => {
               const insertColumn = 2 + index * 2;
-              const dayColumn = insertColumn + 1;
+              const dayColumn = phone ? 2 : insertColumn + 1;
               return [
-                <div key={`insert-${day.id}`} style={{ gridColumn: insertColumn, gridRow: 1 }}>
-                  {insertButton(day.position)}
-                </div>,
+                !phone && (
+                  <div key={`insert-${day.id}`} style={{ gridColumn: insertColumn, gridRow: 1 }}>
+                    {insertButton(day.position)}
+                  </div>
+                ),
                 <section
                   key={`head-${day.id}`}
                   className="day-head"
@@ -326,11 +375,32 @@ export function TripCard({ trip, onDaysChange, selectedEventId, draft, onSelectE
                 </div>,
               ];
             })}
-            <div style={{ gridColumn: 2 + lastPosition * 2, gridRow: 1 }}>{insertButton(lastPosition + 1)}</div>
+            {!phone && <div style={{ gridColumn: 2 + lastPosition * 2, gridRow: 1 }}>{insertButton(lastPosition + 1)}</div>}
           </div>
-          <TodosPanel trip={trip} onSelectEvent={onSelectEvent} onAdd={onAddTodo} onToggle={onToggleTodo} onDelete={onDeleteTodo} />
+          {(!phone || drawer === "todos") && <TodosPanel trip={trip} onSelectEvent={phone ? selectFromDrawer : onSelectEvent} onAdd={onAddTodo} onToggle={onToggleTodo} onDelete={onDeleteTodo} />}
         </div>
       </DragDropProvider>
+      {phone && (
+        <>
+          {footer}
+          {drawer && <div className="drawer-scrim" onClick={() => setDrawer(undefined)} />}
+          <nav className="drawer-bar" aria-label={t("drawer.tabs")}>
+            {(
+              [
+                ["backlog", t("area.backlog"), trip.backlog.length],
+                ["archive", t("area.archive"), trip.archive.length],
+                ["todos", t("todo.panel"), trip.todos.length],
+              ] as const
+            ).map(([id, label, count]) => (
+              <button key={id} type="button" aria-expanded={drawer === id} className={drawer === id ? "on" : undefined} onClick={() => setDrawer(drawer === id ? undefined : id)}>
+                <span>
+                  {label} <span className="count">{count}</span>
+                </span>
+              </button>
+            ))}
+          </nav>
+        </>
+      )}
       {deleting && (
         <ConfirmDialog
           title={t("day.deleteTitle", { n: deleting.day.position })}

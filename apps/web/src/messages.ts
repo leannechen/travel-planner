@@ -37,6 +37,9 @@ export const en = {
 
   "day.title": "Day {n}",
   "day.insert": "Insert Day {n}",
+  "day.tabs": "Days",
+  "day.add": "Add a Day",
+  "drawer.tabs": "Backlog, Archive and Todos",
   "day.earlier": "Move earlier",
   "day.later": "Move later",
   "day.delete": "Delete Day",
@@ -208,6 +211,9 @@ export const zh: Record<FullKey, string> = {
 
   "day.title": "第 {n} 天",
   "day.insert": "在第 {n} 天插入一天",
+  "day.tabs": "天數",
+  "day.add": "新增一天",
+  "drawer.tabs": "未決區、放棄區與待辦",
   "day.earlier": "往前移",
   "day.later": "往後移",
   "day.delete": "刪除這天",

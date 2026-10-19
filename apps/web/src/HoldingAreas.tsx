@@ -65,15 +65,18 @@ type Props = {
   onMoveTo: (eventId: string, area: HoldingArea) => void;
   // Fills the bottom of the column.
   footer?: ReactNode;
+  // Phone drawer: show only this area, always open.
+  only?: HoldingArea;
 };
 
 // The Backlog (Events still being considered) and the Archive (Events given up on), side by side
 // with the Days. Both are collapsible and both accept dragged Events.
-export function HoldingAreas({ backlog, archive, selectedEventId, dropTarget, onSelectEvent, onAddToBacklog, onMoveTo, footer }: Props) {
+export function HoldingAreas({ backlog, archive, selectedEventId, dropTarget, onSelectEvent, onAddToBacklog, onMoveTo, footer, only }: Props) {
   const t = useT();
   const area = (name: HoldingArea) => (dropTarget === name ? "holding-area drop-target" : "holding-area");
   return (
-    <aside className="holding-areas" aria-label={t("area.holding")}>
+    <aside className={only ? "holding-areas only" : "holding-areas"} aria-label={t("area.holding")}>
+      {only !== "archive" && (
       <details className={area("backlog")} data-drop="backlog" open>
         <summary>
           <h3>
@@ -110,7 +113,9 @@ export function HoldingAreas({ backlog, archive, selectedEventId, dropTarget, on
           </ul>
         )}
       </details>
-      <details className={area("archive")} data-drop="archive">
+      )}
+      {only !== "backlog" && (
+      <details className={area("archive")} data-drop="archive" open={only === "archive" || undefined}>
         <summary>
           <h3>
             {t("area.archive")} <span className="count">{archive.length}</span>
@@ -134,6 +139,7 @@ export function HoldingAreas({ backlog, archive, selectedEventId, dropTarget, on
           </ul>
         )}
       </details>
+      )}
       {footer}
     </aside>
   );

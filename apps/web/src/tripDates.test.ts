@@ -15,8 +15,9 @@ describe("trip dates", () => {
   });
 
   it("writes the Trip's range in the interface language", () => {
-    expect(formatTripRange("2026-11-03", 5, "en")).toBe("Tue 3 – Sat 7 Nov");
-    expect(formatTripRange("2026-11-03", 1, "en")).toBe("Tue 3 Nov");
-    expect(formatTripRange("2026-11-03", 5, "zh")).toContain("11");
+    expect(formatTripRange("2026-11-03", 5, "en")).toBe("11/03 (Tue) - 11/07 (Sat)");
+    expect(formatTripRange("2026-11-30", 4, "en")).toBe("11/30 (Mon) - 12/03 (Thu)");
+    expect(formatTripRange("2026-11-03", 1, "en")).toBe("11/03 (Tue)");
+    expect(formatTripRange("2026-11-03", 2, "zh")).toContain("11/03");
   });
 });

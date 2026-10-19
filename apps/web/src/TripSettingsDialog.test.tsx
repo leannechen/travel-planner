@@ -31,67 +31,52 @@ describe("Trip settings", () => {
     expect((screen.getByRole("button", { name: "Clear" }) as HTMLButtonElement).disabled).toBe(true);
   });
 
-  it("saves a date when typing stops, and says so", async () => {
-    const { field, onChangeStartDate } = setup();
+  it("saves nothing until Save, then saves and closes", async () => {
+    const { field, onChangeStartDate, onClose } = setup();
+    const save = () => screen.getByRole("button", { name: "Save" }) as HTMLButtonElement;
+    expect(save().disabled).toBe(true);
     fireEvent.change(field(), { target: { value: "2026-12-01" } });
-    expect(onChangeStartDate).not.toHaveBeenCalled();
-    await waitFor(() => expect(onChangeStartDate).toHaveBeenCalledWith("2026-12-01"), { timeout: 2000 });
-    expect(await screen.findByText("Saved")).toBeTruthy();
-    expect((screen.getByRole("button", { name: "Clear" }) as HTMLButtonElement).disabled).toBe(false);
-  });
-
-  it("saves only the final date when a year is typed digit by digit", async () => {
-    const { field, onChangeStartDate } = setup();
-    for (const value of ["0002-11-03", "0020-11-03", "0202-11-03", "2026-11-03"]) fireEvent.change(field(), { target: { value } });
     fireEvent.blur(field());
-    await waitFor(() => expect(onChangeStartDate).toHaveBeenCalledTimes(1));
-    expect(onChangeStartDate).toHaveBeenCalledWith("2026-11-03");
+    await new Promise((r) => setTimeout(r, 1000));
+    expect(onChangeStartDate).not.toHaveBeenCalled();
+    await userEvent.click(save());
+    expect(onChangeStartDate).toHaveBeenCalledWith("2026-12-01");
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
   });
 
-  it("saves a typed date when the dialog is closed at once", async () => {
+  it("does not save an out-of-range year", () => {
+    const { field } = setup();
+    fireEvent.change(field(), { target: { value: "110320-02-06" } });
+    expect((screen.getByRole("button", { name: "Save" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("Cancel and the close button leave without saving", async () => {
     const { field, onChangeStartDate, onClose } = setup();
     fireEvent.change(field(), { target: { value: "2026-12-01" } });
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
-    expect(onChangeStartDate).toHaveBeenCalledWith("2026-12-01");
-    expect(onClose).toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalledTimes(2);
+    expect(onChangeStartDate).not.toHaveBeenCalled();
   });
 
-  it("stays open with the error when the save fails on close, and tries again on the next close", async () => {
+  it("Clear empties the field, and Save then removes the date", async () => {
+    const { field, onChangeStartDate, onClose } = setup("2026-11-03");
+    await userEvent.click(screen.getByRole("button", { name: "Clear" }));
+    expect(field().value).toBe("");
+    expect(onChangeStartDate).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onChangeStartDate).toHaveBeenCalledWith(null);
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+  });
+
+  it("stays open with an error when the save fails, and can be saved again", async () => {
     const onChangeStartDate = vi.fn().mockRejectedValueOnce(new Error("down")).mockResolvedValue(undefined);
     const { field, onClose } = setup(undefined, onChangeStartDate);
     fireEvent.change(field(), { target: { value: "2026-12-01" } });
-    await userEvent.click(screen.getByRole("button", { name: "Close" }));
-    expect(await screen.findByRole("alert")).toBeTruthy();
-    expect(onClose).not.toHaveBeenCalled();
-    await userEvent.click(screen.getByRole("button", { name: "Close" }));
-    await waitFor(() => expect(onClose).toHaveBeenCalled());
-    expect(onChangeStartDate).toHaveBeenCalledTimes(2);
-  });
-
-  it("does not clear the date when the field is emptied while typing", () => {
-    const { field, onChangeStartDate } = setup("2026-11-03");
-    fireEvent.change(field(), { target: { value: "" } });
-    expect(onChangeStartDate).not.toHaveBeenCalled();
-  });
-
-  it("clears the date with Clear", async () => {
-    const { field, onChangeStartDate } = setup("2026-11-03");
-    await userEvent.click(screen.getByRole("button", { name: "Clear" }));
-    expect(onChangeStartDate).toHaveBeenCalledWith(null);
-    await waitFor(() => expect((screen.getByRole("button", { name: "Clear" }) as HTMLButtonElement).disabled).toBe(true));
-    expect(field().value).toBe("");
-  });
-
-  it("says when the date could not be saved", async () => {
-    const { field } = setup(undefined, vi.fn(async () => Promise.reject(new Error("down"))));
-    fireEvent.change(field(), { target: { value: "2026-12-01" } });
-    fireEvent.blur(field());
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
     expect((await screen.findByRole("alert")).textContent).toBe("The date could not be saved");
-  });
-
-  it("closes", async () => {
-    const { onClose } = setup();
-    await userEvent.click(screen.getByRole("button", { name: "Close" }));
-    expect(onClose).toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
   });
 });

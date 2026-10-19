@@ -18,16 +18,10 @@ export function dayLabel(startDate: string, position: number): { short: string; 
   return { short: shortDate(dayDate(startDate, position)), weekday: weekdayOf(startDate, position) };
 }
 
-// "Tue 3 – Sat 7 Nov" for the Trip's dates in the top bar; the month is written once when both
-// dates are in the same month (English). Chinese writes the month with each date.
+// "11/30 (Mon) - 12/03 (Thu)" for the Trip's dates in the top bar; one date when the Trip is one Day.
 export function formatTripRange(startDate: string, dayCount: number, language: Language): string {
-  const locale = language === "zh" ? "zh-TW" : "en-GB";
-  const withMonth = new Intl.DateTimeFormat(locale, { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
-  const dayOnly = new Intl.DateTimeFormat(locale, { weekday: "short", day: "numeric", timeZone: "UTC" });
-  const at = (date: string) => new Date(`${date}T00:00:00Z`);
+  const weekday = new Intl.DateTimeFormat(language === "zh" ? "zh-TW" : "en-GB", { weekday: "short", timeZone: "UTC" });
+  const part = (date: string) => `${shortDate(date)} (${weekday.format(new Date(`${date}T00:00:00Z`))})`;
   const endDate = addDays(startDate, dayCount - 1);
-  if (dayCount <= 1) return withMonth.format(at(startDate));
-  const sameMonth = startDate.slice(0, 7) === endDate.slice(0, 7);
-  const first = (sameMonth && language === "en" ? dayOnly : withMonth).format(at(startDate));
-  return `${first} – ${withMonth.format(at(endDate))}`;
+  return dayCount <= 1 ? part(startDate) : `${part(startDate)} - ${part(endDate)}`;
 }

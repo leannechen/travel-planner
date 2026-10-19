@@ -12,6 +12,7 @@ export const en = {
   "generic.closeEsc": "Close (Esc)",
   "generic.undo": "Undo",
   "generic.add": "Add",
+  "generic.save": "Save",
   "generic.saving": "Saving…",
   "generic.saved": "Saved",
 
@@ -279,6 +280,7 @@ export const zh: Record<FullKey, string> = {
   "generic.closeEsc": "關閉（Esc）",
   "generic.undo": "復原",
   "generic.add": "新增",
+  "generic.save": "儲存",
   "generic.saving": "儲存中…",
   "generic.saved": "已儲存",
 

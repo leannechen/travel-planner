@@ -115,7 +115,7 @@ describe("Trip dates on the Trip", () => {
     render("2026-11-03");
     expect(screen.getByText("11/03・Tue")).toBeTruthy();
     expect(screen.getByText("11/05・Thu")).toBeTruthy();
-    expect(screen.getByText("Tue 3 – Thu 5 Nov · 3 days")).toBeTruthy();
+    expect(screen.getByText("11/03 (Tue) - 11/05 (Thu) · 3 days")).toBeTruthy();
   });
 
   it("shows only Day numbers and the day count without a start date", () => {

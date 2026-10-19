@@ -27,7 +27,7 @@ import {
 } from "@travel-planner/shared";
 import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import type { Db } from "./db/client";
-import { days, events, notes, todos, trips, users } from "./db/schema";
+import { days, events, legs, notes, todos, trips, users } from "./db/schema";
 
 function toEvent(row: Pick<typeof events.$inferSelect, keyof Event>): Event {
   return {
@@ -111,7 +111,7 @@ export async function listTrips(db: Db, ownerId: string): Promise<Trip[]> {
   const rows = await db.query.trips.findMany({
     where: eq(trips.ownerId, ownerId),
     orderBy: [desc(trips.createdAt), desc(trips.id)],
-    columns: { id: true, title: true },
+    columns: { id: true, title: true, travelMode: true },
     with: {
       days: {
         orderBy: asc(days.position),
@@ -136,6 +136,10 @@ export async function listTrips(db: Db, ownerId: string): Promise<Trip[]> {
         orderBy: [desc(notes.updatedAt), asc(notes.id)],
         columns: { id: true, body: true, pinned: true, updatedAt: true },
       },
+      legs: {
+        orderBy: asc(legs.id),
+        columns: { id: true, dayId: true, fromEventId: true, toEventId: true, mode: true, durationMinutes: true, distanceMeters: true },
+      },
     },
   });
   return rows.map(({ events: held, notes: noteRows, ...trip }) => ({
@@ -148,7 +152,10 @@ export async function listTrips(db: Db, ownerId: string): Promise<Trip[]> {
 
 export async function createTrip(db: Db, ownerId: string, input: CreateTripInput): Promise<Trip> {
   return db.transaction(async (tx) => {
-    const [trip] = await tx.insert(trips).values({ ownerId, title: input.title }).returning();
+    const [trip] = await tx
+      .insert(trips)
+      .values({ ownerId, title: input.title, travelMode: input.travelMode })
+      .returning();
     const [day] = await tx.insert(days).values({ tripId: trip!.id, position: 1 }).returning();
     return {
       id: trip!.id,
@@ -158,6 +165,8 @@ export async function createTrip(db: Db, ownerId: string, input: CreateTripInput
       archive: [],
       todos: [],
       notes: [],
+      legs: [],
+      travelMode: trip!.travelMode,
     };
   });
 }

@@ -85,6 +85,13 @@
       "when": 1792383501484,
       "tag": "0011_places",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792398834079,
+      "tag": "0012_lowly_hobgoblin",
+      "breakpoints": true
     }
   ]
 }

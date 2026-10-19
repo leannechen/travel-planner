@@ -1,10 +1,12 @@
 import { relations, sql } from "drizzle-orm";
-import { boolean, check, doublePrecision, integer, pgEnum, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { boolean, check, doublePrecision, integer, pgEnum, pgTable, primaryKey, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: uuid().primaryKey().defaultRandom(),
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });
+
+export const travelMode = pgEnum("travel_mode", ["drive", "transit", "walk"]);
 
 export const trips = pgTable("trips", {
   id: uuid().primaryKey().defaultRandom(),
@@ -12,6 +14,8 @@ export const trips = pgTable("trips", {
     .notNull()
     .references(() => users.id),
   title: text().notNull(),
+  // The mode a new Leg of the Trip starts with.
+  travelMode: travelMode().notNull().default("transit"),
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -89,6 +93,54 @@ export const places = pgTable("places", {
   fetchedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });
 
+// Travel time and distance between two places by one mode, fetched from the route provider and
+// kept as a cache per pair of places, so repeated Legs do not call it again. Refreshed when old.
+export const routeEstimates = pgTable(
+  "route_estimates",
+  {
+    fromPlaceId: text().notNull(),
+    toPlaceId: text().notNull(),
+    mode: travelMode().notNull(),
+    // Null when the provider found no route, so that is not asked again either.
+    durationMinutes: integer(),
+    distanceMeters: integer(),
+    fetchedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.fromPlaceId, t.toPlaceId, t.mode] })],
+);
+
+// A Leg: the movement between two adjacent Events of a Day (PRD §3.3). It goes when either Event
+// does, and the code removes it when the Events stop being adjacent. `fromPlaceId` and `toPlaceId`
+// are the places the stored duration was calculated for, so a changed location is noticed.
+export const legs = pgTable(
+  "legs",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    tripId: uuid()
+      .notNull()
+      .references(() => trips.id, { onDelete: "cascade" }),
+    dayId: uuid()
+      .notNull()
+      .references(() => days.id, { onDelete: "cascade" }),
+    fromEventId: uuid()
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    toEventId: uuid()
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    mode: travelMode().notNull(),
+    // Null while the Leg cannot be calculated.
+    durationMinutes: integer(),
+    distanceMeters: integer(),
+    fromPlaceId: text(),
+    toPlaceId: text(),
+  },
+  (t) => [
+    unique("legs_events_unique").on(t.fromEventId, t.toEventId),
+    check("legs_duration_range", sql`${t.durationMinutes} is null or ${t.durationMinutes} > 0`),
+  ],
+);
+
 // A Todo of a Trip (`eventId` null) or of one Event. An Event's Todos go with it when it is deleted
 // (cascade) and are deleted by the code when it is archived (PRD §5).
 export const todos = pgTable("todos", {
@@ -122,6 +174,10 @@ export const tripsRelations = relations(trips, ({ many }) => ({
   events: many(events),
   todos: many(todos),
   notes: many(notes),
+  legs: many(legs),
+}));
+export const legsRelations = relations(legs, ({ one }) => ({
+  trip: one(trips, { fields: [legs.tripId], references: [trips.id] }),
 }));
 export const daysRelations = relations(days, ({ one, many }) => ({
   trip: one(trips, { fields: [days.tripId], references: [trips.id] }),

@@ -1,6 +1,7 @@
 import {
   createDayInputSchema,
   createEventInputSchema,
+  createLegInputSchema,
   createNoteInputSchema,
   createTodoInputSchema,
   createTripInputSchema,
@@ -13,6 +14,7 @@ import {
   reorderDaysInputSchema,
   restoreDayInputSchema,
   updateEventInputSchema,
+  updateLegInputSchema,
   updateNoteInputSchema,
   updateTodoInputSchema,
 } from "@travel-planner/shared";
@@ -21,7 +23,9 @@ import express from "express";
 import { z, ZodError } from "zod";
 import type { Db } from "./db/client";
 import { DEV_USER_ID } from "./dev-user";
+import { createLeg, deleteLeg, isProviderError, listLegs, setLegMode, syncLegs } from "./legs";
 import { getPlaces, PlaceProviderError, placeProviderFromEnv, searchPlaces, type PlaceProvider } from "./places";
+import { routeProviderFromEnv, type RouteProvider } from "./routes";
 import {
   addEvent,
   addHeldEvent,
@@ -48,6 +52,7 @@ const tripParamsSchema = z.object({ tripId: z.uuid() });
 const eventIdParamsSchema = z.object({ tripId: z.uuid(), eventId: z.uuid() });
 const dayParamsSchema = z.object({ tripId: z.uuid(), dayId: z.uuid() });
 const todoParamsSchema = z.object({ tripId: z.uuid(), todoId: z.uuid() });
+const legParamsSchema = z.object({ tripId: z.uuid(), legId: z.uuid() });
 const noteParamsSchema = z.object({ tripId: z.uuid(), noteId: z.uuid() });
 const areaParamsSchema = z.object({ tripId: z.uuid(), area: holdingAreaSchema });
 
@@ -62,8 +67,12 @@ const idsQuerySchema = z.object({
     .pipe(z.array(placeIdSchema).max(MAX_PLACE_IDS)),
 });
 
-export function createApp(db: Db, options: { places?: PlaceProvider } = {}) {
+export function createApp(db: Db, options: { places?: PlaceProvider; routes?: RouteProvider } = {}) {
   const provider = options.places ?? placeProviderFromEnv();
+  const legDeps = { places: provider, routes: options.routes ?? routeProviderFromEnv() };
+  // After Events or Days change: Legs between Events that are no longer adjacent go, and Legs whose
+  // places changed are calculated again.
+  const syncTripLegs = (tripId: string) => syncLegs(db, legDeps, tripId);
   // The ids an Event refers to must be places the provider knows.
   const unknownPlace = async (...ids: (string | null | undefined)[]) => {
     const wanted = ids.filter((id): id is string => Boolean(id));
@@ -121,6 +130,7 @@ export function createApp(db: Db, options: { places?: PlaceProvider } = {}) {
       res.status(400).json({ error: LODGING_ERROR });
       return;
     }
+    await syncTripLegs(tripId);
     res.status(201).json(event);
   });
 
@@ -171,6 +181,7 @@ export function createApp(db: Db, options: { places?: PlaceProvider } = {}) {
       res.status(400).json({ error: LODGING_ERROR });
       return;
     }
+    await syncTripLegs(tripId);
     res.json(result);
   });
 
@@ -181,6 +192,7 @@ export function createApp(db: Db, options: { places?: PlaceProvider } = {}) {
       res.status(404).json({ error: "Event not found" });
       return;
     }
+    await syncTripLegs(tripId);
     res.json(result);
   });
 
@@ -200,7 +212,60 @@ export function createApp(db: Db, options: { places?: PlaceProvider } = {}) {
       res.status(400).json({ error: "The Event cannot be restored with these Todos" });
       return;
     }
+    await syncTripLegs(tripId);
     res.status(201).json(result);
+  });
+
+  app.get("/api/trips/:tripId/legs", async (req, res) => {
+    const { tripId } = tripParamsSchema.parse(req.params);
+    if (!(await ownsTrip(db, DEV_USER_ID, tripId))) {
+      res.status(404).json({ error: "Trip not found" });
+      return;
+    }
+    res.json(await listLegs(db, tripId));
+  });
+
+  app.post("/api/trips/:tripId/legs", async (req, res) => {
+    const { tripId } = tripParamsSchema.parse(req.params);
+    const input = createLegInputSchema.parse(req.body);
+    if (!(await ownsTrip(db, DEV_USER_ID, tripId))) {
+      res.status(404).json({ error: "Trip not found" });
+      return;
+    }
+    const result = await createLeg(db, legDeps, tripId, input);
+    if (result === "not-adjacent") {
+      res.status(400).json({ error: "The two Events are not next to each other in a Day" });
+      return;
+    }
+    if (result === "exists") {
+      res.status(409).json({ error: "These Events already have a Leg" });
+      return;
+    }
+    res.status(201).json(result);
+  });
+
+  app.patch("/api/trips/:tripId/legs/:legId", async (req, res) => {
+    const { tripId, legId } = legParamsSchema.parse(req.params);
+    const { mode } = updateLegInputSchema.parse(req.body);
+    if (!(await ownsTrip(db, DEV_USER_ID, tripId))) {
+      res.status(404).json({ error: "Trip not found" });
+      return;
+    }
+    const result = await setLegMode(db, legDeps, tripId, legId, mode);
+    if (!result) {
+      res.status(404).json({ error: "Leg not found" });
+      return;
+    }
+    res.json(result);
+  });
+
+  app.delete("/api/trips/:tripId/legs/:legId", async (req, res) => {
+    const { tripId, legId } = legParamsSchema.parse(req.params);
+    if (!(await ownsTrip(db, DEV_USER_ID, tripId)) || !(await deleteLeg(db, tripId, legId))) {
+      res.status(404).json({ error: "Leg not found" });
+      return;
+    }
+    res.status(204).end();
   });
 
   app.post("/api/trips/:tripId/todos", async (req, res) => {
@@ -325,6 +390,7 @@ export function createApp(db: Db, options: { places?: PlaceProvider } = {}) {
       res.status(409).json({ error: "A Trip must keep at least one Day" });
       return;
     }
+    await syncTripLegs(tripId);
     res.json(result);
   });
 
@@ -344,6 +410,7 @@ export function createApp(db: Db, options: { places?: PlaceProvider } = {}) {
       res.status(400).json({ error: "The Day cannot be restored with these Events" });
       return;
     }
+    await syncTripLegs(tripId);
     res.status(201).json(result);
   });
 
@@ -353,8 +420,8 @@ export function createApp(db: Db, options: { places?: PlaceProvider } = {}) {
       return;
     }
     // The place provider could not be reached or refused the request.
-    if (err instanceof PlaceProviderError) {
-      res.status(502).json({ error: "Places are not available right now" });
+    if (isProviderError(err)) {
+      res.status(502).json({ error: err instanceof PlaceProviderError ? "Places are not available right now" : "Travel times are not available right now" });
       return;
     }
     next(err);

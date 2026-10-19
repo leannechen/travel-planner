@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { legSchema, travelModeSchema } from "./legs";
 
 export const healthResponseSchema = z.object({
   status: z.literal("ok"),
@@ -135,9 +136,12 @@ export const tripSchema = z.object({
   // Trip Todos and Event Todos together.
   todos: z.array(todoSchema),
   notes: z.array(noteSchema),
+  // Legs between adjacent Events of the Days, and the mode a new Leg starts with.
+  legs: z.array(legSchema),
+  travelMode: travelModeSchema,
 });
 
-export const createTripInputSchema = z.object({ title });
+export const createTripInputSchema = z.object({ title, travelMode: travelModeSchema.optional() });
 export const createEventInputSchema = z.object({
   title,
   kind: kindSchema.default("attraction"),
@@ -216,6 +220,7 @@ export * from "./day-order";
 export * from "./event-list";
 export * from "./event-save";
 export * from "./keyboard";
+export * from "./legs";
 export * from "./lodging-range";
 export * from "./notes";
 export * from "./time-edit";

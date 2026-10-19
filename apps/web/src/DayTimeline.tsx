@@ -417,6 +417,8 @@ type SlotRowProps = Slot & {
 // screen: "Add Event" always, and "Add Travel" between two Events that both have a Google place.
 function SlotRow({ from, to, startMinute, endMinute, createAt, range, open, onOpenChange, onCreateAt, onOpenLeg }: SlotRowProps) {
   const t = useT();
+  // The minute that was tapped to show the buttons, so Add Event starts the new Event there.
+  const [tapped, setTapped] = useState<number | undefined>();
   const top = toPx(startMinute - range.startMinute);
   if (top > toPx(range.endMinute - range.startMinute)) return null;
   const endpoints = from && to ? legEndpoints(from, to) : undefined;
@@ -445,6 +447,9 @@ function SlotRow({ from, to, startMinute, endMinute, createAt, range, open, onOp
         // A tap on the empty stretch itself toggles the buttons; a click elsewhere creates as usual.
         if ((e.target as HTMLElement).closest(".slot-actions") || !touched(e)) return;
         e.stopPropagation();
+        const axis = e.currentTarget.parentElement!.getBoundingClientRect();
+        const minute = minuteAtOffset(e.clientY - axis.top, range, PX_PER_HOUR);
+        setTapped(Math.min(Math.max(minute, startMinute), Math.max(startMinute, endMinute - SNAP_MINUTES)));
         onOpenChange(!open);
       }}
     >
@@ -455,7 +460,7 @@ function SlotRow({ from, to, startMinute, endMinute, createAt, range, open, onOp
           onClick={(e) => {
             if (touchReveal(e)) return;
             onOpenChange(false);
-            onCreateAt(createAt);
+            onCreateAt(open && tapped !== undefined ? tapped : createAt);
           }}
         >
           <Plus size={14} aria-hidden="true" /> {t("slot.addEvent")}

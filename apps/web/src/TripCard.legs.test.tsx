@@ -100,6 +100,21 @@ describe("Leg slots", () => {
     expect(props.onCreateAt).toHaveBeenCalledTimes(1);
   });
 
+  it("on a touch screen Add Event starts at the minute that was tapped", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("matchMedia", (query: string) => ({ matches: query === "(hover: none)", media: query, addEventListener() {}, removeEventListener() {} }));
+    const { props, dayId } = setup();
+    const add = screen.getByRole("button", { name: "Add Event after Lunch idea" });
+    const row = add.closest(".slot-row") as HTMLElement;
+    const axis = row.parentElement as HTMLElement;
+    axis.getBoundingClientRect = () => ({ top: 0 }) as DOMRect;
+    // The axis starts at 08:00 with 64px per hour: 480px down is 15:30.
+    fireEvent.click(row, { clientY: 480 });
+    await user.click(add);
+    expect(props.onCreateAt).toHaveBeenCalledTimes(1);
+    expect(props.onCreateAt).toHaveBeenCalledWith(dayId, 930);
+  });
+
   it("on a touch screen a tap outside dismisses the buttons", async () => {
     const user = userEvent.setup();
     vi.stubGlobal("matchMedia", (query: string) => ({ matches: query === "(hover: none)", media: query, addEventListener() {}, removeEventListener() {} }));

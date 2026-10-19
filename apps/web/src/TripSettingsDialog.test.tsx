@@ -48,6 +48,14 @@ describe("Trip settings", () => {
     expect((screen.getByRole("button", { name: "Save" }) as HTMLButtonElement).disabled).toBe(true);
   });
 
+  it("does not save a half-typed date", () => {
+    const { field } = setup("2026-11-03");
+    // jsdom never reports a half-typed date, so the field says so by hand.
+    Object.defineProperty(field(), "validity", { value: { badInput: true }, configurable: true });
+    fireEvent.change(field(), { target: { value: "" } });
+    expect((screen.getByRole("button", { name: "Save" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
   it("Cancel and the close button leave without saving", async () => {
     const { field, onChangeStartDate, onClose } = setup();
     fireEvent.change(field(), { target: { value: "2026-12-01" } });

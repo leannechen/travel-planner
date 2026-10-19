@@ -1057,6 +1057,7 @@ main.has-panel .topbar {
 }
 
 .event-panel .place-input input {
+  width: 100%;
   padding-left: 34px;
 }
 
@@ -1101,6 +1102,8 @@ main.has-panel .topbar {
 .place-popup {
   position: absolute;
   z-index: 3;
+  /* In a grid an absolute box with no top sits at the grid's top, over the input. */
+  top: 100%;
   right: 0;
   left: 0;
   margin: 4px 0 0;
@@ -1157,7 +1160,6 @@ main.has-panel .topbar {
 
 .event-panel details.contact {
   display: grid;
-  gap: 8px;
   padding: 10px;
   border: 1px solid var(--border2);
   border-radius: var(--r-md);

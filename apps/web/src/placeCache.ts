@@ -1,5 +1,5 @@
 import { MAX_PLACE_IDS, type Place } from "@travel-planner/shared";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getPlaces } from "./api";
 
 // Places by id, kept for the session so a panel reopened on the same Event shows the name at once.
@@ -35,7 +35,7 @@ export function usePlace(id: string): PlaceLookup {
 // true when a lookup did not come through, so the map can say some places are missing.
 export function usePlaces(ids: string[]): { places: Map<string, Place>; loading: boolean; failed: boolean } {
   const key = [...new Set(ids)].sort().join("\n");
-  const [, bump] = useState(0);
+  const [version, bump] = useState(0);
   const [state, setState] = useState({ key: "", failed: false });
   useEffect(() => {
     const wanted = key ? key.split("\n") : [];
@@ -56,11 +56,16 @@ export function usePlaces(ids: string[]): { places: Map<string, Place>; loading:
       cancelled = true;
     };
   }, [key]);
-  const places = new Map<string, Place>();
-  for (const id of ids) {
-    const place = known.get(id);
-    if (place) places.set(id, place);
-  }
+  // The same Map until the ids or what is known change, so callers can use it as a dependency.
+  const places = useMemo(() => {
+    const found = new Map<string, Place>();
+    for (const id of key ? key.split("\n") : []) {
+      const place = known.get(id);
+      if (place) found.set(id, place);
+    }
+    return found;
+    // `version` changes when lookups finish and `known` has grown.
+  }, [key, version]);
   return { places, loading: state.key !== key, failed: state.failed && state.key === key };
 }
 

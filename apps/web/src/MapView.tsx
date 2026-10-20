@@ -1,5 +1,5 @@
 import { formatMinute, mapPlan, type Trip } from "@travel-planner/shared";
-import { useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { FakeMapSurface } from "./FakeMapSurface";
 import { GOOGLE_MAPS_BROWSER_KEY, GoogleMapSurface } from "./GoogleMapSurface";
 import { formatDuration } from "./HoldingAreas";
@@ -12,11 +12,13 @@ type Props = {
   trip: Trip;
   selectedEventId?: string;
   onSelectEvent: (eventId: string) => void;
+  // The language and theme switches, shown under the list (they live in the left column elsewhere).
+  footer?: ReactNode;
 };
 
 // The Map View (PRD §6): Event places on a map, colored by Day. Selecting a marker or a list row
 // opens the same Event panel as the time axis; nothing is edited here.
-export function MapView({ trip, selectedEventId, onSelectEvent }: Props) {
+export function MapView({ trip, selectedEventId, onSelectEvent, footer }: Props) {
   const t = useT();
   const [chosenDayId, setChosenDayId] = useState<string | null>(null);
   const [showBacklog, setShowBacklog] = useState(true);
@@ -25,28 +27,39 @@ export function MapView({ trip, selectedEventId, onSelectEvent }: Props) {
   // A Day that was deleted meanwhile counts as "All days".
   const dayId = chosenDayId && trip.days.some((d) => d.id === chosenDayId) ? chosenDayId : null;
 
-  const plan = mapPlan(trip, { dayId, showBacklog, showDayLines });
-  const { places, failed } = usePlaces(plan.markers.map((m) => m.placeId));
+  const plan = useMemo(() => mapPlan(trip, { dayId, showBacklog, showDayLines }), [trip, dayId, showBacklog, showDayLines]);
+  const { places, loading, failed } = usePlaces(useMemo(() => plan.markers.map((m) => m.placeId), [plan]));
 
-  const labelOf = (marker: PlacedMarker["marker"], name: string) => {
-    const { event } = marker;
-    if (marker.role === "departure") return t("map.departs", { name, time: formatMinute(event.startMinute) });
-    if (marker.dayPosition === null) return `${event.title} · ${t("area.backlog")}`;
-    return `${event.title} · ${t("day.title", { n: marker.dayPosition })} · ${formatMinute(event.startMinute)}`;
-  };
+  // Markers whose place is not known (yet) are left out rather than drawn at a guess. The arrays
+  // stay the same between renders that change nothing here, so the map is not redrawn for them.
+  const markers = useMemo<PlacedMarker[]>(
+    () =>
+      plan.markers.flatMap((marker) => {
+        const place = places.get(marker.placeId);
+        if (!place) return [];
+        const { event } = marker;
+        const label =
+          marker.role === "departure"
+            ? t("map.departs", { name: place.name, time: formatMinute(event.startMinute) })
+            : marker.dayPosition === null
+              ? `${event.title} · ${t("area.backlog")}`
+              : `${event.title} · ${t("day.title", { n: marker.dayPosition })} · ${formatMinute(event.startMinute)}`;
+        return [{ marker, place, label }];
+      }),
+    [plan, places, t],
+  );
+  const lines = useMemo<PlacedLine[]>(
+    () =>
+      plan.lines.flatMap((line) => {
+        const from = places.get(line.from.placeId);
+        const to = places.get(line.to.placeId);
+        return from && to ? [{ line, from, to }] : [];
+      }),
+    [plan, places],
+  );
 
-  // Markers whose place is not known (yet) are left out rather than drawn at a guess.
-  const markers: PlacedMarker[] = plan.markers.flatMap((marker) => {
-    const place = places.get(marker.placeId);
-    return place ? [{ marker, place, label: labelOf(marker, place.name) }] : [];
-  });
-  const lines: PlacedLine[] = plan.lines.flatMap((line) => {
-    const from = places.get(line.from.placeId);
-    const to = places.get(line.to.placeId);
-    return from && to ? [{ line, from, to }] : [];
-  });
-
-  const fitKey = `${dayId ?? "all"}:${showBacklog}:${fitCount}`;
+  // `loading` is in the key so the map fits once the places of a new filter have arrived.
+  const fitKey = `${dayId ?? "all"}:${showBacklog}:${fitCount}:${loading}`;
   const surfaceProps = { markers, lines, selectedEventId, onSelect: onSelectEvent, fitKey };
   const total = plan.groups.reduce((sum, g) => sum + g.events.length, 0);
 
@@ -88,6 +101,7 @@ export function MapView({ trip, selectedEventId, onSelectEvent }: Props) {
             </ul>
           </section>
         ))}
+        {footer}
       </aside>
       <div className="map-stage">
         <div className="map-filters" role="group" aria-label={t("map.filter")}>

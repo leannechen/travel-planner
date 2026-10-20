@@ -13,6 +13,15 @@ const MAP_ID: string = import.meta.env.VITE_GOOGLE_MAP_ID || "DEMO_MAP_ID";
 
 const DASH = { path: "M 0,-1 0,1", strokeOpacity: 1, scale: 3 };
 
+// The loader takes its options once per page (later calls only log a warning), so the language of
+// the first visit to the Map View stays for the page.
+let configured = false;
+function configure(language: string) {
+  if (configured) return;
+  configured = true;
+  setOptions({ key: GOOGLE_MAPS_BROWSER_KEY!, v: "weekly", language: language === "zh" ? "zh-TW" : "en" });
+}
+
 type Overlays = { markers: google.maps.marker.AdvancedMarkerElement[]; lines: google.maps.Polyline[] };
 
 export function GoogleMapSurface({ markers, lines, selectedEventId, onSelect, fitKey }: SurfaceProps) {
@@ -29,7 +38,7 @@ export function GoogleMapSurface({ markers, lines, selectedEventId, onSelect, fi
 
   useEffect(() => {
     let cancelled = false;
-    setOptions({ key: GOOGLE_MAPS_BROWSER_KEY!, v: "weekly", language: language === "zh" ? "zh-TW" : "en" });
+    configure(language);
     Promise.all([importLibrary("maps"), importLibrary("marker")]).then(
       ([{ Map }]) => {
         if (cancelled || !box.current) return;
@@ -41,7 +50,6 @@ export function GoogleMapSurface({ markers, lines, selectedEventId, onSelect, fi
     return () => {
       cancelled = true;
     };
-    // The language is read once; Google loads its API only once per page.
   }, []);
 
   // Draw the markers and lines again whenever they, or the selection, change.

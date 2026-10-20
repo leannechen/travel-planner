@@ -335,7 +335,7 @@ export function TripCard({ trip, onOpenSettings, onDaysChange, selectedEventId, 
         </nav>
       )}
       {view === "map" ? (
-        <MapView trip={trip} selectedEventId={selectedEventId} onSelectEvent={onSelectEvent} />
+        <MapView trip={trip} selectedEventId={selectedEventId} onSelectEvent={onSelectEvent} footer={phone ? undefined : footer} />
       ) : (
       <DragDropProvider
         sensors={sensors}

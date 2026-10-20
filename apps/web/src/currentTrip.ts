@@ -1,4 +1,4 @@
-// Which Trip the page shows, and in which view. The choice lives in the URL (`?trip=<id>`) so a reload and a shared
+// Which Trip the page shows. The choice lives in the URL (`?trip=<id>`) so a reload and a shared
 // link show the same Trip, and in this browser as a fallback for a visit without the parameter.
 const KEY = "travel-planner.current-trip";
 const PARAM = "trip";

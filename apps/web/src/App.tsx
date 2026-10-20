@@ -489,7 +489,7 @@ export function App() {
     const target = e.target instanceof HTMLElement ? e.target : undefined;
     if (
       target?.closest("input, textarea, select, [contenteditable], .notes-panel, .event-panel, .leg-popover") ||
-      document.querySelector("dialog[open]")
+      document.querySelector("dialog[open], .event-panel.expanded")
     )
       return;
     if (e.key === "?") {

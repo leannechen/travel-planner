@@ -4,3 +4,4 @@ _private/
 node_modules/
 dist/
 .env
+.claude/worktrees

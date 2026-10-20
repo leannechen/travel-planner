@@ -4,7 +4,7 @@ This folder is the **final** design for Travel Planner. It replaces the earlier 
 
 - **Design name:** Travel Planner — High Fidelity
 - **Date:** 2026-10-17
-- **Fidelity:** all 45 screens are high fidelity. There are no wireframe-only screens left. Some dialog backdrops are still simplified (see the "Design notes" asides inside the screens).
+- **Fidelity:** all 46 screens are high fidelity. There are no wireframe-only screens left. Some dialog backdrops are still simplified (see the "Design notes" asides inside the screens).
 - **Order and names:** The two-digit number in each image name is the screen order.
 
 ## Layout
@@ -81,6 +81,7 @@ All images in `png/` are exported at **2x** (twice the CSS pixel width and heigh
 | 43 | `png/43-empty-slot.png` | `source/EmptySlot.dc.html` | 1500x1250 | Empty time slot — Add Event and Add Travel on hover (desktop) and tap (phone) |
 | 44 | `png/44-opening-hours.png` | `source/OpeningHours.dc.html` | 1960x1740 | Opening hours — Event panel section states (off, loading, on, Whole week, conflict, no dates, no hours, read-only, dark, phone) and the amber card label |
 | 45 | `png/45-trip-dates.png` | `source/TripDates.dc.html` | 1960x1320 | Trip dates — start date entry points (top bar, phone menu, Trip list), Trip settings with and without dates, date picker, Day headers and phone Day tabs. Top-bar date button, "Add dates" and the picker are proposed |
+| 46 | `png/46-event-panel-actions.png` | `source/EventPanelActions.dc.html` | 2280x1120 | Event panel — kind dropdown (open), footer by state (Cancel / Save, ⋯ menu), ⋯ menu per state, phone footer, and the full side panel with the ⋯ menu open |
 
 ## Notes
 

@@ -2,6 +2,17 @@
 
 Changes the design files need. Update the `source/` files and re-export the PNGs, then tick the item.
 
+## Event panel: kind dropdown and Save / Cancel footer (designed 2026-10-20)
+
+The panel saves on the Save button (PRD §3.2), so the earlier autosave look is gone. Developers: build from #46, and see #03, #04, #05, #07, #08, #09 for the panel in place.
+
+- [x] Kind chips replaced by a dropdown tinted with the kind's color, icon and name; the selected row uses the same tint for border and background (#46, #04, #05, #07, #09; phone #03, #08).
+- [x] Footer: `⋯` menu on the left, Cancel and Save on the right, Save is the only filled button. No "Saved" indicator, no "Saved automatically" (#46, all panels).
+- [x] `⋯` menu by state: scheduled Event (Move to Backlog, Archive, Delete), Backlog Event (Archive, Delete), Archived Event (Restore to Backlog, Delete) (#46).
+- [x] New Event: no `⋯`, Save reads "Add Event". Nothing changed yet: Cancel reads "Close". Phone: no Cancel, `⋯` plus a full-width Save (#46, #03, #08).
+- [x] Side panel keeps its footer in view: the body is clipped with a fade (it scrolls in the app) and the footer stays at the bottom (#04, #46).
+- [x] PRD §3.2 and §4 now describe the `⋯` menu, including Move to Backlog and Restore to Backlog (2026-10-20).
+
 ## Opening hours are read-only (decided 2026-10-18)
 
 Opening hours come from Google and the user cannot edit them (PRD §3.2). The field must look read-only (plain text, no dropdown chevron), and the kind-switch note must not mention opening hours.

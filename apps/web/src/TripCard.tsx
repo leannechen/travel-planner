@@ -21,7 +21,7 @@ import {
   type Todo,
   type Trip,
 } from "@travel-planner/shared";
-import { ChevronDown, ChevronLeft, ChevronRight, CircleHelp, Map as MapIcon, Plus, Settings, Trash2 } from "lucide-react";
+import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, Map as MapIcon, Plus, Settings, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { deleteDay, insertDay, reorderDays, restoreDay } from "./api";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -30,6 +30,7 @@ import { dayLabel, formatTripRange, tripStartDate, weekdayKey } from "./tripDate
 import { accessibility, DayTimeline, HourLabels, PX_PER_HOUR, sensors, type EventTimes } from "./DayTimeline";
 import { endGesture } from "./gesture";
 import { HoldingAreas } from "./HoldingAreas";
+import { MapView } from "./MapView";
 import { LegPopover } from "./LegPopover";
 import { LodgingBanners, staysOf } from "./LodgingBanners";
 import { TodosPanel } from "./TodosPanel";
@@ -185,6 +186,8 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onDaysChange, s
   }, [legLost, closeLeg]);
 
   const phone = useIsPhone();
+  // The time-axis view is where Events are edited; the Map View only shows them (PRD §6).
+  const [view, setView] = useState<"schedule" | "map">("schedule");
   // Phone: one Day at a time, and one of the drawers (Backlog, Archive, Todos) open at most.
   const [dayId, setDayId] = useState(trip.days[0]?.id);
   const [drawer, setDrawer] = useState<"backlog" | "archive" | "todos" | undefined>();
@@ -259,7 +262,7 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onDaysChange, s
   const deleting = pendingDelete;
 
   return (
-    <article ref={root} className="workspace">
+    <article ref={root} className={["workspace", view === "map" && "map-mode", (selectedEventId || draft) && "has-selection"].filter(Boolean).join(" ")}>
       <div className="topbar">
         <span className="logo" aria-hidden="true">
           <MapIcon size={18} />
@@ -279,6 +282,16 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onDaysChange, s
         <button type="button" className="ib" title={t("trip.settings")} aria-label={t("trip.settings")} onClick={onOpenSettings}>
           <Settings size={16} aria-hidden="true" />
         </button>
+        <div className="view-switch" role="group" aria-label={t("map.switch")}>
+          <button type="button" aria-pressed={view === "schedule"} onClick={() => setView("schedule")}>
+            <CalendarDays size={15} aria-hidden="true" />
+            {t("map.schedule")}
+          </button>
+          <button type="button" aria-pressed={view === "map"} onClick={() => setView("map")}>
+            <MapIcon size={15} aria-hidden="true" />
+            {t("map.map")}
+          </button>
+        </div>
         <span className="spacer" />
         <button type="button" className="btn" aria-pressed={notesOpen} title={tip(t("notes.title"), "notes")} onClick={onToggleNotes}>
           {t("notes.title")} <span className="count">{trip.notes.length}</span>
@@ -291,7 +304,7 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onDaysChange, s
         </button>
       </div>
       {error && <p role="alert">{error}</p>}
-      {phone && (
+      {phone && view === "schedule" && (
         <nav className="day-tabs" aria-label={t("day.tabs")}>
           {trip.days.map((day) => (
             <button
@@ -328,6 +341,9 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onDaysChange, s
           </button>
         </nav>
       )}
+      {view === "map" ? (
+        <MapView trip={trip} selectedEventId={selectedEventId} panelOpen={!phone && !!(selectedEventId || draft)} onSelectEvent={onSelectEvent} footer={phone ? undefined : footer} />
+      ) : (
       <DragDropProvider
         sensors={sensors}
         plugins={(defaults) => [...defaults.filter((p) => p !== Accessibility), accessibility(events, t)]}
@@ -468,7 +484,8 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onDaysChange, s
           {(!phone || drawer === "todos") && <TodosPanel id={phone ? `drawer-${trip.id}` : undefined} trip={trip} onSelectEvent={phone ? selectFromDrawer : onSelectEvent} onAdd={onAddTodo} onToggle={onToggleTodo} onDelete={onDeleteTodo} />}
         </div>
       </DragDropProvider>
-      {legUi && legFrom && legTo && !legLost && (
+      )}
+      {view === "schedule" && legUi && legFrom && legTo && !legLost && (
         <LegPopover
           anchor={legUi.anchor}
           from={legFrom}
@@ -484,7 +501,8 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onDaysChange, s
       {phone && (
         <>
           {footer}
-          {drawer && <div className="drawer-scrim" onClick={() => setDrawer(undefined)} />}
+          {view === "schedule" && drawer && <div className="drawer-scrim" onClick={() => setDrawer(undefined)} />}
+          {view === "schedule" && (
           <nav className="drawer-bar" aria-label={t("drawer.tabs")}>
             {(
               [
@@ -500,6 +518,7 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onDaysChange, s
               </button>
             ))}
           </nav>
+          )}
         </>
       )}
       {deleting && (

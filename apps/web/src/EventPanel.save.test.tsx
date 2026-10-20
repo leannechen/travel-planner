@@ -142,7 +142,8 @@ describe("Event panel saves on Save", () => {
   it("choosing a Kind waits for Save", async () => {
     const user = userEvent.setup();
     const props = setup();
-    await user.click(screen.getByRole("radio", { name: /Meal/ }));
+    await user.click(screen.getByRole("button", { name: /^Kind:/ }));
+    await user.click(screen.getByRole("option", { name: /Meal/ }));
     expect(props.onUpdate).not.toHaveBeenCalled();
     expect(props.apiRef.current!.isDirty()).toBe(true);
     await user.click(screen.getByRole("button", { name: "Save" }));
@@ -167,7 +168,7 @@ describe("Event panel saves on Save", () => {
     await user.type(screen.getByRole("textbox", { name: "Title" }), "Lunch");
     expect(props.apiRef.current!.isDirty()).toBe(true);
     expect(props.onCreate).not.toHaveBeenCalled();
-    await user.click(screen.getByRole("button", { name: "Save" }));
+    await user.click(screen.getByRole("button", { name: "Add Event" }));
     await waitFor(() => expect(props.onCreate).toHaveBeenCalledTimes(1));
     expect(props.onClose).toHaveBeenCalled();
   });
@@ -177,12 +178,12 @@ describe("Save on a new Event without a title", () => {
   it("stays open and says a title is needed, once something was typed", async () => {
     const user = userEvent.setup();
     const props = setup(null);
-    await user.click(screen.getByRole("button", { name: "Save" }));
+    await user.click(screen.getByRole("button", { name: "Add Event" }));
     expect(props.onClose).toHaveBeenCalledTimes(1);
     cleanup();
     const again = setup(null);
     await user.type(screen.getByRole("spinbutton", { name: /Duration/ }), "5");
-    await user.click(screen.getByRole("button", { name: "Save" }));
+    await user.click(screen.getByRole("button", { name: "Add Event" }));
     expect((await screen.findByRole("alert")).textContent).toBe("Enter a title to save this Event");
     expect(again.onClose).not.toHaveBeenCalled();
     expect(again.onCreate).not.toHaveBeenCalled();

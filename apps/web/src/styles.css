@@ -36,6 +36,15 @@
   --l-bar: #8a5cf6;
   --l-tint: #ece4ff;
   --l-ink: #6b3fd4;
+  /* Day colors, Map View only (1 to 4 from the design; 5 to 8 repeat the series for longer Trips) */
+  --d1: #1e2a4a;
+  --d2: #d6336c;
+  --d3: #0b7a91;
+  --d4: #8a5a2b;
+  --d5: #2f8f4e;
+  --d6: #7b4fd0;
+  --d7: #d9822b;
+  --d8: #4b6a88;
   /* schedule */
   --card: #ffffff;
   --cardbd: #d3dcec;
@@ -97,6 +106,14 @@
     --l-bar: #b494ff;
     --l-tint: rgba(180, 148, 255, 0.2);
     --l-ink: #c9b5ff;
+    --d1: #8fa6e8;
+    --d2: #ff7aa8;
+    --d3: #4fcbe3;
+    --d4: #d9a468;
+    --d5: #6fd08c;
+    --d6: #b494ff;
+    --d7: #ffb36b;
+    --d8: #9db4cc;
     --card: #1e2a47;
     --cardbd: #33415f;
     --axisbg: #0f182c;
@@ -140,6 +157,14 @@
   --l-bar: #b494ff;
   --l-tint: rgba(180, 148, 255, 0.2);
   --l-ink: #c9b5ff;
+  --d1: #8fa6e8;
+  --d2: #ff7aa8;
+  --d3: #4fcbe3;
+  --d4: #d9a468;
+  --d5: #6fd08c;
+  --d6: #b494ff;
+  --d7: #ffb36b;
+  --d8: #9db4cc;
   --card: #1e2a47;
   --cardbd: #33415f;
   --axisbg: #0f182c;
@@ -1009,31 +1034,369 @@ main.has-panel .topbar {
   top: 0;
   right: 0;
   bottom: 0;
+  display: flex;
+  flex-direction: column;
   width: 26rem;
-  padding: 16px;
-  overflow-y: auto;
+  overflow: hidden;
   border-left: 1px solid var(--border2);
   background: var(--surface);
   box-shadow: var(--sh-pop);
 }
 
-.event-panel .panel-top {
+/* Kind dropdown, with Expand and close above it (side panel) or beside it (dialog). */
+.event-panel .panel-head {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 30px;
+  flex: none;
+  flex-direction: column-reverse;
+  gap: 8px;
+  padding: 16px 16px 0;
 }
 
-.event-panel .panel-status {
-  color: var(--ok);
+.event-panel .panel-tools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.event-panel .btn.sm {
+  height: 28px;
+  padding: 0 10px;
   font-size: 12px;
+}
+
+.event-panel .icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+}
+
+.event-panel .icon-btn:hover {
+  color: var(--text);
+}
+
+.event-panel .panel-body {
+  flex: 1;
+  min-height: 0;
+  padding: 0 16px 16px;
+  overflow-y: auto;
+}
+
+.event-panel .panel-error {
+  flex: none;
+  margin: 0;
+  padding: 8px 16px 0;
+  color: var(--danger);
+  font-size: 13px;
+}
+
+.event-panel .panel-form {
+  margin-top: 12px;
+}
+
+.event-panel .panel-form,
+.event-panel .pane-main,
+.event-panel .pane-side {
+  display: grid;
+  gap: 12px;
+}
+
+.event-panel .pane-side:empty {
+  display: none;
+}
+
+.event-panel .pane-side {
+  margin-top: 12px;
+}
+
+/* Footer that stays in view: the ⋯ menu on the left, Cancel and Save on the right. */
+.event-panel .panel-foot {
+  position: relative;
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.event-panel .panel-foot .spacer {
+  flex: 1;
+}
+
+.event-panel .more {
+  position: relative;
+}
+
+.event-panel .more-btn {
+  width: 34px;
+  padding: 0;
+  justify-content: center;
+}
+
+.event-panel .btn.ghost {
+  border-color: transparent;
+  background: transparent;
+}
+
+.event-panel .btn.ghost:hover {
+  background: var(--surface2);
+}
+
+.event-panel .btn.pri {
+  border-color: var(--pri-strong);
+  background: var(--pri-strong);
+  color: var(--onpri);
   font-weight: 600;
 }
 
-.event-panel form {
+.event-panel .more-menu {
+  position: absolute;
+  z-index: 3;
+  bottom: calc(100% + 8px);
+  left: 0;
+  min-width: 210px;
+  padding: 4px;
+  border: 1px solid var(--border2);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--sh-pop);
+}
+
+.event-panel .more-menu button {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  height: auto;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  box-shadow: none;
+  font-size: 13px;
+  text-align: left;
+}
+
+.event-panel .more-menu button:hover {
+  background: var(--surface2);
+}
+
+.event-panel .more-menu button.danger {
+  color: var(--danger);
+}
+
+.event-panel .more-menu small {
+  display: block;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.event-panel .more-menu hr {
+  margin: 4px 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+/* Kind dropdown */
+.kind-dd {
+  position: relative;
+}
+
+.kdd {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 36px;
+  padding: 0 10px 0 6px;
+  border: 1px solid var(--tint);
+  border-radius: var(--r-md);
+  background: var(--tint);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.kdd:hover {
+  box-shadow: inset 0 0 0 1px var(--bar);
+}
+
+.kdd:focus-visible {
+  outline: 0;
+  box-shadow: var(--focus);
+}
+
+.kdd .kt {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: var(--surface);
+}
+
+.kdd .ch {
+  margin-left: auto;
+}
+
+.kdd.lgx {
+  height: 46px;
+  padding: 0 14px 0 8px;
+  font-size: 15px;
+}
+
+.kdd.lgx .kt {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+}
+
+.kdm {
+  position: absolute;
+  z-index: 4;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  border: 1px solid var(--border2);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--sh-pop);
+}
+
+.kdi {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: auto;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+}
+
+.kdi:hover,
+.kdi.hov {
+  background: var(--surface2);
+}
+
+.kdi.sel {
+  background: var(--tint);
+}
+
+.kdi .kt {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--tint);
+  color: var(--ink);
+}
+
+.kdi.sel .kt {
+  background: var(--surface);
+}
+
+.kdi b {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.kdi em {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.kdi .ck {
+  margin-left: auto;
+  color: var(--ink);
+}
+
+/* Expanded: a centred dialog, the fields in two columns. */
+.panel-backdrop {
+  position: fixed;
+  z-index: 6;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.event-panel.expanded {
+  top: 50%;
+  left: 50%;
+  right: auto;
+  bottom: auto;
+  width: min(62rem, 92vw);
+  height: min(46rem, 88vh);
+  transform: translate(-50%, -50%);
+  border: 0;
+  border-radius: var(--r-lg);
+}
+
+.event-panel.expanded .panel-head {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.event-panel.expanded .kind-dd {
+  width: 20rem;
+}
+
+.event-panel.expanded .panel-body {
   display: grid;
-  gap: 12px;
-  margin-top: 12px;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto 1fr;
+  align-content: start;
+  column-gap: 28px;
+  padding-top: 12px;
+}
+
+.event-panel.expanded .panel-form {
+  display: contents;
+}
+
+.event-panel.expanded .pane-main {
+  grid-column: 1;
+  grid-row: 1 / span 3;
+  align-content: start;
+}
+
+.event-panel.expanded .pane-side {
+  grid-column: 2;
+  grid-row: 1;
+  margin-top: 0;
+  align-content: start;
+}
+
+.event-panel.expanded .event-todos {
+  grid-column: 2;
+  grid-row: 2;
+  align-self: start;
 }
 
 .event-panel label,
@@ -1513,56 +1876,6 @@ main.has-panel .topbar {
   font-weight: 600;
 }
 
-.kind-switch {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-
-.kind-switch legend {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-}
-
-.event-panel .kind-switch label {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  height: 32px;
-  padding: 0 12px 0 10px;
-  border: 1px solid var(--border2);
-  border-radius: 16px;
-  background: var(--surface);
-  color: var(--ink);
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0;
-  text-transform: none;
-  cursor: pointer;
-}
-
-.event-panel .kind-switch label:has(input:checked) {
-  border: 2px solid var(--bar);
-  background: var(--tint);
-  font-weight: 700;
-}
-
-.event-panel .kind-switch label:has(input:focus-visible) {
-  box-shadow: var(--focus);
-}
-
-.kind-switch input {
-  position: absolute;
-  opacity: 0;
-}
-
 .event-todos {
   margin-top: 16px;
 }
@@ -1578,29 +1891,6 @@ main.has-panel .topbar {
   text-transform: uppercase;
 }
 
-/* Save and Cancel under the form on desktop. */
-.panel-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 16px;
-}
-
-.panel-actions .primary {
-  border-color: var(--pri-strong);
-  background: var(--pri-strong);
-  color: var(--onpri);
-  font-weight: 600;
-}
-
-.delete-event {
-  margin-top: 16px;
-}
-
-.delete-event.danger {
-  border-color: var(--danger);
-  background: transparent;
-  color: var(--danger);
-}
 
 /* ---------- Todos ---------- */
 .todos-panel {
@@ -2315,17 +2605,13 @@ main.has-panel .topbar {
   }
 
   /* The Event panel is a bottom sheet above the drawer bar: a handle, a scrolling body and a
-     footer with OK and the Archive/Delete split button. */
+     footer with the ⋯ menu and Save. */
   .event-panel {
     z-index: 13;
     top: auto;
     left: 0;
-    display: flex;
-    flex-direction: column;
     width: 100%;
     max-height: 88vh;
-    padding: 0;
-    overflow: hidden;
     border-left: 0;
     border-top: 1px solid var(--border2);
     border-radius: 16px 16px 0 0;
@@ -2352,77 +2638,8 @@ main.has-panel .topbar {
     background: var(--border2);
   }
 
-  .panel-body {
-    flex: 1;
-    min-height: 0;
-    padding: 0 16px 16px;
-    overflow-y: auto;
-  }
-
-  .event-panel .kind-select {
-    position: relative;
-    display: flex;
-    font-size: 15px;
-    letter-spacing: 0;
-    text-transform: none;
-    align-items: center;
-    gap: 10px;
-    height: 46px;
-    padding: 0 14px;
-    border-radius: var(--r-md);
-    background: var(--tint);
-    color: var(--ink);
-    font-weight: 700;
-  }
-
-  .event-panel .kind-select select {
-    font-size: 15px;
-    font-weight: 700;
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    padding: 0 0 0 44px;
-    border: 0;
-    background: transparent;
-    color: inherit;
-    appearance: none;
-  }
-
-  .event-panel .kind-select svg:last-child {
-    margin-left: auto;
-    pointer-events: none;
-  }
-
-  .sheet-footer {
-    flex: none;
-    padding: 6px 16px 14px;
-    border-top: 1px solid var(--border);
-    background: var(--surface);
-  }
-
-  .sheet-status {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    margin: 0 0 8px;
-    color: var(--muted);
-    font-size: 12px;
-  }
-
-  .sheet-status .sheet-error {
-    color: var(--danger);
-  }
-
-  .sheet-status svg {
-    color: var(--ok);
-  }
-
-  .sheet-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+  .event-panel .panel-head {
+    padding-top: 0;
   }
 
   .btn.lg {
@@ -2431,89 +2648,22 @@ main.has-panel .topbar {
     font-size: 14px;
   }
 
-  .split {
-    position: relative;
-    display: inline-flex;
-    flex: none;
+  .event-panel .more-btn.btn {
+    width: 44px;
+    height: 44px;
   }
 
-  .split-main {
-    justify-content: center;
-    width: 116px;
-    border-right: 0;
-    border-radius: var(--r-md) 0 0 var(--r-md);
+  .event-panel .more-menu {
+    width: min(20rem, calc(100vw - 32px));
   }
 
-  .split-main:only-child {
-    border-right: 1px solid var(--border2);
-    border-radius: var(--r-md);
-  }
-
-  .split-more {
-    width: 38px;
-    padding: 0;
-    justify-content: center;
-    border-radius: 0 var(--r-md) var(--r-md) 0;
-  }
-
-  .btn.dng-q {
-    color: var(--danger);
-  }
-
-  .split-menu {
-    position: absolute;
-    z-index: 2;
-    bottom: calc(100% + 8px);
-    left: 0;
-    width: 280px;
-    margin: 0;
-    padding: 4px;
-    list-style: none;
-    border: 1px solid var(--border2);
-    border-radius: var(--r-md);
-    background: var(--surface);
-    box-shadow: var(--sh-pop);
-  }
-
-  .split-menu button {
-    display: flex;
-    gap: 10px;
-    width: 100%;
-    height: auto;
-    padding: 10px;
-    border: 0;
-    border-radius: var(--r-sm);
-    background: transparent;
-    box-shadow: none;
-    text-align: left;
-  }
-
-  .split-menu button:hover {
-    background: var(--surface2);
-  }
-
-  .split-menu button.danger {
-    color: var(--danger);
-  }
-
-  .split-menu small {
-    display: block;
-    color: var(--muted);
-    font-weight: 400;
-  }
-
-  .check-space {
-    display: inline-block;
-    width: 16px;
-  }
-
-  .sheet-actions .ok {
+  .event-panel .panel-foot .btn.pri {
     flex: 1;
     justify-content: center;
-    background: var(--pri-strong);
-    border-color: var(--pri-strong);
-    color: var(--onpri);
-    font-weight: 600;
+  }
+
+  .event-panel .panel-foot .spacer {
+    display: none;
   }
 
   /* On a phone the switches are behind a "..." button at the top right. */
@@ -2846,4 +2996,432 @@ main.has-panel .topbar {
   margin: 0;
   color: var(--muted);
   font-size: 12px;
+}
+
+/* ---------- Map View ---------- */
+.view-switch {
+  display: inline-flex;
+  margin-left: 8px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface2);
+}
+
+.view-switch button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.view-switch button[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--sh-card);
+}
+
+.map-view {
+  display: grid;
+  grid-template-columns: 264px minmax(0, 1fr);
+  min-height: 640px;
+}
+
+.map-list {
+  overflow-y: auto;
+  max-height: 80vh;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.map-list header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+}
+
+.map-list h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.map-empty {
+  margin: 0;
+  padding: 8px 16px;
+  color: var(--muted);
+}
+
+.map-group {
+  --pin: var(--d1);
+}
+
+.map-group h4 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--surface2);
+  font-size: 13px;
+}
+
+.map-group .count {
+  margin-left: auto;
+  color: var(--muted);
+}
+
+.map-group ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.map-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--pin, var(--d1));
+}
+
+.map-swatch.backlog {
+  border: 1.5px dashed var(--muted);
+  background: none;
+}
+
+.map-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: auto;
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  text-align: left;
+  white-space: normal;
+}
+
+.map-row:hover {
+  background: var(--surface2);
+}
+
+.map-row.selected {
+  background: var(--pri-tint);
+  box-shadow: inset 3px 0 0 var(--pri);
+}
+
+.map-row strong,
+.map-row small {
+  display: block;
+}
+
+.map-row small {
+  color: var(--muted);
+}
+
+.map-stage {
+  position: relative;
+  min-width: 0;
+  background: var(--axisbg);
+}
+
+.map-filters {
+  position: absolute;
+  z-index: 3;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--sh-card);
+}
+
+.map-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--border2);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.map-chip[aria-pressed="true"] {
+  border-color: var(--text);
+  background: var(--text);
+  color: var(--surface);
+}
+
+.map-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text);
+}
+
+.map-toggle:first-of-type {
+  margin-left: auto;
+}
+
+.map-legend {
+  position: absolute;
+  z-index: 3;
+  left: 12px;
+  bottom: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+  max-width: 28rem;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--sh-card);
+}
+
+.map-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.map-legend small {
+  flex-basis: 100%;
+  color: var(--muted);
+}
+
+.map-error {
+  position: absolute;
+  z-index: 3;
+  right: 12px;
+  bottom: 12px;
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--danger);
+  border-radius: var(--r-md);
+  background: var(--danger-tint);
+  color: var(--danger);
+}
+
+.fake-map,
+.google-map-box,
+.google-map {
+  position: absolute;
+  inset: 0;
+}
+
+.fake-map {
+  overflow: hidden;
+  background:
+    linear-gradient(var(--grid2) 1px, transparent 1px) 0 0 / 48px 48px,
+    linear-gradient(90deg, var(--grid2) 1px, transparent 1px) 0 0 / 48px 48px,
+    var(--axisbg);
+}
+
+.fake-map svg {
+  position: absolute;
+  inset: 0;
+}
+
+.fake-map-note {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.map-pin-button {
+  position: absolute;
+  padding: 0;
+  border: 0;
+  background: none;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+}
+
+/* One marker: a numbered circle in the Day's color; dashed and empty for the Backlog. */
+.map-pin {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.map-pin-dot {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--pin, var(--d1));
+  color: var(--surface);
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: 0 1px 4px rgba(22, 34, 59, 0.4);
+}
+
+.map-pin.selected .map-pin-dot {
+  width: 32px;
+  height: 32px;
+  outline: 3px solid var(--pri);
+}
+
+.map-pin.backlog .map-pin-dot,
+.map-pin-dot.backlog {
+  border: 2px dashed var(--muted);
+  background: var(--surface);
+  box-shadow: none;
+}
+
+.map-pin.departure .map-pin-dot {
+  border-color: var(--text);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.map-pin-label {
+  position: absolute;
+  top: 100%;
+  margin-top: 6px;
+  padding: 4px 8px;
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--sh-pop);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.map-legend .map-pin-dot {
+  width: 22px;
+  height: 22px;
+  box-shadow: none;
+}
+
+@media (max-width: 40rem) {
+  .view-switch button {
+    padding: 0 8px;
+  }
+
+  .view-switch svg {
+    display: none;
+  }
+
+  .map-view {
+    display: flex;
+    flex-direction: column-reverse;
+    min-height: 0;
+  }
+
+  .map-stage {
+    height: 60vh;
+    min-height: 22rem;
+  }
+
+  .map-list {
+    max-height: none;
+    border-right: 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .map-legend {
+    display: none;
+  }
+}
+
+/* The Event panel floats over the map instead of narrowing it, so the map does not shift when the
+   panel opens (design 06). The Days view still makes room by shrinking the page. */
+@media (min-width: 40.01rem) {
+  /* Only for the Trip that owns the open panel: the page shows every Trip in one column. */
+  main.has-panel:has(.workspace.map-mode.has-selection) {
+    margin-right: 0;
+  }
+
+  main.has-panel .workspace.map-mode.has-selection .topbar {
+    padding-right: calc(26rem + 16px);
+  }
+
+  main.has-panel .workspace.map-mode.has-selection .map-filters {
+    right: calc(26rem + 12px);
+  }
+}
+
+/* Toggle switch (design 06): a pill that turns blue, with its label after it. */
+.map-toggle {
+  gap: 8px;
+  cursor: pointer;
+}
+
+.map-toggle input[role="switch"] {
+  appearance: none;
+  position: relative;
+  flex: none;
+  width: 36px;
+  height: 20px;
+  margin: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--border2);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.map-toggle input[role="switch"]::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(22, 34, 59, 0.3);
+  transition: transform 0.15s;
+}
+
+.map-toggle input[role="switch"]:checked {
+  border: 0;
+  background: var(--pri);
+}
+
+/* Overrides the tick of the plain checkbox, which uses the same pseudo-element. */
+.map-toggle input[role="switch"]:checked::after {
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border: 0;
+  transform: translateX(16px);
+}
+
+.map-toggle input[role="switch"]:focus-visible {
+  box-shadow: var(--focus);
 }

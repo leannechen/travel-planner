@@ -1,7 +1,6 @@
 import {
   arrivalOf,
   durationBetween,
-  EVENT_KINDS,
   formatMinute,
   MAX_DURATION_MINUTES,
   MAX_NIGHTS,
@@ -26,17 +25,35 @@ import { OpeningHoursSection } from "./OpeningHoursSection";
 import { eventConflicts, useOpeningHours } from "./openingHours";
 import { PlaceField } from "./PlaceField";
 import { TodoList } from "./TodoList";
-import { kindKey, KindIcon, transportKey } from "./kinds";
+import { transportKey } from "./kinds";
 import { useT } from "./preferences";
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent, type MutableRefObject } from "react";
 import { useIsPhone } from "./phone";
-import { tip } from "./shortcuts";
-import { Archive, Check, ChevronDown, Trash2 } from "lucide-react";
+import { KindDropdown } from "./KindDropdown";
+import { Archive, Ellipsis, ListEnd, Maximize2, Minimize2, RotateCcw, Trash2, X } from "lucide-react";
 
 // The editor is large, so it is loaded when the first panel opens, not with the page.
 const MarkdownEditor = lazy(() => import("./MarkdownEditor").then((m) => ({ default: m.MarkdownEditor })));
 
-type Status = { kind: "idle" } | { kind: "saving" } | { kind: "saved" } | { kind: "error"; message: string };
+const EXPANDED_KEY = "travel-planner.event-panel-expanded";
+
+function readExpanded() {
+  try {
+    return localStorage.getItem(EXPANDED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function saveExpanded(expanded: boolean) {
+  try {
+    localStorage.setItem(EXPANDED_KEY, expanded ? "1" : "0");
+  } catch {
+    // Without storage the panel opens in its side form next time.
+  }
+}
+
+type Status = { kind: "idle" } | { kind: "error"; message: string };
 
 // The time fields for a start and duration; a Transport event shows the arrival instead of the duration.
 function timeFields(startMinute: number, durationMinutes: number) {
@@ -128,9 +145,11 @@ export function EventPanel({
   const t = useT();
   const { hours: placeHours, loading: hoursLoading } = useOpeningHours(event?.openingHoursOn && event.placeId ? [event.placeId] : []);
   const phone = useIsPhone();
-  // Phone footer: which of the split button's actions is chosen, and whether its menu is open.
-  const [footerAction, setFooterAction] = useState<"archive" | "delete">("archive");
+  // The footer's ⋯ menu.
   const [menuOpen, setMenuOpen] = useState(false);
+  // Desktop only: the panel as a centred dialog with two columns, kept per browser.
+  const [expanded, setExpanded] = useState(readExpanded);
+  const modal = expanded && !phone;
   const initial = event ?? {
     title: "",
     kind: "attraction" as const,
@@ -267,13 +286,11 @@ export function EventPanel({
         place: plan.patch.area ?? plan.patch.dayId ?? placeOf(current),
       };
     }
-    setStatus({ kind: "saving" });
     try {
       saved.current =
         plan.kind === "update"
           ? await onUpdate(current!.id, plan.patch)
           : await onCreate(plan.input, plan.dayId);
-      setStatus({ kind: "saved" });
       // A move to the Archive the user declined leaves the Event where it was; show that.
       const result = saved.current;
       if (plan.kind === "update" && plan.patch.area && result && result.holding !== plan.patch.area) {
@@ -289,15 +306,15 @@ export function EventPanel({
     }
   }
 
-  // The Archive/Delete menu closes on a click outside it or on Escape (marked handled, so the
+  // The ⋯ menu closes on a click outside it or on Escape (marked handled, so the
   // sheet's own Escape stays out).
-  const split = useRef<HTMLDivElement>(null);
+  const more = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!menuOpen) return;
     const onPointer = (e: PointerEvent) => {
       // A tap on the scrim is handled by the scrim, which only closes the menu.
       const target = e.target as HTMLElement;
-      if (!split.current?.contains(target) && !target.closest(".sheet-scrim")) setMenuOpen(false);
+      if (!more.current?.contains(target) && !target.closest(".sheet-scrim, .panel-backdrop")) setMenuOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
@@ -330,17 +347,16 @@ export function EventPanel({
     if (await saveNow()) onClose();
   }
 
+  function isDirty() {
+    const plan = planEventSave(latest.current, saved.current);
+    if (plan.kind === "wait") return !saved.current && JSON.stringify(latest.current) !== untouched.current;
+    return plan.kind === "update" || plan.kind === "create" || plan.kind === "error";
+  }
+
   // Offered to the page on every render, so it never calls a stale closure.
   useEffect(() => {
     if (!apiRef) return;
-    apiRef.current = {
-      isDirty: () => {
-        const plan = planEventSave(latest.current, saved.current);
-        if (plan.kind === "wait") return !saved.current && JSON.stringify(latest.current) !== untouched.current;
-        return plan.kind === "update" || plan.kind === "create" || plan.kind === "error";
-      },
-      save: saveNow,
-    };
+    apiRef.current = { isDirty, save: saveNow };
   });
   useEffect(
     () => () => {
@@ -349,12 +365,19 @@ export function EventPanel({
     [],
   );
 
-  async function archiveAndClose() {
-    changePlace("archive");
+  // Moves the Event to a holding area together with what was typed, then closes the panel.
+  async function moveAndClose(area: "backlog" | "archive") {
+    setMenuOpen(false);
+    changePlace(area);
     commit();
     await queue.current;
     // A declined or failed move leaves the Event where it was.
-    if (saved.current?.holding === "archive") onClose();
+    if (saved.current?.holding === area) onClose();
+  }
+
+  function toggleExpanded() {
+    saveExpanded(!expanded);
+    setExpanded(!expanded);
   }
 
   function handleSubmit(e: FormEvent) {
@@ -372,67 +395,90 @@ export function EventPanel({
     fields.kind === "transport" && !held &&
     start !== undefined && shownDuration !== undefined && arrivalOf(start, shownDuration).dayOffset > 0;
 
+  const heldEvent = event?.holding;
+  const dirty = isDirty();
+  const menuItems = event ? (
+    <>
+      {!heldEvent && (
+        <button type="button" role="menuitem" onClick={() => void moveAndClose("backlog")}>
+          <ListEnd size={16} aria-hidden="true" />
+          <span>
+            {t("event.moveToBacklog")}
+            {phone && <small>{t("event.moveToBacklogHint")}</small>}
+          </span>
+        </button>
+      )}
+      {heldEvent === "archive" && (
+        <button type="button" role="menuitem" onClick={() => void moveAndClose("backlog")}>
+          <RotateCcw size={16} aria-hidden="true" />
+          <span>{t("event.restore")}</span>
+        </button>
+      )}
+      {heldEvent !== "archive" && (
+        <button type="button" role="menuitem" onClick={() => void moveAndClose("archive")}>
+          <Archive size={16} aria-hidden="true" />
+          <span>
+            {t("area.archive")}
+            {phone && <small>{t("event.archiveHint")}</small>}
+          </span>
+        </button>
+      )}
+      <hr />
+      <button
+        type="button"
+        role="menuitem"
+        className="danger"
+        onClick={() => {
+          setMenuOpen(false);
+          onDelete(event);
+        }}
+      >
+        <Trash2 size={16} aria-hidden="true" />
+        <span>
+          {t("event.deleteShort")}
+          {phone && <small>{t("event.deleteHint")}</small>}
+        </span>
+      </button>
+    </>
+  ) : null;
+
   return (
     <>
-    {/* Phone: the page behind the sheet cannot be used; tapping it closes the sheet, asking first about unsaved changes. */}
+    {/* Phone: the page behind the sheet cannot be used; tapping it closes the sheet, asking first about unsaved changes.
+        Expanded: the same for the page behind the dialog. */}
     {phone && <div className="sheet-scrim" onClick={() => (menuOpen ? setMenuOpen(false) : onClose())} />}
+    {modal && <div className="panel-backdrop" onClick={() => (menuOpen ? setMenuOpen(false) : onClose())} />}
     <aside
-      className="event-panel"
+      className={`event-panel${modal ? " expanded" : ""}`}
       aria-label={t("event.panel")}
+      role={modal ? "dialog" : undefined}
+      aria-modal={modal ? true : undefined}
       onKeyDown={(e) => {
         if (e.key === "Escape") onClose();
       }}
     >
-      {phone ? (
-        <div className="sheet-handle" aria-hidden="true" />
-      ) : (
-        <div className="panel-top">
-          <span className="panel-status" role="status">
-            {status.kind === "saving" && t("generic.saving")}
-            {status.kind === "saved" && t("generic.saved")}
-          </span>
-          <button type="button" onClick={() => onClose()} aria-label={t("generic.close")} title={t("generic.closeEsc")}>
-            ✕
-          </button>
-        </div>
-      )}
-      <div className="panel-body">
-      <form onSubmit={handleSubmit}>
-        {phone ? (
-          <label className={`kind-select kind-${fields.kind}`}>
-            <span className="visually-hidden">{t("event.kind")}</span>
-            <KindIcon kind={fields.kind} transportLabel={null} />
-            <select value={fields.kind} onChange={(e) => changeKind(e.target.value as EventFields["kind"])}>
-              {EVENT_KINDS.map((kind) => (
-                <option key={kind} value={kind}>
-                  {t(kindKey(kind))}
-                </option>
-              ))}
-            </select>
-            <ChevronDown size={18} aria-hidden="true" />
-          </label>
-        ) : (
-        <fieldset className="kind-switch">
-          <legend>{t("event.kind")}</legend>
-          {EVENT_KINDS.map((kind) => (
-            <label key={kind} className={`kind-${kind}`}>
-              <input
-                type="radio"
-                name="kind"
-                value={kind}
-                checked={fields.kind === kind}
-                onChange={() => changeKind(kind)}
-              />
-              <KindIcon kind={kind} transportLabel={null} />
-              {t(kindKey(kind))}
-            </label>
-          ))}
-        </fieldset>
+      {phone && <div className="sheet-handle" aria-hidden="true" />}
+      <div className="panel-head">
+        <KindDropdown value={fields.kind} onChange={changeKind} large={phone} />
+        {!phone && (
+          <div className="panel-tools">
+            <button type="button" className="btn sm" onClick={toggleExpanded}>
+              {expanded ? <Minimize2 size={13} aria-hidden="true" /> : <Maximize2 size={13} aria-hidden="true" />}
+              {expanded ? t("event.collapse") : t("event.expand")}
+            </button>
+            <button type="button" className="icon-btn" onClick={() => onClose()} aria-label={t("generic.close")} title={t("generic.closeEsc")}>
+              <X size={16} aria-hidden="true" />
+            </button>
+          </div>
         )}
+      </div>
+      <div className="panel-body">
+      <form onSubmit={handleSubmit} className="panel-form">
+        <div className="pane-main">
         <label>
           {t("event.title")}
           <input
-            autoFocus={!quiet}
+            autoFocus={!quiet || modal}
             data-field="title"
             value={fields.title}
             onChange={(e) => change({ title: e.target.value })}
@@ -571,6 +617,18 @@ export function EventPanel({
             )}
           </label>
         )}
+        <div className="field">
+          <span>{t("event.description")}</span>
+          <Suspense fallback={<div className="md-editor-loading">{t("event.loadingEditor")}</div>}>
+            <MarkdownEditor
+              label={t("event.description")}
+              value={initial.description ?? ""}
+              onChange={(description) => change({ description })}
+            />
+          </Suspense>
+        </div>
+        </div>
+        <div className="pane-side">
         {showsContact(fields.kind) && (
           <details className="contact" open={contactOpen}>
             <summary>{t("event.contact")}</summary>
@@ -606,20 +664,10 @@ export function EventPanel({
             onRemove={() => onRemoveOpeningHours(event.id)}
           />
         )}
-        <div className="field">
-          <span>{t("event.description")}</span>
-          <Suspense fallback={<div className="md-editor-loading">{t("event.loadingEditor")}</div>}>
-            <MarkdownEditor
-              label={t("event.description")}
-              value={initial.description ?? ""}
-              onChange={(description) => change({ description })}
-            />
-          </Suspense>
         </div>
         {/* Lets Enter submit from any field without a visible button. */}
         <button type="submit" hidden />
       </form>
-      {status.kind === "error" && <p role="alert">{status.message}</p>}
       {event && event.holding !== "archive" && (
         <section className="event-todos">
           <h4>
@@ -635,95 +683,36 @@ export function EventPanel({
           />
         </section>
       )}
-      {!phone && (
-        <div className="panel-actions">
-          <button type="button" className="primary" onClick={() => void finish()}>
-            {t("event.save")}
-          </button>
-          <button type="button" onClick={() => onClose(true)}>
-            {t("generic.cancel")}
-          </button>
-        </div>
-      )}
-      {event && !phone && (
-        <button type="button" className="danger delete-event" title={tip(t("event.delete"), "delete")} onClick={() => onDelete(event)}>
-          {t("event.delete")}
-        </button>
-      )}
       </div>
-      {phone && (
-        <footer className="sheet-footer">
-          <p className="sheet-status" role="status">
-            {status.kind === "saving" && t("generic.saving")}
-            {status.kind === "error" && <span className="sheet-error">{status.message}</span>}
-            {status.kind === "saved" && (
-              <>
-                <Check size={14} aria-hidden="true" />
-                {t("generic.saved")}
-              </>
-            )}
-          </p>
-          <div className="sheet-actions">
-            {event && (
-              <div className="split" ref={split}>
-                <button
-                  type="button"
-                  className={footerAction === "delete" || event.holding === "archive" ? "btn lg split-main dng-q" : "btn lg split-main"}
-                  onClick={() => {
-                    if (footerAction === "delete" || event.holding === "archive") onDelete(event);
-                    else void archiveAndClose();
-                  }}
-                >
-                  {footerAction === "delete" || event.holding === "archive" ? (
-                    <Trash2 size={16} aria-hidden="true" />
-                  ) : (
-                    <Archive size={16} aria-hidden="true" />
-                  )}
-                  {footerAction === "delete" || event.holding === "archive" ? t("event.deleteShort") : t("area.archive")}
-                </button>
-                {event.holding !== "archive" && (
-                  <button
-                    type="button"
-                    className="btn lg split-more"
-                    aria-label={t("event.moreActions")}
-                    aria-expanded={menuOpen}
-                    aria-controls="split-menu"
-                    onClick={() => setMenuOpen(!menuOpen)}
-                  >
-                    <ChevronDown size={16} aria-hidden="true" />
-                  </button>
-                )}
-                {menuOpen && (
-                  <ul className="split-menu" id="split-menu">
-                    {(["archive", "delete"] as const).map((action) => (
-                      <li key={action}>
-                        <button
-                          type="button"
-                          aria-pressed={footerAction === action}
-                          className={action === "delete" ? "danger" : undefined}
-                          onClick={() => {
-                            setFooterAction(action);
-                            setMenuOpen(false);
-                          }}
-                        >
-                          {footerAction === action ? <Check size={16} aria-hidden="true" /> : <span className="check-space" />}
-                          <span>
-                            <strong>{action === "delete" ? t("event.deleteShort") : t("area.archive")}</strong>
-                            <small>{action === "delete" ? t("event.deleteHint") : t("event.archiveHint")}</small>
-                          </span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+      {status.kind === "error" && <p role="alert" className="panel-error">{status.message}</p>}
+      <footer className="panel-foot">
+        {event && (
+          <div className="more" ref={more}>
+            <button
+              type="button"
+              className="btn more-btn"
+              aria-label={t("event.moreActions")}
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen(!menuOpen)}
+            >
+              <Ellipsis size={16} aria-hidden="true" />
+            </button>
+            {menuOpen && (
+              <div className="more-menu" role="menu">
+                {menuItems}
               </div>
             )}
-            <button type="button" className="btn lg pri ok" onClick={() => void finish()}>
-              {t("event.save")}
-            </button>
           </div>
-        </footer>
-      )}
+        )}
+        <span className="spacer" />
+        <button type="button" className={`btn${phone ? " lg" : " ghost"}`} onClick={() => onClose(true)}>
+          {dirty || !event ? t("generic.cancel") : t("generic.close")}
+        </button>
+        <button type="button" className={`btn pri${phone ? " lg" : ""}`} onClick={() => void finish()}>
+          {event ? t("event.save") : t("event.addEvent")}
+        </button>
+      </footer>
     </aside>
     </>
   );

@@ -23,7 +23,7 @@ describe("KindDropdown", () => {
     const user = userEvent.setup();
     const { onChange, trigger } = setup();
     trigger.focus();
-    await user.keyboard("{ArrowDown}{ArrowDown}{Enter}");
+    await user.keyboard("{ArrowDown}{ArrowDown}{ArrowDown}{Enter}");
     expect(onChange).toHaveBeenCalledWith("lodging");
     expect(screen.queryByRole("listbox")).toBeNull();
   });

@@ -81,6 +81,14 @@
       "x": 0,
       "y": 5800
     },
+    "EmptySlot.dc.html": {
+      "h": 1250,
+      "page": "page-72j84k",
+      "title": "#43 · Empty time slot — Add Event / Add Travel on hover (desktop) and tap (phone) · High fidelity",
+      "w": 1500,
+      "x": 0,
+      "y": 3100
+    },
     "EventImage.dc.html": {
       "h": 1060,
       "title": "#26 · Event image — panel states and Event block · High fidelity",
@@ -94,6 +102,14 @@
       "w": 470,
       "x": 1990,
       "y": 0
+    },
+    "EventPanelActions.dc.html": {
+      "h": 1120,
+      "page": "page-72j84k",
+      "title": "#46 · Event panel — kind dropdown and footer actions · High fidelity",
+      "w": 2280,
+      "x": 0,
+      "y": 7800
     },
     "EventPanelModal.dc.html": {
       "expand": "fill",
@@ -162,7 +178,7 @@
     },
     "LoginHosted.dc.html": {
       "h": 2456,
-      "title": "#36 · Hosted login page (Auth0, themed) — opened directly from every entry point; log in, sign up, wrong password · High fidel",
+      "title": "#36 · Hosted login page (Auth0, themed) — log in and sign up screens, wrong password; English and 繁中 · High fidelity",
       "w": 5780,
       "x": 0,
       "y": 17816
@@ -220,6 +236,22 @@
       "x": 2380,
       "y": 4300
     },
+    "NotesStates.dc.html": {
+      "h": 2920,
+      "page": "page-72j84k",
+      "title": "#42 · Notes panel — new Note, list, open Note; desktop and phone, light and dark · High fidelity",
+      "w": 1960,
+      "x": 0,
+      "y": 0
+    },
+    "OpeningHours.dc.html": {
+      "h": 1740,
+      "page": "page-72j84k",
+      "title": "#44 · Opening hours — Event panel section states, conflict label, read-only, phone · High fidelity",
+      "w": 1960,
+      "x": 0,
+      "y": 4470
+    },
     "PanelKinds.dc.html": {
       "h": 1080,
       "title": "#07 · Event panel by kind — desktop (Attraction · Meal · Lodging · Transport) · High fidelity",
@@ -276,6 +308,14 @@
       "x": 0,
       "y": 11500
     },
+    "TripDates.dc.html": {
+      "h": 1320,
+      "page": "page-72j84k",
+      "title": "#45 · Trip dates — start date entry points, Trip settings, date picker, Day headers · High fidelity",
+      "w": 1960,
+      "x": 0,
+      "y": 6360
+    },
     "TripList.dc.html": {
       "h": 920,
       "title": "#24 · Trip list — sidebar, item menu, New Trip (Blank / Generate with AI), Delete Trip, phone · High fidelity",
@@ -297,45 +337,21 @@
       "x": 5500,
       "y": 4300
     },
-    "NotesStates.dc.html": {
-      "h": 2920,
+    "PhoneMenus.dc.html": {
+      "h": 1500,
       "page": "page-72j84k",
-      "title": "#42 · Notes panel — new Note, list, open Note; desktop and phone, light and dark · High fidelity",
-      "w": 1960,
+      "title": "#47 · Phone — account and Trip menus · High fidelity",
+      "w": 1840,
       "x": 0,
-      "y": 0
+      "y": 9040
     },
-    "EmptySlot.dc.html": {
-      "h": 1250,
+    "AuthStates.dc.html": {
+      "h": 940,
       "page": "page-72j84k",
-      "title": "#43 · Empty time slot — Add Event / Add Travel on hover (desktop) and tap (phone) · High fidelity",
-      "w": 1500,
+      "title": "#48 · Auth states — invitation (wrong account, verify email, joined), session expired with unsaved edits, account loading · High fidelity",
+      "w": 2300,
       "x": 0,
-      "y": 3100
-    },
-    "OpeningHours.dc.html": {
-      "h": 1740,
-      "page": "page-72j84k",
-      "title": "#44 · Opening hours — Event panel section states, conflict label, read-only, phone · High fidelity",
-      "w": 1960,
-      "x": 0,
-      "y": 4470
-    },
-    "TripDates.dc.html": {
-      "h": 1320,
-      "page": "page-72j84k",
-      "title": "#45 · Trip dates — start date entry points, Trip settings, date picker, Day headers · High fidelity",
-      "w": 1960,
-      "x": 0,
-      "y": 6360
-    },
-    "EventPanelActions.dc.html": {
-      "h": 1120,
-      "page": "page-72j84k",
-      "title": "#46 · Event panel — kind dropdown and footer actions · High fidelity",
-      "w": 2280,
-      "x": 0,
-      "y": 7800
+      "y": 10660
     }
   },
   "createdOnFiles": {
@@ -498,7 +514,9 @@
     "EmptySlot.dc.html",
     "OpeningHours.dc.html",
     "TripDates.dc.html",
-    "EventPanelActions.dc.html"
+    "EventPanelActions.dc.html",
+    "PhoneMenus.dc.html",
+    "AuthStates.dc.html"
   ],
   "pages": [
     {

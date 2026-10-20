@@ -33,6 +33,36 @@ Opening hours are fetched only when the user presses a button. Everything the pl
 - [x] One general conflict text "Opening hours may conflict": amber label and amber border on the card (all boards that showed "Closes at 18:00"), the same text beside the hours in the panel, dark theme included (#44 state 9 and cards). No detail, no dismissal.
 - [x] Proposed Traditional Chinese wording is on #44. Not drawn: hours that fail to fetch (the spec shows no hours and no label).
 
+## Phone: account and Trip menus (designed 2026-10-20)
+
+Language, theme, log out, Share and Export were spread over several phone screens. #47 puts them in two places. Developers: build from #47; desktop is unchanged.
+
+- [x] Account button (round avatar; person icon for guest and Viewer) opens a bottom sheet: Language, Theme, Log out. Guest: "Log in to save your progress", Language, Theme.
+- [x] Trip `⋯` button opens a bottom sheet: Share…, Export…, Trip settings…. Share is no longer in the top bar, so the Trip title keeps about 230px.
+- [x] By role: Owner has all three; Editor has Export and Trip settings (no Share); Viewer has no `⋯` and no Notes, with a "Read only" chip; guest sees Share and Export marked "Needs login".
+- [x] No "My Trips" row on phone: tapping the Trip title opens the Trip list. Desktop keeps My Trips in the account menu.
+- [x] A logged-in Viewer's Trip title keeps the ▾ (Trip list and Shared with me); a Viewer who is not logged in has none (#47 top bar strips).
+- [x] PRD §8 and §14 updated.
+
+## Email and password login only (decided 2026-10-20)
+
+Google login moves to the next phase: Auth0 keeps a Google login and an email login with the same address as two accounts, and merging them is not in the first release.
+
+- [x] `LoginHosted.dc.html` (#36): removed the "or" divider and "Continue with Google" from every frame; design notes updated.
+- [x] PRD §8, ADR 0006, design-spec and the implementation plan (next phase) updated.
+
+## Auth0 review of the login flows (2026-10-20)
+
+Checked against the Auth0 documentation (Universal Login, page templates, internationalization, email verification, refresh tokens, logout).
+
+- [x] #36: no tabs (Auth0 renders two linked screens; tabs would need ACUL); "Don’t have an account? Sign up" / "Already have an account? Log in" links; terms line moved outside the card (page template footer); dark row replaced by a Traditional Chinese row (`ui_locales=zh-TW`), since Auth0 documents no dark mode.
+- [x] #41: the page names the invited email; Log in / Sign up prefill it (`login_hint`, `screen_hint=signup`).
+- [x] #48 (new): invitation with another account, email not verified (resend), joined toast; session expired with an open Event panel ("Log in to save", popup login); account spot placeholder while loading.
+- [x] #37 C: shown only when Auth0 returns an error; going back from the hosted page shows nothing.
+- [x] #40: notes point to the popup login and #48.
+- [x] PRD §8 and plan steps 18 and 20 updated.
+- [ ] #38, #01, #02, #47 do not draw the loading placeholder; #48 covers it for all top bars.
+
 ## Earlier list
 
 - [ ] Language, theme, Share and Export placement at the bottom of the left sidebar (the full earlier list was only in chat; add the other items here).

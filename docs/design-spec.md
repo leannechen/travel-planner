@@ -19,7 +19,7 @@ Reference material in `docs/reference/`: `excalidraw-design-draft.png` (Day layo
 
 ### 2.1a Sign-in and sign-up
 - No prompt before login: entry points go directly to the Auth0 page. The guest save button carries the note about losing data when browser data is cleared.
-- Themed Auth0 hosted page (login and sign-up tabs, Google button, error state); only branding can be customized.
+- Themed Auth0 hosted page (login and sign-up tabs, email and password only, error state); only branding can be customized.
 - After login: guest Trip added, Trip list, and failure states.
 - Account menu in the top right (logged-in and logged-out versions), logout result, session-expired banner, and the invited-Editor landing page.
 

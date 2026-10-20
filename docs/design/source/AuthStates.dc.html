@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Auth states after the Auth0 review</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="hf.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Nunito:wght@700;800&amp;family=Noto+Sans+TC:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+button{font:inherit;color:inherit;cursor:pointer;text-align:left}
+.wfroot{position:relative;overflow:hidden;width:2300px;height:940px}
+.cap2{position:absolute;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.rl{font-size:11px;font-weight:600;color:var(--muted);margin-bottom:4px}
+.pm{position:absolute;width:390px;height:844px;background:var(--surface2);border:1px solid var(--border2);border-radius:22px;overflow:hidden;display:flex;flex-direction:column}
+.ph-top{height:52px;flex:none;display:flex;align-items:center;padding:0 4px 0 12px;gap:2px;background:var(--surface);border-bottom:1px solid var(--border)}
+.ph-top .title{flex:1;padding:0 6px;height:44px;display:flex;align-items:center;gap:4px;font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.ph-seg{margin:8px 16px;display:flex;flex:none}
+.ph-seg button{flex:1;justify-content:center;height:36px}
+.ph-tabs{height:52px;flex:none;display:flex;gap:6px;padding:0 16px 8px;align-items:stretch;overflow:hidden}
+.ph-tab{flex:none;width:62px;border:1px solid var(--border2);border-radius:var(--r-md);background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2;font-weight:700}
+.ph-tab small{font-size:11px;color:var(--muted);font-weight:500}
+.ph-tab.on{background:var(--pri-strong);color:var(--onpri);border-color:var(--pri-strong)}
+.ph-tab.on small{color:rgba(255,255,255,.85)}
+.ph-vp{flex:1;position:relative;overflow:hidden;min-height:0;background:var(--axisbg)}
+.ph-axis{position:absolute;left:46px;right:0;top:10px;height:540px;background-image:linear-gradient(to bottom,var(--grid) 1px,transparent 1px);background-size:100% 44px}
+.ph-axis .ev{left:4px;right:10px;padding-top:4px;padding-bottom:4px}
+.ph-axis .ev::before{top:6px;bottom:6px}
+.acct{width:32px;height:32px;border-radius:50%;background:var(--a-tint);color:var(--a-ink);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;border:1px solid var(--border2);flex:none}
+.acct.gst{background:var(--surface2);color:var(--muted)}
+.acct.big{width:44px;height:44px;font-size:18px}
+.ib.hi,.ib:has(.acct.hi){background:var(--pri-tint);color:var(--pri-ink)}
+.chip-ro{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border:1px solid var(--border2);border-radius:14px;background:var(--surface2);font-size:12px;font-weight:500;margin-right:2px;white-space:nowrap}
+.gban{height:36px;flex:none;display:flex;align-items:center;gap:8px;padding:0 16px;background:var(--info-tint);color:var(--pri-ink);font-weight:600;font-size:13px}
+.dimw{position:absolute;inset:0;background:rgba(20,24,30,.42)}
+.bsheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:16px 16px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.2);padding:0 0 22px}
+.bsheet.static{position:relative;box-shadow:var(--sh-pop);border:1px solid var(--border2);border-bottom:0;padding-bottom:12px}
+.grab{width:40px;height:4px;border-radius:2px;background:var(--border2);margin:8px auto 4px}
+.shd{display:flex;align-items:center;gap:12px;padding:10px 16px 12px}
+.rs{display:flex;flex-direction:column;min-width:0;flex:1}
+.rs b{font-size:15px;font-weight:700}
+.rs em{font-style:normal;font-size:12px;color:var(--muted);font-weight:400}
+.mrow{display:flex;align-items:center;gap:12px;min-height:52px;padding:0 16px;width:100%;box-sizing:border-box;font-size:15px;font-weight:500}
+.mrow>.i{width:20px;height:20px;color:var(--muted)}
+.mrow .rs{flex:1}
+.mrow .tr{margin-left:auto;display:inline-flex;align-items:center;gap:4px;color:var(--muted);font-size:12px;font-weight:400;white-space:nowrap}
+button.mrow:active,button.mrow:hover{background:var(--surface2)}
+.msep{height:1px;background:var(--border);margin:4px 0}
+.sgm{margin-left:auto;display:inline-flex;border:1px solid var(--border2);border-radius:var(--r-md);overflow:hidden;flex:none}
+.sgm button{height:36px;min-width:56px;padding:0 12px;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-weight:500;font-size:13px;background:var(--surface)}
+.sgm button+button{border-left:1px solid var(--border2)}
+.sgm button.on{background:var(--pri-tint);color:var(--pri-ink);font-weight:700}
+.hlp{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.45}
+.stp{margin-bottom:14px}
+.stw{width:390px;border:1px solid var(--border2);border-radius:14px;overflow:hidden;background:var(--surface)}
+.cs{width:390px}
+.cn{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.45}
+.mc ul{margin:0;padding-left:16px;display:flex;flex-direction:column;gap:6px}
+.mc li{margin:0}
+.mc .sp{margin-top:10px}
+
+.pg{background:var(--surface)}
+.pgh{height:56px;flex:none;display:flex;align-items:center;gap:8px;padding:0 8px 0 16px;border-bottom:1px solid var(--border);background:var(--surface)}
+.pgh b{font:800 17px Nunito,Inter,sans-serif}
+.lg0{width:30px;height:30px;border-radius:9px;background:var(--pri-tint);color:var(--pri-ink);display:inline-flex;align-items:center;justify-content:center}
+.btn.sm{height:34px;padding:0 10px}
+.pgb{padding:28px 20px;display:flex;flex-direction:column;gap:14px}
+.ichip{align-self:flex-start;display:inline-flex;align-items:center;gap:7px;height:28px;padding:0 11px;border-radius:14px;background:var(--pri-tint);color:var(--pri-ink);font-size:12px;font-weight:600}
+.pgt{margin:4px 0 0;font:800 28px/1.15 Nunito,Inter,"Noto Sans TC",sans-serif;color:var(--text)}
+.pgp{margin:0;font-size:15px;line-height:1.55;color:var(--muted)}
+.pgp b{color:var(--text);font-weight:600}
+.grad{background:linear-gradient(120deg,#2373f4,#3fb6f0);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:700}
+.who{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--border2);border-radius:var(--r-lg);background:var(--surface2)}
+.who .rs b{font-size:15px}
+.btn.big{height:48px;width:100%;justify-content:center;border-radius:12px;font-size:15px;gap:8px}
+.hint{margin:0;font-size:12px;line-height:1.5;color:var(--muted)}
+.okline{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ok,#1a7f37);font-weight:500}
+.tw{position:absolute;left:0;right:0;bottom:24px;display:flex;justify-content:center}
+.tst{display:inline-flex;align-items:center;gap:10px;background:#1f2937;color:#fff;border-radius:12px;padding:10px 10px 10px 14px;font-size:14px;font-weight:500;box-shadow:var(--sh-pop)}
+.tst button{display:inline-flex;padding:4px;color:#cbd5e1}
+.xban{flex:none;display:flex;align-items:center;gap:8px;padding:8px 12px 8px 14px;background:var(--warnbg);color:var(--warn);border-bottom:1px solid var(--warnb);font-size:13px}
+.xban b{font-weight:700}
+.ep{max-height:600px;display:flex;flex-direction:column;padding-bottom:0}
+.eph{display:flex;align-items:center;gap:8px;padding:4px 10px 6px 16px}
+.kchip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:9px;background:var(--a-tint);color:var(--a-ink);font-weight:700;font-size:13px}
+.epb{padding:4px 16px 12px;display:flex;flex-direction:column;gap:4px}
+.epb .fl{margin:8px 0 4px}
+.epb .in{height:44px}
+.epb .in input,.epb .in textarea{width:100%;border:0;background:transparent;font:inherit;color:inherit;outline:0}
+.in.ta{height:76px;align-items:flex-start;padding-top:10px}
+.in.ta textarea{resize:none;height:56px;line-height:1.45}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.keep{display:flex;gap:8px;align-items:flex-start;margin-top:10px;padding:10px 12px;border-radius:var(--r-md);background:var(--warnbg);color:var(--warn);font-size:13px;line-height:1.4}
+.keep .i{flex:none;margin-top:1px}
+.epf{display:flex;gap:8px;padding:10px 16px 22px;border-top:1px solid var(--border)}
+.epf .more{width:48px;height:48px;justify-content:center;flex:none;border-radius:12px}
+.sk{width:32px;height:32px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);display:inline-block;flex:none;animation:skp 1.4s ease-in-out infinite}
+@keyframes skp{50%{opacity:.55}}
+.dtop{height:56px;display:flex;align-items:center;gap:8px;padding:0 12px 0 16px}
+.dt{font:800 16px Nunito,Inter,sans-serif}
+</style>
+</helmet>
+<div class="hf wfroot">
+<div class="cap2" style="left:40px;top:26px">Invitation · logged in with another account</div><div class="pm pg" style="left:40px;top:56px"><header class="pgh"><span class="lg0"><svg class="i" style="width:18px;height:18px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"></path><path d="M9 4v14M15 6v14"></path></svg></span><b>Travel Planner</b><span style="flex:1"></span><button class="btn sm">EN</button><button class="ib lg" aria-label="Account: mei@work.example"><span class="acct">M</span></button></header><div class="pgb"><span class="ichip "><svg class="i" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M3 7l9 6 9-6"></path></svg>Invitation to edit</span><h1 class="pgt">This invitation is for another account</h1><p class="pgp">Lena invited <b>mei@example.com</b> to edit <span class="grad">Kyoto &amp; Osaka</span>.</p><div class="who"><span class="acct">M</span><span class="rs"><em>You are logged in as</em><b>mei@work.example</b></span></div><button class="btn pri big"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h11l-3-3M17 17H6l3 3"></path></svg>Log in as mei@example.com</button><button class="btn  big">Go to my Trips</button><p class="hint">“Log in as” logs you out here, then opens the login page with mei@example.com filled in.</p></div></div><div class="cap2" style="left:470px;top:26px">Invitation · email not verified yet</div><div class="pm pg" style="left:470px;top:56px"><header class="pgh"><span class="lg0"><svg class="i" style="width:18px;height:18px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"></path><path d="M9 4v14M15 6v14"></path></svg></span><b>Travel Planner</b><span style="flex:1"></span><button class="btn sm">EN</button><button class="ib lg" aria-label="Account: mei@example.com"><span class="acct">M</span></button></header><div class="pgb"><span class="ichip "><svg class="i" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M3 7l9 6 9-6"></path></svg>Invitation to edit</span><h1 class="pgt">Verify your email to join</h1><p class="pgp">We sent a link to <b>mei@example.com</b> when you signed up. Open it, then come back to join <span class="grad">Kyoto &amp; Osaka</span>.</p><button class="btn pri big"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>I’ve verified, continue</button><button class="btn  big"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M3 7l9 6 9-6"></path></svg>Send the link again</button><p class="hint">If “continue” finds the address still unverified, this page stays and says “Not verified yet. Check your inbox and spam folder.”</p><div class="okline"><svg class="i" style="width:16px;height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>Link sent again to mei@example.com</div></div></div><div class="cap2" style="left:900px;top:26px">Invitation · logged in, email matches</div><div class="pm" style="left:900px;top:56px"><header class="ph-top"><button class="title" aria-label="Trips: Kyoto &amp; Osaka">Kyoto &amp; Osaka<svg class="i" style="color:var(--muted)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button><button class="ib lg" aria-label="Notes"><svg class="i" style="width:20px;height:20px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h14v12l-4 4H5z"></path><path d="M15 20v-4h4M8 9h8M8 13h4"></path></svg></button><button class="ib lg" aria-label="Account: mei@example.com"><span class="acct">M</span></button><button class="ib lg" aria-label="Trip menu: Share, Export, Trip settings"><svg class="i" style="width:20px;height:20px" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><circle cx="5" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="19" cy="12" r="1.6"></circle></svg></button></header><div class="seg ph-seg"><button class="on">Schedule</button><button>Map</button></div>
+<nav class="ph-tabs" aria-label="Days"><button class="ph-tab">Day 1<small>3 Nov</small></button><button class="ph-tab on">Day 2<small>4 Nov</small></button><button class="ph-tab">Day 3<small>5 Nov</small></button><button class="ph-tab">Day 4<small>6 Nov</small></button></nav>
+<div class="ph-vp"><div class="ph-axis">
+<div class="ev k-a" style="top:22px;height:66px"><span class="t"><span>Arashiyama Bamboo Grove</span></span><span class="s">08:30 – 10:00</span></div>
+<div class="ev k-a" style="top:110px;height:44px"><span class="t"><span>Tenryu-ji</span></span><span class="s">10:30 – 11:30</span></div>
+<div class="ev k-m" style="top:176px;height:44px"><span class="t"><span>Tofu lunch</span></span><span class="s">12:00 – 13:00</span></div>
+<div class="ev k-a" style="top:264px;height:66px"><span class="t"><span>Kinkaku-ji</span></span><span class="s">14:00 – 15:30</span></div>
+</div></div><div class="tw"><div class="tst"><svg class="i" style="width:16px;height:16px;color:#7be8bb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>You joined Kyoto &amp; Osaka as an Editor<button aria-label="Dismiss"><svg class="i" style="width:15px;height:15px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div></div></div><div class="cap2" style="left:1330px;top:26px">Session expired · Event panel with unsaved edits</div><div class="pm" style="left:1330px;top:56px"><header class="ph-top"><button class="title" aria-label="Trips: Kyoto &amp; Osaka">Kyoto &amp; Osaka<svg class="i" style="color:var(--muted)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button><button class="ib lg" aria-label="Notes"><svg class="i" style="width:20px;height:20px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h14v12l-4 4H5z"></path><path d="M15 20v-4h4M8 9h8M8 13h4"></path></svg></button><button class="ib lg" aria-label="Account: lena@example.com"><span class="acct">L</span></button><button class="ib lg" aria-label="Trip menu: Share, Export, Trip settings"><svg class="i" style="width:20px;height:20px" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><circle cx="5" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="19" cy="12" r="1.6"></circle></svg></button></header><div class="xban"><svg class="i" style="width:16px;height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg><span><b>Your session expired.</b> Log in to keep editing</span><span style="flex:1"></span><button class="btn sm pri">Log in</button></div><div class="seg ph-seg"><button class="on">Schedule</button><button>Map</button></div>
+<nav class="ph-tabs" aria-label="Days"><button class="ph-tab">Day 1<small>3 Nov</small></button><button class="ph-tab on">Day 2<small>4 Nov</small></button><button class="ph-tab">Day 3<small>5 Nov</small></button><button class="ph-tab">Day 4<small>6 Nov</small></button></nav>
+<div class="ph-vp"><div class="ph-axis">
+<div class="ev k-a" style="top:22px;height:66px"><span class="t"><span>Arashiyama Bamboo Grove</span></span><span class="s">08:30 – 10:00</span></div>
+<div class="ev k-a" style="top:110px;height:44px"><span class="t"><span>Tenryu-ji</span></span><span class="s">10:30 – 11:30</span></div>
+<div class="ev k-m" style="top:176px;height:44px"><span class="t"><span>Tofu lunch</span></span><span class="s">12:00 – 13:00</span></div>
+<div class="ev k-a" style="top:264px;height:66px"><span class="t"><span>Kinkaku-ji</span></span><span class="s">14:00 – 15:30</span></div>
+</div></div><div class="dimw"></div><section class="bsheet ep" role="dialog" aria-label="Edit Event"><div class="grab"></div><div class="eph"><span class="kchip"><svg class="i" style="width:15px;height:15px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h12l-2 4 2 4H5"></path></svg>Attraction</span><span style="flex:1"></span><button class="ib" aria-label="Close"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div><div class="epb"><label class="fl">Title</label><div class="in"><input value="Fushimi Inari Taisha, upper trail"></div><div class="two"><div><label class="fl">Starts</label><div class="in"><input value="Day 2 · 09:00"></div></div><div><label class="fl">Duration</label><div class="in"><input value="2h 30m"></div></div></div><label class="fl">Notes</label><div class="in ta"><textarea>Go before 9 to beat the crowds; take the left path at Yotsutsuji.</textarea></div><div class="keep"><svg class="i" style="width:16px;height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5"></path><path d="M12 8v.01"></path></svg><span>Your changes are kept on this screen. Log in to save them.</span></div></div><div class="epf"><button class="btn more" aria-label="More actions"><svg class="i" style="width:20px;height:20px" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><circle cx="5" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="19" cy="12" r="1.6"></circle></svg></button><button class="btn pri big" style="flex:1;margin:0"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><path d="M10 17l5-5-5-5M15 12H3"></path></svg>Log in to save</button></div></section></div><div class="cap2" style="left:1760px;top:26px">Account spot while the app starts</div><div style="position:absolute;left:1760px;top:56px;width:500px"><div class="rl">Desktop · top bar, right end</div><div class="stw" style="width:500px"><div class="dtop"><b class="dt">Kyoto &amp; Osaka</b><span style="flex:1"></span><span class="seg"><button class="on">Schedule</button><button>Map</button></span><span style="flex:1"></span><button class="ib lg" aria-label="Notes"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h14v12l-4 4H5z"></path><path d="M15 20v-4h4M8 9h8M8 13h4"></path></svg></button><button class="ib lg" aria-label="Keyboard shortcuts">?</button><span class="sk"></span></div></div><div class="rl" style="margin-top:14px">Phone</div><div class="stw"><header class="ph-top"><button class="title" aria-label="Trips: Kyoto &amp; Osaka">Kyoto &amp; Osaka<svg class="i" style="color:var(--muted)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button><button class="ib lg" aria-label="Notes"><svg class="i" style="width:20px;height:20px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h14v12l-4 4H5z"></path><path d="M15 20v-4h4M8 9h8M8 13h4"></path></svg></button><span class="ib lg"><span class="sk"></span></span><button class="ib lg" aria-label="Trip menu: Share, Export, Trip settings"><svg class="i" style="width:20px;height:20px" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><circle cx="5" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="19" cy="12" r="1.6"></circle></svg></button></header></div><div class="cn">Until Auth0 says whether there is a session, the account spot is a neutral circle. It never shows “Log in” first and then swaps to the avatar.</div></div><aside class="mc" style="position:absolute;left:1760px;top:300px;width:500px"><h4>Design notes</h4><ul>
+<li><b>Invitation is accepted only with a verified, matching email.</b> Auth0 sends a verification link at sign-up but lets unverified accounts log in, so the app checks <code>email_verified</code> before adding an Editor.</li>
+<li><b>Wrong account:</b> replaces the earlier “You don’t have access to this Trip” page for invitations. “Log in as …” logs out, then opens the login page with <code>login_hint</code> and <code>prompt=login</code>. “Go to my Trips” leaves the invitation open for later.</li>
+<li><b>Not verified:</b> no login is blocked; only joining waits. “Send the link again” asks our API to resend the Auth0 verification email.</li>
+<li><b>Email matches:</b> no extra page; the Trip opens with a toast.</li>
+<li><b>Session expired with edits:</b> the panel stays open with what was typed. Its Save becomes “Log in to save”, which opens the login page in a popup; after login the edits are saved and the panel closes as after Save. If the popup is blocked, the edits are stored in the browser and the login page opens in the same tab; the panel comes back with them after login.</li>
+<li><b>Loading:</b> applies to every top bar (#01, #02, #38, #47).</li>
+</ul><div class="sp"><h4>Login errors</h4><ul>
+<li>Auth0’s page has no Cancel. Going back from it returns to the app with no message; “Login didn’t complete” (#37 C) shows only when Auth0 returns an error.</li></ul></div></aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":2300,"height":940}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

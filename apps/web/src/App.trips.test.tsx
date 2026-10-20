@@ -47,6 +47,18 @@ async function switchTo(name: string) {
 }
 
 describe("one Trip at a time", () => {
+  it("keeps the Map View when switching Trips", async () => {
+    renderApp(<App />);
+    await screen.findByText("Fushimi Inari");
+    await userEvent.click(screen.getByRole("button", { name: /Map/ }));
+    expect(window.location.search).toContain("view=map");
+
+    await switchTo("Taipei");
+    await waitFor(() => expect(screen.getByRole("button", { name: /Map/ }).getAttribute("aria-pressed")).toBe("true"));
+    expect(window.location.search).toContain(`trip=${taipei.id}`);
+    expect(window.location.search).toContain("view=map");
+  });
+
   it("shows only the first Trip, and the other after switching", async () => {
     renderApp(<App />);
     expect(await screen.findByText("Fushimi Inari")).toBeTruthy();
@@ -55,7 +67,7 @@ describe("one Trip at a time", () => {
     await switchTo("Taipei");
     expect(await screen.findByText("Din Tai Fung")).toBeTruthy();
     expect(screen.queryByText("Fushimi Inari")).toBeNull();
-    expect(window.location.search).toBe(`?trip=${taipei.id}`);
+    expect(new URLSearchParams(window.location.search).get("trip")).toBe(taipei.id);
   });
 
   it("shows the Trip named in the URL", async () => {

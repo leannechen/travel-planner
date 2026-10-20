@@ -509,6 +509,17 @@ main.has-panel .topbar {
     min-height: 0;
   }
 
+  /* The Map View fills the rest of the workspace too, with the list scrolling inside itself. */
+  .map-view {
+    flex: 1;
+    grid-template-rows: minmax(0, 1fr);
+    min-height: 0;
+  }
+
+  .map-list {
+    max-height: none;
+  }
+
   .holding-areas,
   .todos-panel {
     overflow-y: auto;

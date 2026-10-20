@@ -1,4 +1,4 @@
-// Which Trip the page shows. The choice lives in the URL (`?trip=<id>`) so a reload and a shared
+// Which Trip the page shows, and in which view. The choice lives in the URL (`?trip=<id>`) so a reload and a shared
 // link show the same Trip, and in this browser as a fallback for a visit without the parameter.
 const KEY = "travel-planner.current-trip";
 const PARAM = "trip";
@@ -34,4 +34,20 @@ function rememberInBrowser(id: string | undefined) {
   } catch {
     // Without storage the URL still keeps the choice.
   }
+}
+
+// The view of the Trip (`?view=schedule|map`) lives in the URL only, so switching Trips keeps it.
+// `rememberTripId` leaves other parameters alone.
+export type TripView = "schedule" | "map";
+const VIEW_PARAM = "view";
+
+export function readView(): TripView {
+  return new URLSearchParams(window.location.search).get(VIEW_PARAM) === "map" ? "map" : "schedule";
+}
+
+export function rememberView(view: TripView) {
+  const url = new URL(window.location.href);
+  if (url.searchParams.get(VIEW_PARAM) === view) return;
+  url.searchParams.set(VIEW_PARAM, view);
+  window.history.replaceState(window.history.state, "", url);
 }

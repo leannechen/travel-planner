@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from "vitest";
-import { chooseTrip, readWantedTripId, rememberTripId } from "./currentTrip";
+import { chooseTrip, readView, readWantedTripId, rememberTripId, rememberView } from "./currentTrip";
 
 const trips = [{ id: "a" }, { id: "b" }, { id: "c" }];
 
@@ -36,5 +36,23 @@ describe("the remembered Trip", () => {
     rememberTripId(undefined);
     expect(window.location.search).toBe("");
     expect(readWantedTripId()).toBeUndefined();
+  });
+});
+
+describe("the view", () => {
+  it("is the schedule unless the URL says map", () => {
+    expect(readView()).toBe("schedule");
+    window.history.replaceState(null, "", "/?view=nonsense");
+    expect(readView()).toBe("schedule");
+    window.history.replaceState(null, "", "/?view=map");
+    expect(readView()).toBe("map");
+  });
+
+  it("is kept in the URL next to the Trip", () => {
+    rememberTripId("b");
+    rememberView("map");
+    expect(readView()).toBe("map");
+    rememberTripId("c");
+    expect(window.location.search).toBe("?trip=c&view=map");
   });
 });

@@ -44,6 +44,13 @@ Language, theme, log out, Share and Export were spread over several phone screen
 - [x] A logged-in Viewer's Trip title keeps the ▾ (Trip list and Shared with me); a Viewer who is not logged in has none (#47 top bar strips).
 - [x] PRD §8 and §14 updated.
 
+## Email and password login only (decided 2026-10-20)
+
+Google login moves to the next phase: Auth0 keeps a Google login and an email login with the same address as two accounts, and merging them is not in the first release.
+
+- [x] `LoginHosted.dc.html` (#36): removed the "or" divider and "Continue with Google" from every frame; design notes updated.
+- [x] PRD §8, ADR 0006, design-spec and the implementation plan (next phase) updated.
+
 ## Earlier list
 
 - [ ] Language, theme, Share and Export placement at the bottom of the left sidebar (the full earlier list was only in chat; add the other items here).

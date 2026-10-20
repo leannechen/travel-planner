@@ -67,7 +67,7 @@ Each step lists what it needs from earlier steps and when it is done.
 
 ### Accounts and collaboration
 
-- [ ] **18. Sign-in.** Auth0 login, API token validation, `User` record, ownership; account menu, guest session and merge on login, session-expiry banner with a read-only Trip, pass the interface language to the hosted page, check how the hosted page follows the theme. *Needs:* 1. (ADR 0006)
+- [ ] **18. Sign-in.** Auth0 login with email and password (Google login is in the next phase), API token validation, `User` record, ownership; account menu, guest session and merge on login, session-expiry banner with a read-only Trip, pass the interface language to the hosted page, check how the hosted page follows the theme. *Needs:* 1. (ADR 0006)
 - [ ] **19. Viewer link.** Read-only share link that can be turned off; Viewers do not see Todos, Notes or the Archive. *Needs:* 18.
 - [ ] **20. Editors.** Invite by email, invitation landing page for logged-out invitees, roles and permissions per PRD §8. *Needs:* 19.
 - [ ] **21. Live collaboration.** WebSocket updates, last write wins per Event, highlight of others' changes. *Needs:* 20. (ADR 0003)
@@ -114,4 +114,4 @@ None at the moment. The earlier ones are steps 28 to 30.
 
 ## Next phase (not scheduled)
 
-Offline read-only access; adding Events from the Map View.
+Offline read-only access; adding Events from the Map View; Google login. Google login was taken out of the first release because Auth0 keeps a Google login and an email-and-password login with the same address as two separate accounts (no automatic merge), so it needs account merging first, for example one `User` for each verified email address holding several Auth0 identities (ADR 0006).

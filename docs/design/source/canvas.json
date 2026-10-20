@@ -178,7 +178,7 @@
     },
     "LoginHosted.dc.html": {
       "h": 2456,
-      "title": "#36 · Hosted login page (Auth0, themed) — opened directly from every entry point; log in, sign up, wrong password · High",
+      "title": "#36 · Hosted login page (Auth0, themed) — log in and sign up screens, wrong password; English and 繁中 · High fidelity",
       "w": 5780,
       "x": 0,
       "y": 17816
@@ -344,6 +344,14 @@
       "w": 1840,
       "x": 0,
       "y": 9040
+    },
+    "AuthStates.dc.html": {
+      "h": 940,
+      "page": "page-72j84k",
+      "title": "#48 · Auth states — invitation (wrong account, verify email, joined), session expired with unsaved edits, account loading · High fidelity",
+      "w": 2300,
+      "x": 0,
+      "y": 10660
     }
   },
   "createdOnFiles": {
@@ -507,7 +515,8 @@
     "OpeningHours.dc.html",
     "TripDates.dc.html",
     "EventPanelActions.dc.html",
-    "PhoneMenus.dc.html"
+    "PhoneMenus.dc.html",
+    "AuthStates.dc.html"
   ],
   "pages": [
     {

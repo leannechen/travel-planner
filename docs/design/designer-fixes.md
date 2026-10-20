@@ -51,6 +51,18 @@ Google login moves to the next phase: Auth0 keeps a Google login and an email lo
 - [x] `LoginHosted.dc.html` (#36): removed the "or" divider and "Continue with Google" from every frame; design notes updated.
 - [x] PRD §8, ADR 0006, design-spec and the implementation plan (next phase) updated.
 
+## Auth0 review of the login flows (2026-10-20)
+
+Checked against the Auth0 documentation (Universal Login, page templates, internationalization, email verification, refresh tokens, logout).
+
+- [x] #36: no tabs (Auth0 renders two linked screens; tabs would need ACUL); "Don’t have an account? Sign up" / "Already have an account? Log in" links; terms line moved outside the card (page template footer); dark row replaced by a Traditional Chinese row (`ui_locales=zh-TW`), since Auth0 documents no dark mode.
+- [x] #41: the page names the invited email; Log in / Sign up prefill it (`login_hint`, `screen_hint=signup`).
+- [x] #48 (new): invitation with another account, email not verified (resend), joined toast; session expired with an open Event panel ("Log in to save", popup login); account spot placeholder while loading.
+- [x] #37 C: shown only when Auth0 returns an error; going back from the hosted page shows nothing.
+- [x] #40: notes point to the popup login and #48.
+- [x] PRD §8 and plan steps 18 and 20 updated.
+- [ ] #38, #01, #02, #47 do not draw the loading placeholder; #48 covers it for all top bars.
+
 ## Earlier list
 
 - [ ] Language, theme, Share and Export placement at the bottom of the left sidebar (the full earlier list was only in chat; add the other items here).

@@ -4,7 +4,7 @@ This folder is the **final** design for Travel Planner. It replaces the earlier 
 
 - **Design name:** Travel Planner — High Fidelity
 - **Date:** 2026-10-17
-- **Fidelity:** all 47 screens are high fidelity. There are no wireframe-only screens left. Some dialog backdrops are still simplified (see the "Design notes" asides inside the screens).
+- **Fidelity:** all 48 screens are high fidelity. There are no wireframe-only screens left. Some dialog backdrops are still simplified (see the "Design notes" asides inside the screens).
 - **Order and names:** The two-digit number in each image name is the screen order.
 
 ## Layout
@@ -71,18 +71,19 @@ All images in `png/` are exported at **2x** (twice the CSS pixel width and heigh
 | 33 | `png/33-desktop-workspace-collapsed.png` | `source/MainCollapsed.dc.html` | 1440x900 | Trip workspace — desktop, both side panels collapsed |
 | 34 | `png/34-guest-workspace.png` | `source/GuestWorkspace.dc.html` | 2940x960 | Guest workspace — Log in to save, phone banner and “…” menu, login note |
 | 35 | `png/35-guest-login-tooltip.png` | `source/GuestTooltip.dc.html` | 2340x1956 | Guest workspace — tooltip on “Log in to save your progress” |
-| 36 | `png/36-login-hosted.webp` | `source/LoginHosted.dc.html` | 5780x2456 | Hosted login page (Auth0, themed) — log in, sign up, wrong password |
+| 36 | `png/36-login-hosted.webp` | `source/LoginHosted.dc.html` | 5780x2456 | Hosted login page (Auth0, themed) — log in and sign up screens, wrong password; English and Traditional Chinese |
 | 37 | `png/37-login-return.png` | `source/LoginReturn.dc.html` | 5780x2266 | Returning to the app after login — Trip added, Trip list, login didn’t complete |
 | 38 | `png/38-account-menu.png` | `source/AccountMenu.dc.html` | 5780x2266 | Account menu — logged out, logged in, open |
 | 39 | `png/39-logout.webp` | `source/Logout.dc.html` | 2340x1956 | Log out — Landing with “You’re logged out” toast |
 | 40 | `png/40-session-expired.png` | `source/SessionExpired.dc.html` | 2340x1956 | Session expired while editing — read-only Trip and banner |
-| 41 | `png/41-invite-editor.webp` | `source/InviteEditor.dc.html` | 2340x1956 | Invited Editor from an email link, logged out (no photos) |
+| 41 | `png/41-invite-editor.webp` | `source/InviteEditor.dc.html` | 2340x1956 | Invited Editor from an email link, logged out; names the invited email (no photos) |
 | 42 | `png/42-notes-panel.png` | `source/NotesStates.dc.html` | 1960x2920 | Notes panel — new Note, list, open Note; desktop and phone, light and dark (current Notes design; replaces 17) |
 | 43 | `png/43-empty-slot.png` | `source/EmptySlot.dc.html` | 1500x1250 | Empty time slot — Add Event and Add Travel on hover (desktop) and tap (phone) |
 | 44 | `png/44-opening-hours.png` | `source/OpeningHours.dc.html` | 1960x1740 | Opening hours — Event panel section states (off, loading, on, Whole week, conflict, no dates, no hours, read-only, dark, phone) and the amber card label |
 | 45 | `png/45-trip-dates.png` | `source/TripDates.dc.html` | 1960x1320 | Trip dates — start date entry points (top bar, phone menu, Trip list), Trip settings with and without dates, date picker, Day headers and phone Day tabs. Top-bar date button, "Add dates" and the picker are proposed |
 | 46 | `png/46-event-panel-actions.png` | `source/EventPanelActions.dc.html` | 2280x1120 | Event panel — kind dropdown (open), footer by state (Cancel / Save, ⋯ menu), ⋯ menu per state, phone footer, and the full side panel with the ⋯ menu open |
 | 47 | `png/47-phone-menus.png` | `source/PhoneMenus.dc.html` | 1840x1500 | Phone — Account sheet (logged in, guest), Trip `⋯` sheet (Owner, Editor, guest), top bar by role (Owner, Editor, Viewer logged out and in, guest) |
+| 48 | `png/48-auth-states.png` | `source/AuthStates.dc.html` | 2300x940 | Auth states — invitation with another account, email not verified, joined; session expired with unsaved Event panel edits; account spot while loading |
 
 ## Notes
 

@@ -3153,6 +3153,7 @@ main.has-panel .topbar {
   width: 36px;
   height: 20px;
   margin: 0;
+  border: 0;
   border-radius: 999px;
   background: var(--border2);
   cursor: pointer;
@@ -3164,8 +3165,10 @@ main.has-panel .topbar {
   position: absolute;
   top: 2px;
   left: 2px;
+  box-sizing: border-box;
   width: 16px;
   height: 16px;
+  border: 0;
   border-radius: 50%;
   background: #fff;
   box-shadow: 0 1px 2px rgba(22, 34, 59, 0.3);
@@ -3173,10 +3176,17 @@ main.has-panel .topbar {
 }
 
 .map-toggle input[role="switch"]:checked {
+  border: 0;
   background: var(--pri);
 }
 
+/* Overrides the tick of the plain checkbox, which uses the same pseudo-element. */
 .map-toggle input[role="switch"]:checked::after {
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border: 0;
   transform: translateX(16px);
 }
 

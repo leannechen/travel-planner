@@ -29,6 +29,11 @@ describe("previewDrop", () => {
     expect(previewDrop(event, day1.id, -2000, range, [day1, day2])).toEqual({ eventId: event.id, startMinute: 480 });
   });
 
+  it("keeps the start of an Event that already runs past the axis, when dragged down", () => {
+    const late = makeEvent({ dayId: day1.id, holding: null, startMinute: 1290, durationMinutes: 60 });
+    expect(previewDrop(late, day1.id, 64, range, [day1, day2])).toEqual({ eventId: late.id, startMinute: 1290 });
+  });
+
   it("names the holding area when the pointer is over one", () => {
     expect(previewDrop(event, "backlog", 0, range, [day1, day2])).toEqual({ eventId: event.id, area: "backlog" });
   });

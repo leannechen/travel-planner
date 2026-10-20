@@ -99,7 +99,7 @@ Only the title is required.
 
 ### 3.3 Legs
 
-- A Leg is created only when the user chooses "Add Travel" in the empty time slot between two adjacent Events, shown on hover or tap next to "Add Event" (ADR 0002). The system never creates Legs on its own.
+- A Leg is created only when the user chooses "Add Travel" in the empty time slot between two adjacent Events, shown on hover or focus, or after a tap on a touch screen, where an "Add Event" at the tapped minute also appears (ADR 0002). The system never creates Legs on its own.
 - Both Events need a location. Its duration is computed from the two locations using the Google Maps API; the user picks the travel mode (drive, public transit, walk). A Trip has a default travel mode, chosen at creation and changeable in Trip settings; each Leg can override it.
 - A Day's Lodging can be the start point of a Leg to the first Event of that Day.
 - If the gap between two Events is shorter than the Leg's duration, a conflict warning is shown. Nothing is moved automatically.

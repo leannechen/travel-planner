@@ -93,16 +93,13 @@ describe("Leg slots", () => {
     const { props, dayId } = setup();
     const row = document.querySelector(".slot-row") as HTMLElement;
     expect(screen.queryByRole("button", { name: /^Add Event / })).toBeNull();
-    // The axis starts at 08:00 with 64px per hour: 140px down is 10:11, rounded to the grid.
-    tap(row, 140);
+    // The axis starts at 08:00 with 64px per hour: 150px down is 10:20, which the grid rounds down to 10:15.
+    tap(row, 150);
     expect(props.onCreateAt).not.toHaveBeenCalled();
     expect(row.classList.contains("open")).toBe(true);
     await user.click(screen.getByRole("button", { name: "Add Event between Station and Golden Pavilion" }));
     expect(props.onCreateAt).toHaveBeenCalledTimes(1);
-    expect(props.onCreateAt).toHaveBeenCalledWith(dayId, expect.any(Number));
-    const minute = props.onCreateAt.mock.calls[0]?.[1] as number;
-    expect(minute).toBeGreaterThanOrEqual(600);
-    expect(minute).toBeLessThan(780);
+    expect(props.onCreateAt).toHaveBeenCalledWith(dayId, 615);
   });
 
   it("on a touch screen a tap outside dismisses the buttons", async () => {

@@ -350,14 +350,21 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onDaysChange, s
       <DragDropProvider
         sensors={sensors}
         plugins={(defaults) => [...defaults.filter((p) => p !== Accessibility), accessibility(events, t)]}
-        onDragMove={({ operation }) => {
-          const pointer = operation.position.current;
-          const target = operation.source ? dropTargetAt(root.current!, pointer.x, pointer.y, String(operation.source.id)) : undefined;
-          setDropTarget(target);
-          const dragged = events.find((e) => e.id === operation.source?.id);
-          const next = dragged?.dayId ? previewDrop(dragged, target, operation.transform.y, range, trip.days) : undefined;
-          // Only a changed preview renders again, as moves arrive for every pixel.
-          setDropPreview((current) => (JSON.stringify(current) === JSON.stringify(next) ? current : next));
+        onDragMove={(_, manager) => {
+          // The library writes the new pointer position after this callback runs, so the state is
+          // read a frame later, when it is the one a drop would use. A frame that comes after the
+          // drag ended must not bring a cleared preview back.
+          requestAnimationFrame(() => {
+            const operation = manager.dragOperation;
+            if (!operation.status.dragging || !operation.source) return;
+            const pointer = operation.position.current;
+            const target = dropTargetAt(root.current!, pointer.x, pointer.y, String(operation.source.id));
+            setDropTarget(target);
+            const dragged = events.find((e) => e.id === operation.source?.id);
+            const next = dragged?.dayId ? previewDrop(dragged, target, operation.transform.y, range, trip.days) : undefined;
+            // Only a changed preview renders again, as moves arrive for every pixel.
+            setDropPreview((current) => (JSON.stringify(current) === JSON.stringify(next) ? current : next));
+          });
         }}
         onDragEnd={({ operation, canceled }) => {
           endGesture();

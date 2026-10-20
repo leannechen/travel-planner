@@ -238,6 +238,7 @@ export * from "./time-layout";
 export * from "./todo-removal";
 export * from "./trip-dates";
 export * from "./transport";
+export * from "./map-plan";
 
 export const createTodoInputSchema = z.object({ text: todoText, eventId: z.uuid().nullable().default(null) });
 export const updateTodoInputSchema = z

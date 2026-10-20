@@ -18,6 +18,7 @@ function stubClient(start: Partial<StartResult> = {}, over: Partial<AuthClient> 
     loginPopup: vi.fn(async () => lena),
     logout: vi.fn(async () => undefined),
     getToken: vi.fn(async () => "token-1"),
+    currentSub: vi.fn(async () => lena.sub),
     ...over,
   };
 }
@@ -161,6 +162,43 @@ describe("session expiry", () => {
     await waitFor(() => expect(state()).toContain("user"));
     act(() => authHooks()!.onSessionEnded());
     expect(state()).toContain("expired");
+  });
+
+  it("becomes expired when another tab logged in as someone else, instead of sending that token", async () => {
+    const currentSub = vi.fn(async () => lena.sub);
+    renderProvider(stubClient({ user: lena }, { currentSub }));
+    await waitFor(() => expect(state()).toContain("user"));
+    currentSub.mockResolvedValue("auth0|mei");
+    await act(async () => {
+      await expect(authHooks()!.headers()).rejects.toBeInstanceOf(SessionEndedError);
+    });
+    expect(state()).toContain("expired");
+  });
+
+  it("shows the login error strip when the popup login fails for another reason", async () => {
+    const loginPopup = vi.fn(async () => {
+      throw new Error("access_denied");
+    });
+    let auth!: ReturnType<typeof useAuth>;
+    function Grab() {
+      auth = useAuth();
+      return null;
+    }
+    render(
+      <PreferencesProvider>
+        <AuthProvider client={stubClient({ user: lena }, { loginPopup })}>
+          <Probe />
+          <Grab />
+        </AuthProvider>
+      </PreferencesProvider>,
+    );
+    await waitFor(() => expect(state()).toContain("user"));
+    let outcome: string | undefined;
+    await act(async () => {
+      outcome = await auth.loginInPlace();
+    });
+    expect(outcome).toBe("closed");
+    expect(state()).toContain("error");
   });
 
   it("a guest is never expired", async () => {

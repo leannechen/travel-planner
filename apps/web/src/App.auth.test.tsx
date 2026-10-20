@@ -9,7 +9,6 @@ import { authHooks, mergeGuest } from "./apiAuth";
 import type { AuthClient, StartResult } from "./authClient";
 import { createFakeAuth, type FakeAuth } from "./fakeAuth";
 import { forgetGuestId } from "./guest";
-import { takePendingEdits } from "./pendingEdits";
 import { makeDay, makeEvent, makeTrip, memoryStore, renderApp, setPhone } from "./test-helpers";
 
 vi.mock("./api", async (importOriginal) => ({
@@ -171,6 +170,7 @@ describe("session expired", () => {
     expect(screen.getByText("Fushimi Inari")).toBeTruthy();
     expect((screen.getByRole("button", { name: /Notes/ }) as HTMLButtonElement).disabled).toBe(true);
     expect((screen.getByRole("checkbox", { name: /Buy ICOCA card/ }) as HTMLInputElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "Trip settings" }) as HTMLButtonElement).disabled).toBe(true);
     // The account spot is back to Log in.
     expect(within(screen.getByRole("alert")).getByRole("button", { name: "Log in" })).toBeTruthy();
 
@@ -226,7 +226,26 @@ describe("session expired", () => {
     expect((title as HTMLInputElement).value).toBe("Fushimi Inari upper trail");
     expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();
     // Restored once.
-    expect(takePendingEdits()).toBeUndefined();
+    expect(sessionStorage.getItem("travel-planner.pending-edits")).toBeNull();
+  });
+
+  it("an open panel cannot add Todos or use its ⋯ menu while expired", async () => {
+    renderApp(<App />, await loggedInClient());
+    await userEvent.click(await screen.findByRole("button", { name: /Fushimi Inari/ }));
+    await screen.findByRole("textbox", { name: "Title" });
+    await expire();
+    expect((screen.getByRole("button", { name: "More actions" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByPlaceholderText("Add a Todo")).toBeNull();
+  });
+
+  it("says unsaved edits were dropped when the account is not the one they were typed for", async () => {
+    sessionStorage.setItem(
+      "travel-planner.pending-edits",
+      JSON.stringify({ tripId: "someone-elses-trip", eventId: "e1", fields: { title: "x", dayId: "d", kind: "attraction", start: "09:00", duration: "60", arrival: "10:00", transportLabel: "", nights: "1", checkIn: "", checkOut: "", description: "", phone: "", email: "", website: "", bookingUrl: "", placeId: "", destinationId: "" } }),
+    );
+    renderApp(<App />, await loggedInClient({ returned: true }));
+    expect(await screen.findByText("You logged in with a different account, so your unsaved edits were not saved.")).toBeTruthy();
+    expect(sessionStorage.getItem("travel-planner.pending-edits")).toBeNull();
   });
 
   it("the banner's Log in also tries the popup first, and keeps the edits if it has to redirect", async () => {

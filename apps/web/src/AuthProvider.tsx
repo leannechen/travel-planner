@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useRe
 import { configureApi, mergeGuest } from "./apiAuth";
 import { loggedOutUrl, PopupBlockedError, PopupClosedError, SessionEndedError, type AuthClient } from "./authClient";
 import { forgetGuestId, guestId, peekGuestId } from "./guest";
+import { keepNotice } from "./pendingEdits";
 import { usePreferences } from "./preferences";
 
 // "loading": Auth0 has not said yet whether there is a session. "guest": no session; the browser's
@@ -83,7 +84,11 @@ export function AuthProvider({ client, children }: { client: AuthClient; childre
         if (statusRef.current === "expired") throw new SessionEndedError();
         if (statusRef.current === "user") {
           try {
-            return { authorization: `Bearer ${await client.getToken()}` };
+            const token = await client.getToken();
+            // Another tab can log in as someone else; the Trips on screen are still the first one's.
+            const sub = await client.currentSub();
+            if (subRef.current && sub !== subRef.current) throw new SessionEndedError();
+            return { authorization: `Bearer ${token}` };
           } catch (err) {
             if (err instanceof SessionEndedError) setStatus("expired");
             throw err;
@@ -107,7 +112,8 @@ export function AuthProvider({ client, children }: { client: AuthClient; childre
     try {
       const user = await client.loginPopup({ language: languageRef.current });
       if (subRef.current && user.sub !== subRef.current) {
-        // Someone else's Trips would be on screen under this one's edits.
+        // Someone else's Trips would be on screen under this one's edits; the page says so after it reloads.
+        keepNotice();
         window.location.reload();
         return "other" as const;
       }
@@ -118,7 +124,9 @@ export function AuthProvider({ client, children }: { client: AuthClient; childre
     } catch (err) {
       if (err instanceof PopupBlockedError) return "blocked" as const;
       if (err instanceof PopupClosedError) return "closed" as const;
-      throw err;
+      // Auth0 refused in the popup (or sent nothing back): the same strip as after a failed redirect.
+      setLoginError(true);
+      return "closed" as const;
     }
   }, [client, setStatus]);
 

@@ -10,11 +10,13 @@ type Props = {
   onSwitch: (tripId: string) => void;
   onCreate: (title: string) => Promise<void>;
   onClose: () => void;
+  // The session ended: Trips can be looked at, not created.
+  readOnly?: boolean;
 };
 
 // The list of the user's Trips, opened from the Trip title: pick one to show, or start a new one.
 // A modal panel; Escape or the Close button closes it.
-export function TripListDialog({ trips, currentId, onSwitch, onCreate, onClose }: Props) {
+export function TripListDialog({ trips, currentId, onSwitch, onCreate, onClose, readOnly }: Props) {
   const t = useT();
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -36,7 +38,7 @@ export function TripListDialog({ trips, currentId, onSwitch, onCreate, onClose }
           </li>
         ))}
       </ul>
-      <TitleForm label={t("app.tripTitle")} submitLabel={t("tripList.new")} onSubmit={onCreate} />
+      {!readOnly && <TitleForm label={t("app.tripTitle")} submitLabel={t("tripList.new")} onSubmit={onCreate} />}
       <div className="dialog-actions">
         <button type="button" onClick={onClose}>
           {t("generic.close")}

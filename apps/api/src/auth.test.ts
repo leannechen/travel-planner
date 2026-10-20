@@ -4,7 +4,7 @@ import { tripSchema } from "@travel-planner/shared";
 import { z } from "zod";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { startTestApp, testToken } from "../test/test-app";
-import { authSettingsFromEnv, jwtVerifier, mergeGuest, verifierFromEnv } from "./auth";
+import { authSettingsFromEnv, jwtVerifier, mergeGuest, TokenRejected, verifierFromEnv } from "./auth";
 import { trips, users } from "./db/schema";
 
 const settings = { domain: "tenant.example.auth0.com", audience: "https://api.travel-planner.example" };
@@ -56,6 +56,16 @@ describe("access token check", () => {
     await expect(verifier.verify(await sign({ sub: null }))).rejects.toThrow();
   });
 
+  it("does not call a failure to reach the tenant's keys a bad token", async () => {
+    const down = jwtVerifier(settings, async () => {
+      throw new TypeError("fetch failed");
+    });
+    const rejection = await down.verify(await sign()).catch((e: unknown) => e);
+    expect(rejection).toBeInstanceOf(TypeError);
+    expect(rejection).not.toBeInstanceOf(TokenRejected);
+    await expect(verifier.verify("not a token")).rejects.toBeInstanceOf(TokenRejected);
+  });
+
   it("rejects an unsigned token and a made-up string", async () => {
     const unsigned = `${btoa('{"alg":"none"}')}.${btoa(JSON.stringify({ iss: ISSUER, aud: settings.audience, sub: "x" }))}.`;
     await expect(verifier.verify(unsigned)).rejects.toThrow();
@@ -66,8 +76,11 @@ describe("access token check", () => {
     expect(authSettingsFromEnv({})).toBeUndefined();
     expect(authSettingsFromEnv({ AUTH0_DOMAIN: settings.domain, AUTH0_AUDIENCE: settings.audience })).toEqual(settings);
     expect(() => authSettingsFromEnv({ AUTH0_DOMAIN: settings.domain })).toThrow();
+    // The fake login needs an explicit choice, and is never allowed in production.
+    expect(() => verifierFromEnv({})).toThrow();
     expect(() => verifierFromEnv({ NODE_ENV: "production" })).toThrow();
-    expect(() => verifierFromEnv({})).not.toThrow();
+    expect(() => verifierFromEnv({ NODE_ENV: "production", AUTH_FAKE: "1" })).toThrow();
+    expect(() => verifierFromEnv({ AUTH_FAKE: "1" })).not.toThrow();
   });
 });
 

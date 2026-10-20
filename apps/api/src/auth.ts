@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from "jose";
+import { createRemoteJWKSet, errors, jwtVerify, type JWTVerifyGetKey } from "jose";
 import type { NextFunction, Request, Response } from "express";
 import { z } from "zod";
 import type { Db } from "./db/client";
@@ -13,6 +13,21 @@ export type Identity = { sub: string };
 export interface TokenVerifier {
   verify(token: string): Promise<Identity>;
 }
+
+// The token itself is not acceptable (a 401). Anything else that goes wrong while checking it, such as
+// the tenant's keys not being reachable, is not the user's doing and stays an ordinary error (5xx).
+export class TokenRejected extends Error {}
+
+const TOKEN_ERROR_CODES = new Set([
+  "ERR_JWT_EXPIRED",
+  "ERR_JWT_CLAIM_VALIDATION_FAILED",
+  "ERR_JWT_INVALID",
+  "ERR_JWS_INVALID",
+  "ERR_JWS_SIGNATURE_VERIFICATION_FAILED",
+  "ERR_JWKS_NO_MATCHING_KEY",
+  "ERR_JWKS_MULTIPLE_MATCHING_KEYS",
+  "ERR_JOSE_ALG_NOT_ALLOWED",
+]);
 
 export const GUEST_HEADER = "x-guest-id";
 
@@ -47,19 +62,25 @@ export function jwtVerifier({ domain, audience }: AuthSettings, keys?: JWTVerify
     async verify(token) {
       // Auth0 signs access tokens with RS256; refusing other algorithms rules out "none" and
       // key-confusion tricks.
-      const { payload } = await jwtVerify(token, jwks, { issuer, audience, algorithms: ["RS256"] });
-      if (!payload.sub) throw new Error("The token has no subject");
+      let payload;
+      try {
+        ({ payload } = await jwtVerify(token, jwks, { issuer, audience, algorithms: ["RS256"] }));
+      } catch (err) {
+        if (err instanceof errors.JOSEError && TOKEN_ERROR_CODES.has(err.code)) throw new TokenRejected(err.message);
+        throw err;
+      }
+      if (!payload.sub) throw new TokenRejected("The token has no subject");
       return { sub: payload.sub };
     },
   };
 }
 
-// Development and tests: the token "fake:<sub>" belongs to <sub>. Never used when Auth0 is configured.
+// Development and tests: the token "fake:<sub>" belongs to <sub>. Only with AUTH_FAKE=1 and no Auth0 settings.
 export function fakeTokenVerifier(): TokenVerifier {
   return {
     async verify(token) {
       const match = /^fake:(.+)$/.exec(token);
-      if (!match) throw new Error("Not a fake token");
+      if (!match) throw new TokenRejected("Not a fake token");
       return { sub: match[1]! };
     },
   };
@@ -68,28 +89,28 @@ export function fakeTokenVerifier(): TokenVerifier {
 export function verifierFromEnv(env: NodeJS.ProcessEnv = process.env): TokenVerifier {
   const settings = authSettingsFromEnv(env);
   if (settings) return jwtVerifier(settings);
-  // Without a tenant anyone could sign in as anyone, so this is only for development.
-  if (env.NODE_ENV === "production") throw new Error("AUTH0_DOMAIN and AUTH0_AUDIENCE are required in production");
-  return fakeTokenVerifier();
+  // Without a tenant anyone could act as anyone, so it takes an explicit choice (development).
+  if (env.AUTH_FAKE === "1" && env.NODE_ENV !== "production") return fakeTokenVerifier();
+  throw new Error("Set AUTH0_DOMAIN and AUTH0_AUDIENCE (or AUTH_FAKE=1 for development without a tenant)");
 }
 
 // The user row of an account, created on its first request.
 export async function findOrCreateAccount(db: Db, sub: string): Promise<string> {
-  const [row] = await db
-    .insert(users)
-    .values({ auth0Sub: sub })
-    // A no-op update, so the row comes back whether it was new or not.
-    .onConflictDoUpdate({ target: users.auth0Sub, set: { auth0Sub: sub } })
-    .returning({ id: users.id });
+  const [found] = await db.select({ id: users.id }).from(users).where(eq(users.auth0Sub, sub));
+  if (found) return found.id;
+  // Two first requests can race; the loser finds the winner's row.
+  const [created] = await db.insert(users).values({ auth0Sub: sub }).onConflictDoNothing().returning({ id: users.id });
+  if (created) return created.id;
+  const [row] = await db.select({ id: users.id }).from(users).where(eq(users.auth0Sub, sub));
   return row!.id;
 }
 
 async function findOrCreateGuest(db: Db, token: string): Promise<string> {
-  const [row] = await db
-    .insert(users)
-    .values({ guestToken: token })
-    .onConflictDoUpdate({ target: users.guestToken, set: { guestToken: token } })
-    .returning({ id: users.id });
+  const [found] = await db.select({ id: users.id }).from(users).where(eq(users.guestToken, token));
+  if (found) return found.id;
+  const [created] = await db.insert(users).values({ guestToken: token }).onConflictDoNothing().returning({ id: users.id });
+  if (created) return created.id;
+  const [row] = await db.select({ id: users.id }).from(users).where(eq(users.guestToken, token));
   return row!.id;
 }
 
@@ -112,7 +133,8 @@ export function authenticate(db: Db, verifier: TokenVerifier) {
         let identity: Identity;
         try {
           identity = await verifier.verify(token);
-        } catch {
+        } catch (err) {
+          if (!(err instanceof TokenRejected)) throw err;
           res.status(401).json({ error: "Your session is not valid", code: "invalid_token" });
           return;
         }

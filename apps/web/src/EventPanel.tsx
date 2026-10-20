@@ -152,6 +152,8 @@ export function EventPanel({
   onLoginToSave,
 }: Props) {
   const t = useT();
+  // The session ended: what is typed stays, but nothing else about the Event can be changed.
+  const expired = Boolean(onLoginToSave);
   const { hours: placeHours, loading: hoursLoading } = useOpeningHours(event?.openingHoursOn && event.placeId ? [event.placeId] : []);
   const phone = useIsPhone();
   // The footer's ⋯ menu.
@@ -700,6 +702,7 @@ export function EventPanel({
             onAdd={(text) => onAddTodo(text, event.id)}
             onToggle={onToggleTodo}
             onDelete={onDeleteTodo}
+            readOnly={expired}
           />
         </section>
       )}
@@ -712,6 +715,7 @@ export function EventPanel({
             <button
               type="button"
               className="btn more-btn"
+              disabled={expired}
               aria-label={t("event.moreActions")}
               aria-haspopup="menu"
               aria-expanded={menuOpen}

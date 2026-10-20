@@ -90,6 +90,9 @@ export function createAuth0Auth({ domain, clientId, audience }: Auth0Settings): 
       // returnTo must be in the application's Allowed Logout URLs.
       await auth0.logout({ logoutParams: { returnTo } });
     },
+    async currentSub() {
+      return toUser(await (await client()).getUser())?.sub;
+    },
     async getToken() {
       const auth0 = await client();
       try {

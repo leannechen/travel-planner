@@ -297,7 +297,7 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onDaysChange, s
             {t("trip.days", { count: trip.days.length })}
           </span>
         )}
-        <button type="button" className="ib" title={t("trip.settings")} aria-label={t("trip.settings")} onClick={onOpenSettings}>
+        <button type="button" className="ib" disabled={readOnly} title={t("trip.settings")} aria-label={t("trip.settings")} onClick={onOpenSettings}>
           <Settings size={16} aria-hidden="true" />
         </button>
         <div className="view-switch" role="group" aria-label={t("map.switch")}>

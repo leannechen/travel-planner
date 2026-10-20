@@ -54,7 +54,7 @@ import { useAuth } from "./AuthProvider";
 import { LOGGED_OUT_PARAM } from "./authClient";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { Landing } from "./Landing";
-import { keepPendingEdits, takePendingEdits } from "./pendingEdits";
+import { clearNotice, clearPendingEdits, keepPendingEdits, peekNotice, peekPendingEdits } from "./pendingEdits";
 import { useIsPhone } from "./phone";
 import { EventPanel } from "./EventPanel";
 import { rememberOpeningHours } from "./openingHours";
@@ -138,7 +138,7 @@ function Workspace() {
   // Logged in with nothing to add from a guest session: no Trip is open, the Trip list is.
   const [chooser, setChooser] = useState(false);
   // Edits kept across a login redirect, restored once the Trips are in.
-  const [pending, setPending] = useState(takePendingEdits);
+  const [pending, setPending] = useState(peekPendingEdits);
   const [trips, setTrips] = useState<Trip[] | undefined>();
   // The page shows one Trip at a time: the one in the URL or this browser, else the first.
   const [wantedTripId, setWantedTripId] = useState(readWantedTripId);
@@ -204,12 +204,24 @@ function Workspace() {
     }
   }, [arrival]);
 
+  // The page was reloaded because another account logged in under unsaved edits.
+  useEffect(() => {
+    if (!peekNotice()) return;
+    clearNotice();
+    setToast({ id: Date.now(), message: t("auth.otherAccount") });
+  }, []);
+
   // Put back the Event panel and what was typed in it when the page left for the login page.
   useEffect(() => {
     if (!pending || !trips) return;
     setPending(undefined);
+    clearPendingEdits();
     const trip = trips.find((tr) => tr.id === pending.tripId);
-    if (!trip) return;
+    if (!trip) {
+      // Logged in as someone else: those edits belong to a Trip this account does not have.
+      setToast({ id: Date.now(), message: t("auth.otherAccount") });
+      return;
+    }
     setWantedTripId(trip.id);
     if (pending.newEvent) {
       setSelection({ tripId: trip.id, draft: { ...pending.newEvent, kind: pending.fields.kind }, restored: pending.fields });
@@ -340,6 +352,12 @@ function Workspace() {
     const outcome = await auth.loginInPlace();
     if (outcome === "same") return true;
     if (outcome === "blocked") {
+      // An open Notes panel saves itself; when it cannot (the session has ended), a redirect would
+      // lose its text, so stay and say so.
+      if (notesTripIdRef.current && closeNotes.current && !(await closeNotes.current())) {
+        setToast({ id: Date.now(), message: t("auth.notesUnsaved") });
+        return false;
+      }
       const fields = typed ?? (panelApi.current?.isDirty() ? panelApi.current.fields() : undefined);
       if (fields && selection) {
         keepPendingEdits({
@@ -899,7 +917,7 @@ function Workspace() {
         />
       )}
       {tripListOpen && trips && (
-        <TripListDialog trips={trips} currentId={currentTripId} onSwitch={switchTrip} onCreate={handleCreateTrip} onClose={() => setTripListOpen(false)} />
+        <TripListDialog readOnly={expired} trips={trips} currentId={currentTripId} onSwitch={switchTrip} onCreate={handleCreateTrip} onClose={() => setTripListOpen(false)} />
       )}
       {sheetOpen && <ShortcutSheet onClose={() => setSheetOpen(false)} />}
       {guard.asking && (

@@ -62,6 +62,10 @@ export function createFakeAuth({
       store.removeItem(SESSION_KEY);
       navigate(returnTo);
     },
+    async currentSub() {
+      const session = read();
+      return session && userOf(session).sub;
+    },
     async getToken() {
       const session = read();
       if (!session || session.expired) throw new SessionEndedError();

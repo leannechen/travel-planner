@@ -57,6 +57,8 @@ export interface AuthClient {
   loginPopup(options: LoginOptions): Promise<AuthUser>;
   // Ends the session and returns to `returnTo`. Leaves the page.
   logout(returnTo: string): Promise<void>;
+  // Who is logged in right now, read from where the session is kept. Another tab may have changed it.
+  currentSub(): Promise<string | undefined>;
   // An access token for the API. Throws SessionEndedError when there is no session any more.
   getToken(): Promise<string>;
 }

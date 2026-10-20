@@ -55,7 +55,7 @@ export function TodoList({ todos, label, addLabel, onAdd, onToggle, onDelete, re
           ))}
         </ul>
       )}
-      {addLabel && onAdd && (
+      {addLabel && onAdd && !readOnly && (
         <form className="todo-add" onSubmit={submit}>
           <input aria-label={addLabel} placeholder={addLabel} maxLength={500} value={text} onChange={(e) => setText(e.target.value)} />
           <button type="submit" disabled={adding || !text.trim()}>

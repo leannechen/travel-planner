@@ -25,6 +25,7 @@ import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, Map a
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { deleteDay, insertDay, reorderDays, restoreDay } from "./api";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { previewDrop, type DropPreview } from "./dropPreview";
 import { eventConflicts, hoursPlaceIds, useOpeningHours } from "./openingHours";
 import { dayLabel, formatTripRange, tripStartDate, weekdayKey } from "./tripDates";
 import { accessibility, DayTimeline, HourLabels, PX_PER_HOUR, sensors, type EventTimes } from "./DayTimeline";
@@ -100,6 +101,8 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onDaysChange, s
   const setToast = onToast;
   // The area or Day a dragged Event is over.
   const [dropTarget, setDropTarget] = useState<string | undefined>();
+  // Where the dragged Event would land (its time, Day or area), shown on its card.
+  const [dropPreview, setDropPreview] = useState<DropPreview | undefined>();
 
   // Runs one Day change at a time and replaces the Trip's Days with the server's answer.
   async function changeDays(action: () => Promise<Day[]>) {
@@ -349,11 +352,17 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onDaysChange, s
         plugins={(defaults) => [...defaults.filter((p) => p !== Accessibility), accessibility(events, t)]}
         onDragMove={({ operation }) => {
           const pointer = operation.position.current;
-          setDropTarget(operation.source ? dropTargetAt(root.current!, pointer.x, pointer.y, String(operation.source.id)) : undefined);
+          const target = operation.source ? dropTargetAt(root.current!, pointer.x, pointer.y, String(operation.source.id)) : undefined;
+          setDropTarget(target);
+          const dragged = events.find((e) => e.id === operation.source?.id);
+          const next = dragged?.dayId ? previewDrop(dragged, target, operation.transform.y, range, trip.days) : undefined;
+          // Only a changed preview renders again, as moves arrive for every pixel.
+          setDropPreview((current) => (JSON.stringify(current) === JSON.stringify(next) ? current : next));
         }}
         onDragEnd={({ operation, canceled }) => {
           endGesture();
           setDropTarget(undefined);
+          setDropPreview(undefined);
           const event = events.find((e) => e.id === operation.source?.id);
           if (canceled || !event) return;
           const pointer = operation.position.current;
@@ -467,6 +476,7 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onDaysChange, s
                     range={range}
                     selectedEventId={selectedEventId}
                     dropTarget={dropTarget === day.id}
+                    dropPreview={dropPreview}
                     // A Lodging is never drawn on the axis, so its draft has no placeholder there.
                     draft={draft?.dayId === day.id && draft.kind !== "lodging" ? draft : undefined}
                     onSelectEvent={onSelectEvent}

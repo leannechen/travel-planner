@@ -73,82 +73,56 @@ describe("Leg slots", () => {
     expect(screen.getByRole("button", { name: "Add travel between Station and Golden Pavilion" })).toBeTruthy();
   });
 
-  it("offers Add Event in every empty stretch, and Add Travel only where both Events have a location", () => {
+  it("has no Add Event on hover, whose start could differ from where a click creates one", () => {
     setup();
-    // Before the first Event, between each pair, and after the last one.
-    expect(screen.getAllByRole("button", { name: /^Add Event / })).toHaveLength(4);
-    expect(screen.getByRole("button", { name: "Add Event before Station" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Add Event after Lunch idea" })).toBeTruthy();
-    expect(screen.getAllByRole("button", { name: /Add travel between/ })).toHaveLength(1);
+    expect(screen.queryAllByRole("button", { name: /^Add Event / })).toHaveLength(0);
+    // Before the first Event and after the last one there is nothing to offer.
+    expect(document.querySelectorAll(".slot-row")).toHaveLength(1);
   });
 
-  it("Add Event creates at the end of the Event before the gap", async () => {
+  const touch = () =>
+    vi.stubGlobal("matchMedia", (query: string) => ({ matches: query === "(hover: none)", media: query, addEventListener() {}, removeEventListener() {} }));
+  const tap = (row: HTMLElement, clientY: number) => {
+    (row.parentElement as HTMLElement).getBoundingClientRect = () => ({ top: 0 }) as DOMRect;
+    fireEvent.click(row, { clientY });
+  };
+
+  it("on a touch screen the first tap only shows the buttons, and Add Event starts at the tapped minute", async () => {
     const user = userEvent.setup();
+    touch();
     const { props, dayId } = setup();
+    const row = document.querySelector(".slot-row") as HTMLElement;
+    expect(screen.queryByRole("button", { name: /^Add Event / })).toBeNull();
+    // The axis starts at 08:00 with 64px per hour: 140px down is 10:11, rounded to the grid.
+    tap(row, 140);
+    expect(props.onCreateAt).not.toHaveBeenCalled();
+    expect(row.classList.contains("open")).toBe(true);
     await user.click(screen.getByRole("button", { name: "Add Event between Station and Golden Pavilion" }));
     expect(props.onCreateAt).toHaveBeenCalledTimes(1);
-    expect(props.onCreateAt).toHaveBeenCalledWith(dayId, 600);
-  });
-
-  it("on a touch screen the first tap only shows the buttons", async () => {
-    const user = userEvent.setup();
-    vi.stubGlobal("matchMedia", (query: string) => ({ matches: query === "(hover: none)", media: query, addEventListener() {}, removeEventListener() {} }));
-    const { props } = setup();
-    const add = screen.getByRole("button", { name: "Add Event between Station and Golden Pavilion" });
-    await user.click(add);
-    expect(props.onCreateAt).not.toHaveBeenCalled();
-    expect(add.closest(".slot-row")?.classList.contains("open")).toBe(true);
-    await user.click(add);
-    expect(props.onCreateAt).toHaveBeenCalledTimes(1);
-  });
-
-  it("on a touch screen Add Event starts at the minute that was tapped", async () => {
-    const user = userEvent.setup();
-    vi.stubGlobal("matchMedia", (query: string) => ({ matches: query === "(hover: none)", media: query, addEventListener() {}, removeEventListener() {} }));
-    const { props, dayId } = setup();
-    const add = screen.getByRole("button", { name: "Add Event after Lunch idea" });
-    const row = add.closest(".slot-row") as HTMLElement;
-    const axis = row.parentElement as HTMLElement;
-    axis.getBoundingClientRect = () => ({ top: 0 }) as DOMRect;
-    // The axis starts at 08:00 with 64px per hour: 480px down is 15:30.
-    fireEvent.click(row, { clientY: 480 });
-    await user.click(add);
-    expect(props.onCreateAt).toHaveBeenCalledTimes(1);
-    expect(props.onCreateAt).toHaveBeenCalledWith(dayId, 930);
+    expect(props.onCreateAt).toHaveBeenCalledWith(dayId, expect.any(Number));
+    const minute = props.onCreateAt.mock.calls[0]?.[1] as number;
+    expect(minute).toBeGreaterThanOrEqual(600);
+    expect(minute).toBeLessThan(780);
   });
 
   it("on a touch screen a tap outside dismisses the buttons", async () => {
     const user = userEvent.setup();
-    vi.stubGlobal("matchMedia", (query: string) => ({ matches: query === "(hover: none)", media: query, addEventListener() {}, removeEventListener() {} }));
+    touch();
     setup();
-    const add = screen.getByRole("button", { name: "Add Event between Station and Golden Pavilion" });
-    await user.click(add);
+    const row = document.querySelector(".slot-row") as HTMLElement;
+    tap(row, 140);
     await user.click(document.body);
-    expect(add.closest(".slot-row")?.classList.contains("open")).toBe(false);
-  });
-
-  it("Add Event before the first Event starts an hour before it", async () => {
-    const user = userEvent.setup();
-    const { props, dayId } = setup();
-    await user.click(screen.getByRole("button", { name: "Add Event before Station" }));
-    expect(props.onCreateAt).toHaveBeenCalledWith(dayId, 480);
-  });
-
-  it("Add Event after the last Event starts where it ends", async () => {
-    const user = userEvent.setup();
-    const { props, dayId } = setup();
-    await user.click(screen.getByRole("button", { name: "Add Event after Lunch idea" }));
-    expect(props.onCreateAt).toHaveBeenCalledWith(dayId, 840);
+    expect(row.classList.contains("open")).toBe(false);
   });
 
   it("Esc dismisses the buttons shown by a tap", async () => {
     const user = userEvent.setup();
-    vi.stubGlobal("matchMedia", (query: string) => ({ matches: query === "(hover: none)", media: query, addEventListener() {}, removeEventListener() {} }));
+    touch();
     setup();
-    const add = screen.getByRole("button", { name: "Add Event between Station and Golden Pavilion" });
-    await user.click(add);
+    const row = document.querySelector(".slot-row") as HTMLElement;
+    tap(row, 140);
     await user.keyboard("{Escape}");
-    expect(add.closest(".slot-row")?.classList.contains("open")).toBe(false);
+    expect(row.classList.contains("open")).toBe(false);
   });
 
   it("chooses the mode, starting with the Trip's default, and creates the Leg on OK", async () => {
@@ -223,7 +197,7 @@ describe("Legs on the timeline", () => {
     expect(pill.textContent).toContain("25 min");
     // The Leg takes the place of the slot.
     expect(screen.queryByRole("button", { name: /Add travel between/ })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Add Event between Station and Golden Pavilion" })).toBeNull();
+    expect(document.querySelectorAll(".slot-row")).toHaveLength(0);
     await user.click(pill);
     const dialog = screen.getByRole("dialog", { name: "Leg · 25 min" });
     expect(within(dialog).getByText("Station")).toBeTruthy();

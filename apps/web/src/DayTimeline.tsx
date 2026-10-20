@@ -3,7 +3,6 @@ import { Modifier, type DragOperation } from "@dnd-kit/abstract";
 import { Accessibility, PointerActivationConstraints, PointerSensor } from "@dnd-kit/dom";
 import {
   adjacentPairs,
-  DEFAULT_DURATION_MINUTES,
   formatMinute,
   legEndpoints,
   legGap,
@@ -18,6 +17,7 @@ import {
   type Event,
   type Leg,
 } from "@travel-planner/shared";
+import type { DropPreview } from "./dropPreview";
 import { KindIcon } from "./kinds";
 import { formatDuration, MODE_ICONS, modeKey } from "./legFormat";
 import { useT } from "./preferences";
@@ -66,6 +66,8 @@ type Props = {
   draft?: { startMinute: number; durationMinutes: number };
   // A dragged Event is over this Day.
   dropTarget?: boolean;
+  // Where the dragged Event would land; its card shows that instead of its own time.
+  dropPreview?: DropPreview;
   onSelectEvent: (eventId: string) => void;
   onCreateAt: (startMinute: number) => void;
   onChangeTimes: (eventId: string, times: EventTimes) => void;
@@ -121,6 +123,7 @@ export function DayTimeline({
   selectedEventId,
   draft,
   dropTarget,
+  dropPreview,
   onSelectEvent,
   onCreateAt,
   onChangeTimes,
@@ -215,6 +218,7 @@ export function DayTimeline({
             key={event.id}
             event={event}
             times={times}
+            preview={dropPreview?.eventId === event.id ? dropPreview : undefined}
             range={range}
             column={placement.column}
             columnCount={placement.columnCount}
@@ -236,12 +240,10 @@ export function DayTimeline({
         ) : (
           <SlotRow
             key={key}
-            id={key}
             from={from}
             to={to}
             startMinute={from.startMinute + from.durationMinutes}
             endMinute={to.startMinute}
-            createAt={from.startMinute + from.durationMinutes}
             range={range}
             open={openSlot === key}
             onOpenChange={(open) => setOpenSlot(open ? key : undefined)}
@@ -250,17 +252,6 @@ export function DayTimeline({
           />
         );
       })}
-      {edgeSlots(events, range).map((slot) => (
-        <SlotRow
-          key={slot.id}
-          {...slot}
-          range={range}
-          open={openSlot === slot.id}
-          onOpenChange={(open) => setOpenSlot(open ? slot.id : undefined)}
-          onCreateAt={onCreateAt}
-          onOpenLeg={onOpenLeg}
-        />
-      ))}
       {draft && (
         <li
           className="new-event"
@@ -279,6 +270,7 @@ export function DayTimeline({
 type CardProps = {
   event: Event;
   times: EventTimes;
+  preview?: DropPreview;
   range: Range;
   column: number;
   columnCount: number;
@@ -292,6 +284,7 @@ type CardProps = {
 function EventCard({
   event,
   times,
+  preview,
   range,
   column,
   columnCount,
@@ -311,6 +304,12 @@ function EventCard({
 
   const realEnd = times.startMinute + times.durationMinutes;
   const drawnHeight = toPx(Math.min(realEnd, MINUTES_PER_DAY) - times.startMinute);
+  // While dragged, the card names where it would land: the new time (and Day), or the holding area.
+  const shownTime = preview?.area
+    ? t(preview.area === "backlog" ? "area.backlog" : "area.archive")
+    : preview?.startMinute !== undefined
+      ? `${preview.dayPosition ? `${t("day.title", { n: preview.dayPosition })} · ` : ""}${formatMinute(preview.startMinute)} – ${formatEnd(preview.startMinute + times.durationMinutes)}`
+      : `${formatMinute(times.startMinute)} – ${formatEnd(realEnd)}`;
   const classes = ["event-card", `kind-${event.kind}`, selected && "selected", openingConflict && "warn", isDragging && "dragging"].filter(Boolean).join(" ");
 
   return (
@@ -330,9 +329,7 @@ function EventCard({
           <KindIcon kind={event.kind} transportLabel={event.transportLabel} />
           <span className="event-title">{event.title}</span>
         </strong>
-        <span>
-          {formatMinute(times.startMinute)} – {formatEnd(realEnd)}
-        </span>
+        <span>{shownTime}</span>
         {openingConflict && (
           <span className="event-warning">
             <TriangleAlert size={12} aria-hidden="true" />
@@ -383,40 +380,12 @@ function LegRow({ from, to, leg, range, onOpen }: LegRowProps) {
   );
 }
 
-// How much empty time before the first Event or after the last one is offered as a slot.
-const EDGE_SLOT_MINUTES = 120;
-
 type Slot = {
-  id: string;
-  // The Events on each side; the slot before the first Event or after the last has one only.
-  from?: Event;
-  to?: Event;
+  from: Event;
+  to: Event;
   startMinute: number;
   endMinute: number;
-  // Where "Add Event" starts the new Event; the end of the Event before, or for the stretch before
-  // the first Event, an hour before it so the new one fits.
-  createAt: number;
 };
-
-// The empty time before the first Event and after the last one (the Events are not sorted).
-function edgeSlots(events: Event[], range: Range): Slot[] {
-  if (events.length === 0) return [];
-  const first = events.reduce((a, b) => (b.startMinute < a.startMinute ? b : a));
-  const last = events.reduce((a, b) => (b.startMinute + b.durationMinutes > a.startMinute + a.durationMinutes ? b : a));
-  const lastEnd = last.startMinute + last.durationMinutes;
-  const slots: Slot[] = [];
-  const before = Math.max(range.startMinute, first.startMinute - EDGE_SLOT_MINUTES);
-  if (before < first.startMinute) slots.push({
-      id: `<${first.id}`,
-      to: first,
-      startMinute: before,
-      endMinute: first.startMinute,
-      createAt: Math.max(before, first.startMinute - DEFAULT_DURATION_MINUTES),
-    });
-  const after = Math.min(range.endMinute, lastEnd + EDGE_SLOT_MINUTES);
-  if (lastEnd < after) slots.push({ id: `${last.id}>`, from: last, startMinute: lastEnd, endMinute: after, createAt: lastEnd });
-  return slots;
-}
 
 type SlotRowProps = Slot & {
   range: Range;
@@ -426,21 +395,19 @@ type SlotRowProps = Slot & {
   onOpenLeg: (target: LegTarget, anchor: HTMLElement) => void;
 };
 
-// An empty stretch of the Day. Its buttons show on hover or focus, or after a tap on a touch
-// screen: "Add Event" always, and "Add Travel" between two Events that both have a Google place.
-function SlotRow({ from, to, startMinute, endMinute, createAt, range, open, onOpenChange, onCreateAt, onOpenLeg }: SlotRowProps) {
+// The empty stretch between two Events that both have a Google place: "Add Travel" shows on hover
+// or focus, or after a tap on a touch screen. There is no "Add Event" on hover, as its start could
+// differ from where a click on the stretch creates one; a tap on a touch screen adds it, starting
+// at the tapped minute.
+function SlotRow({ from, to, startMinute, endMinute, range, open, onOpenChange, onCreateAt, onOpenLeg }: SlotRowProps) {
   const t = useT();
   // The minute that was tapped to show the buttons, so Add Event starts the new Event there.
   const [tapped, setTapped] = useState<number | undefined>();
   const top = toPx(startMinute - range.startMinute);
   if (top > toPx(range.endMinute - range.startMinute)) return null;
-  const endpoints = from && to ? legEndpoints(from, to) : undefined;
-  const canTravel = !!(from && to && endpoints?.fromPlaceId && endpoints.toPlaceId);
-  const where = from && to
-    ? t("slot.between", { from: from.title, to: to.title })
-    : from
-      ? t("slot.after", { title: from.title })
-      : t("slot.before", { title: to!.title });
+  const endpoints = legEndpoints(from, to);
+  if (!endpoints.fromPlaceId || !endpoints.toPlaceId) return null;
+  const where = t("slot.between", { from: from.title, to: to.title });
 
   // On a touch screen the first tap only shows the buttons, so nothing is triggered unseen.
   const touched = (e: MouseEvent) =>
@@ -467,30 +434,29 @@ function SlotRow({ from, to, startMinute, endMinute, createAt, range, open, onOp
       }}
     >
       <div className="slot-actions">
+        {open && tapped !== undefined && (
+          <button
+            type="button"
+            aria-label={t("slot.addEventLabel", { where })}
+            onClick={() => {
+              onOpenChange(false);
+              onCreateAt(tapped);
+            }}
+          >
+            <Plus size={14} aria-hidden="true" /> {t("slot.addEvent")}
+          </button>
+        )}
         <button
           type="button"
-          aria-label={t("slot.addEventLabel", { where })}
+          aria-label={t("leg.addBetween", { from: from.title, to: to.title })}
           onClick={(e) => {
             if (touchReveal(e)) return;
             onOpenChange(false);
-            onCreateAt(open && tapped !== undefined ? tapped : createAt);
+            onOpenLeg({ from, to }, e.currentTarget);
           }}
         >
-          <Plus size={14} aria-hidden="true" /> {t("slot.addEvent")}
+          <MODE_ICONS.transit size={14} aria-hidden="true" /> {t("leg.add")}
         </button>
-        {canTravel && (
-          <button
-            type="button"
-            aria-label={t("leg.addBetween", { from: from!.title, to: to!.title })}
-            onClick={(e) => {
-              if (touchReveal(e)) return;
-              onOpenChange(false);
-              onOpenLeg({ from: from!, to: to! }, e.currentTarget);
-            }}
-          >
-            <MODE_ICONS.transit size={14} aria-hidden="true" /> {t("leg.add")}
-          </button>
-        )}
       </div>
     </li>
   );

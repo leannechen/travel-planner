@@ -15,6 +15,15 @@ vi.mock("./MarkdownEditor", () => ({
 
 const days = [makeDay(1), makeDay(2)];
 
+async function openMenu(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole("button", { name: "More actions" }));
+}
+
+async function chooseKind(user: ReturnType<typeof userEvent.setup>, name: string) {
+  await user.click(screen.getByRole("button", { name: /^Kind:/ }));
+  await user.click(screen.getByRole("option", { name: new RegExp(name) }));
+}
+
 function setup(overrides: { event?: Event; onUpdate?: (id: string, input: Record<string, unknown>) => Promise<Event> } = {}) {
   const event = overrides.event ?? makeEvent({ dayId: days[0]!.id, holding: null });
   const props = {
@@ -42,17 +51,30 @@ function setup(overrides: { event?: Event; onUpdate?: (id: string, input: Record
 beforeEach(() => setPhone(true));
 afterEach(() => {
   cleanup();
+  localStorage.clear();
   vi.unstubAllGlobals();
 });
 
 describe("EventPanel on a phone", () => {
-  it("has a handle instead of a close button, a Day and Kind dropdown and a footer", () => {
+  it("has a handle instead of a close icon, a Day and Kind dropdown and a footer", () => {
     setup();
     expect(screen.getByRole("combobox", { name: "Day" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Close" })).toBeNull();
-    expect(screen.getByRole("combobox", { name: "Kind" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^Kind:/ })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /Archive/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "More actions" })).toBeTruthy();
+    // Cancel reads Close until something is typed, and sits left of Save.
+    expect(screen.getByRole("button", { name: "Close" })).toBeTruthy();
+    // Save is not hidden by a style rule (the stylesheet is not loaded in tests, so check the class).
+    expect(screen.getByRole("button", { name: "Save" }).className).not.toContain("grow");
+  });
+
+  it("Cancel discards what was typed and closes without asking", async () => {
+    const user = userEvent.setup();
+    const props = setup();
+    await user.type(screen.getByRole("textbox", { name: "Title" }), "!");
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(props.onClose).toHaveBeenCalledWith(true);
+    expect(props.onUpdate).not.toHaveBeenCalled();
   });
 
   it("Save saves what was typed, then closes", async () => {
@@ -66,19 +88,20 @@ describe("EventPanel on a phone", () => {
     expect(props.onUpdate).toHaveBeenCalledWith(props.event.id, expect.objectContaining({ title: "Kinkaku-ji" }));
   });
 
-  it("stays open and shows the error in the footer when the save fails", async () => {
+  it("stays open and shows the error when the save fails", async () => {
     const user = userEvent.setup();
     const props = setup({ onUpdate: async () => Promise.reject(new Error("Server is down")) });
     await user.type(screen.getByRole("textbox", { name: "Title" }), "x");
     await user.click(screen.getByRole("button", { name: "Save" }));
-    await waitFor(() => expect(document.querySelector(".sheet-footer .sheet-error")?.textContent).toBe("Server is down"));
+    await waitFor(() => expect(document.querySelector(".panel-error")?.textContent).toBe("Server is down"));
     expect(props.onClose).not.toHaveBeenCalled();
   });
 
   it("Archive moves the Event to the Archive and closes", async () => {
     const user = userEvent.setup();
     const props = setup();
-    await user.click(screen.getByRole("button", { name: /^Archive$/ }));
+    await openMenu(user);
+    await user.click(screen.getByRole("menuitem", { name: /^Archive/ }));
     await waitFor(() => expect(props.onClose).toHaveBeenCalled());
     expect(props.onUpdate).toHaveBeenCalledWith(props.event.id, expect.objectContaining({ area: "archive" }));
   });
@@ -88,7 +111,8 @@ describe("EventPanel on a phone", () => {
     // The page answers with the Event unchanged when the user cancels its confirmation.
     const event = makeEvent({ dayId: days[0]!.id, holding: null });
     const props = setup({ event, onUpdate: async () => event });
-    await user.click(screen.getByRole("button", { name: /^Archive$/ }));
+    await openMenu(user);
+    await user.click(screen.getByRole("menuitem", { name: /^Archive/ }));
     await waitFor(() => expect(props.onUpdate).toHaveBeenCalled());
     expect(props.onClose).not.toHaveBeenCalled();
   });
@@ -116,21 +140,36 @@ describe("EventPanel on a phone", () => {
     const user = userEvent.setup();
     const props = setup();
     await user.type(screen.getByRole("textbox", { name: "Title" }), "!");
-    await user.click(screen.getByRole("button", { name: /^Archive$/ }));
+    await openMenu(user);
+    await user.click(screen.getByRole("menuitem", { name: /^Archive/ }));
     await waitFor(() => expect(props.onUpdate).toHaveBeenCalledWith(props.event.id, expect.objectContaining({ area: "archive", title: `${props.event.title}!` })));
   });
 
-  it("switches the split button to Delete from its menu, then deletes", async () => {
+  it("Move to Backlog saves what was typed, moves the Event and closes", async () => {
     const user = userEvent.setup();
     const props = setup();
-    await user.click(screen.getByRole("button", { name: "More actions" }));
-    await user.click(screen.getByRole("button", { name: /Delete.*Remove this Event for good/ }));
-    expect(screen.queryByText("Remove this Event for good")).toBeNull();
-    const main = screen.getByRole("button", { name: /^Delete$/ });
-    expect(screen.queryByRole("button", { name: /^Archive$/ })).toBeNull();
-    // Both choices keep the same width class, so Save does not change size.
-    expect(main.className).toContain("split-main");
-    await user.click(main);
+    await user.type(screen.getByRole("textbox", { name: "Title" }), "!");
+    await openMenu(user);
+    await user.click(screen.getByRole("menuitem", { name: /^Move to Backlog/ }));
+    await waitFor(() => expect(props.onClose).toHaveBeenCalled());
+    expect(props.onUpdate).toHaveBeenCalledWith(props.event.id, expect.objectContaining({ area: "backlog", title: `${props.event.title}!` }));
+  });
+
+  it("stays open when Move to Backlog is declined", async () => {
+    const user = userEvent.setup();
+    const event = makeEvent({ dayId: days[0]!.id, holding: null });
+    const props = setup({ event, onUpdate: async () => event });
+    await openMenu(user);
+    await user.click(screen.getByRole("menuitem", { name: /^Move to Backlog/ }));
+    await waitFor(() => expect(props.onUpdate).toHaveBeenCalled());
+    expect(props.onClose).not.toHaveBeenCalled();
+  });
+
+  it("Delete from the menu asks the page to delete", async () => {
+    const user = userEvent.setup();
+    const props = setup();
+    await openMenu(user);
+    await user.click(screen.getByRole("menuitem", { name: /^Delete/ }));
     expect(props.onDelete).toHaveBeenCalledWith(props.event);
   });
 
@@ -138,9 +177,9 @@ describe("EventPanel on a phone", () => {
     const user = userEvent.setup();
     const props = setup();
     await user.click(screen.getByRole("button", { name: "More actions" }));
-    expect(screen.getByText("Remove this Event for good")).toBeTruthy();
+    expect(screen.getByText("Can be undone for a few seconds")).toBeTruthy();
     await user.click(document.querySelector(".sheet-scrim")!);
-    expect(screen.queryByText("Remove this Event for good")).toBeNull();
+    expect(screen.queryByText("Can be undone for a few seconds")).toBeNull();
     expect(props.onClose).not.toHaveBeenCalled();
     await user.click(document.querySelector(".sheet-scrim")!);
     await waitFor(() => expect(props.onClose).toHaveBeenCalled());
@@ -151,16 +190,29 @@ describe("EventPanel on a phone", () => {
     setup();
     await user.click(screen.getByRole("button", { name: "More actions" }));
     fireEvent.pointerDown(document.querySelector(".panel-body")!);
-    await waitFor(() => expect(screen.queryByText("Remove this Event for good")).toBeNull());
+    await waitFor(() => expect(screen.queryByText("Can be undone for a few seconds")).toBeNull());
   });
 
-  it("offers only Delete for an Event already in the Archive", () => {
-    setup({ event: makeEvent({ holding: "archive" }) });
-    expect(screen.getByRole("button", { name: /^Delete$/ })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "More actions" })).toBeNull();
+  it("offers Restore to Backlog and Delete for an Event in the Archive", async () => {
+    const user = userEvent.setup();
+    const props = setup({ event: makeEvent({ holding: "archive", dayId: null }) });
+    await openMenu(user);
+    expect(screen.queryByRole("menuitem", { name: /^Archive/ })).toBeNull();
+    expect(screen.queryByRole("menuitem", { name: /^Move to Backlog/ })).toBeNull();
+    expect(screen.getByRole("menuitem", { name: /^Delete/ })).toBeTruthy();
+    await user.click(screen.getByRole("menuitem", { name: "Restore to Backlog" }));
+    await waitFor(() => expect(props.onUpdate).toHaveBeenCalledWith(props.event.id, expect.objectContaining({ area: "backlog" })));
   });
 
-  it("shows only Save for a new Event", () => {
+  it("offers Archive and Delete for a Backlog Event", async () => {
+    const user = userEvent.setup();
+    setup({ event: makeEvent({ holding: "backlog", dayId: null }) });
+    await openMenu(user);
+    expect(screen.getByRole("menuitem", { name: /^Archive/ })).toBeTruthy();
+    expect(screen.queryByRole("menuitem", { name: /^Move to Backlog/ })).toBeNull();
+  });
+
+  it("shows Add Event and no ⋯ menu for a new Event", () => {
     renderApp(
       <EventPanel
         days={days}
@@ -179,8 +231,8 @@ describe("EventPanel on a phone", () => {
         onRemoveOpeningHours={vi.fn()}
       />,
     );
-    expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /Archive/ })).toBeNull();
+    expect(screen.getByRole("button", { name: "Add Event" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "More actions" })).toBeNull();
   });
 
   it("saves a place chosen in the Location field on Save, and Transport has From and To", async () => {
@@ -191,7 +243,7 @@ describe("EventPanel on a phone", () => {
     expect(props.onUpdate).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(props.onUpdate).toHaveBeenCalledWith(props.event.id, expect.objectContaining({ placeId: "p1" })));
-    await user.selectOptions(screen.getByRole("combobox", { name: "Kind" }), "transport");
+    await chooseKind(user, "Transport");
     expect(screen.getByText(/From/)).toBeTruthy();
     expect(screen.getByRole("combobox", { name: /To/ })).toBeTruthy();
   });
@@ -199,7 +251,7 @@ describe("EventPanel on a phone", () => {
   it("changes the Kind from the dropdown on Save", async () => {
     const user = userEvent.setup();
     const props = setup();
-    await user.selectOptions(screen.getByRole("combobox", { name: "Kind" }), "meal");
+    await chooseKind(user, "Meal");
     expect(props.onUpdate).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(props.onUpdate).toHaveBeenCalledWith(props.event.id, expect.objectContaining({ kind: "meal" })));
@@ -213,12 +265,53 @@ describe("EventPanel on a desktop", () => {
     expect(screen.queryByRole("combobox", { name: "Day" })).toBeNull();
   });
 
-  it("keeps the close button and has no footer or scrim", () => {
+  it("has a close button, a footer with ⋯, Close and Save, and no scrim", async () => {
     setPhone(false);
+    const user = userEvent.setup();
     setup();
-    expect(screen.getByRole("button", { name: "Close" })).toBeTruthy();
-    expect(document.querySelector(".sheet-footer")).toBeNull();
+    expect(screen.getAllByRole("button", { name: "Close" })).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();
     expect(document.querySelector(".sheet-scrim")).toBeNull();
-    expect(screen.getByRole("button", { name: "Delete Event" })).toBeTruthy();
+    await openMenu(user);
+    expect(screen.queryByText("Can be undone for a few seconds")).toBeNull();
+    expect(screen.getByRole("menuitem", { name: "Delete" })).toBeTruthy();
+  });
+
+  it("the footer's Close reads Cancel once something was typed", async () => {
+    setPhone(false);
+    const user = userEvent.setup();
+    setup();
+    await user.type(screen.getByRole("textbox", { name: "Title" }), "!");
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeTruthy();
+  });
+
+  it("Expand makes it a dialog, Collapse brings back the side panel, and the choice is kept", async () => {
+    setPhone(false);
+    const user = userEvent.setup();
+    setup();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Expand" }));
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    expect(localStorage.getItem("travel-planner.event-panel-expanded")).toBe("1");
+    await user.click(screen.getByRole("button", { name: "Collapse" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("a click on the backdrop closes the panel, but only closes the ⋯ menu when it is open", async () => {
+    setPhone(false);
+    const user = userEvent.setup();
+    const props = setup();
+    await user.click(screen.getByRole("button", { name: "Expand" }));
+    await openMenu(user);
+    await user.click(document.querySelector(".panel-backdrop")!);
+    expect(screen.queryByRole("menu")).toBeNull();
+    expect(props.onClose).not.toHaveBeenCalled();
+    await user.click(document.querySelector(".panel-backdrop")!);
+    expect(props.onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("has no Expand button on a phone", () => {
+    setup();
+    expect(screen.queryByRole("button", { name: "Expand" })).toBeNull();
   });
 });

@@ -56,16 +56,25 @@ afterEach(() => {
 });
 
 describe("EventPanel on a phone", () => {
-  it("has a handle instead of a close button, a Day and Kind dropdown and a footer", () => {
+  it("has a handle instead of a close icon, a Day and Kind dropdown and a footer", () => {
     setup();
     expect(screen.getByRole("combobox", { name: "Day" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Close" })).toBeNull();
     expect(screen.getByRole("button", { name: /^Kind:/ })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "More actions" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
+    // Cancel reads Close until something is typed, and sits left of Save.
+    expect(screen.getByRole("button", { name: "Close" })).toBeTruthy();
     // Save is not hidden by a style rule (the stylesheet is not loaded in tests, so check the class).
     expect(screen.getByRole("button", { name: "Save" }).className).not.toContain("grow");
+  });
+
+  it("Cancel discards what was typed and closes without asking", async () => {
+    const user = userEvent.setup();
+    const props = setup();
+    await user.type(screen.getByRole("textbox", { name: "Title" }), "!");
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(props.onClose).toHaveBeenCalledWith(true);
+    expect(props.onUpdate).not.toHaveBeenCalled();
   });
 
   it("Save saves what was typed, then closes", async () => {

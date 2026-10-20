@@ -706,11 +706,9 @@ export function EventPanel({
           </div>
         )}
         <span className="spacer" />
-        {!phone && (
-          <button type="button" className="btn ghost" onClick={() => onClose(true)}>
-            {dirty || !event ? t("generic.cancel") : t("generic.close")}
-          </button>
-        )}
+        <button type="button" className={`btn${phone ? " lg" : " ghost"}`} onClick={() => onClose(true)}>
+          {dirty || !event ? t("generic.cancel") : t("generic.close")}
+        </button>
         <button type="button" className={`btn pri${phone ? " lg" : ""}`} onClick={() => void finish()}>
           {event ? t("event.save") : t("event.addEvent")}
         </button>

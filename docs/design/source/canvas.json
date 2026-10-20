@@ -328,6 +328,14 @@
       "w": 1960,
       "x": 0,
       "y": 6360
+    },
+    "EventPanelActions.dc.html": {
+      "h": 1120,
+      "page": "page-72j84k",
+      "title": "#46 · Event panel — kind dropdown and footer actions · High fidelity",
+      "w": 2280,
+      "x": 0,
+      "y": 7800
     }
   },
   "createdOnFiles": {
@@ -489,7 +497,8 @@
     "NotesStates.dc.html",
     "EmptySlot.dc.html",
     "OpeningHours.dc.html",
-    "TripDates.dc.html"
+    "TripDates.dc.html",
+    "EventPanelActions.dc.html"
   ],
   "pages": [
     {

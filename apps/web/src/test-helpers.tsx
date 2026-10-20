@@ -2,6 +2,9 @@ import type { Day, Event, Trip } from "@travel-planner/shared";
 import { render } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { vi } from "vitest";
+import { AuthProvider } from "./AuthProvider";
+import type { AuthClient } from "./authClient";
+import { createFakeAuth } from "./fakeAuth";
 import { PreferencesProvider } from "./preferences";
 
 // jsdom has no media queries: pretend the window is a phone, or not.
@@ -17,7 +20,23 @@ export function setPhone(phone: boolean) {
   );
 }
 
-export const renderApp = (ui: ReactElement) => render(<PreferencesProvider>{ui}</PreferencesProvider>);
+// A storage that lives only for the test, so a fake login does not leak into the next one.
+export function memoryStore() {
+  const items = new Map<string, string>();
+  return {
+    getItem: (key: string) => items.get(key) ?? null,
+    setItem: (key: string, value: string) => void items.set(key, value),
+    removeItem: (key: string) => void items.delete(key),
+  };
+}
+
+// The app with the preferences and a fake sign-in (a guest, unless the test passes a client that is logged in).
+export const renderApp = (ui: ReactElement, auth: AuthClient = createFakeAuth({ store: memoryStore(), navigate: () => undefined })) =>
+  render(
+    <PreferencesProvider>
+      <AuthProvider client={auth}>{ui}</AuthProvider>
+    </PreferencesProvider>,
+  );
 
 let counter = 0;
 const id = () => `00000000-0000-4000-8000-${String(++counter).padStart(12, "0")}`;

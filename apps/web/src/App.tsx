@@ -22,7 +22,8 @@ import {
   type Todo,
   type TodoDeletionSummary,
 } from "@travel-planner/shared";
-import type { CreateEventInput, CreateLegInput, Day, Event, Leg, TravelMode, Trip, UpdateEventInput } from "@travel-planner/shared";
+import type { CreateEventInput, CreateLegInput, Day, Event, EventFields, Leg, TravelMode, Trip, UpdateEventInput } from "@travel-planner/shared";
+import { Map as MapIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   addEvent,
@@ -48,7 +49,13 @@ import {
   updateNote,
   updateTodo,
 } from "./api";
+import { AccountMenu, ExpiredBanner, GuestBanner, LoginErrorStrip } from "./AccountMenu";
+import { useAuth } from "./AuthProvider";
+import { LOGGED_OUT_PARAM } from "./authClient";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { Landing } from "./Landing";
+import { keepPendingEdits, takePendingEdits } from "./pendingEdits";
+import { useIsPhone } from "./phone";
 import { EventPanel } from "./EventPanel";
 import { rememberOpeningHours } from "./openingHours";
 import { TripSettingsDialog } from "./TripSettingsDialog";
@@ -72,7 +79,8 @@ type Draft = { dayId: string; startMinute: number; durationMinutes: number; kind
 const emptyAreas: Areas = { days: [], backlog: [], archive: [] };
 
 // `quiet`: chosen with the keyboard, so the panel must not take the focus.
-type Selection = { tripId: string; eventId: string; quiet?: boolean } | { tripId: string; draft: Draft };
+// `restored`: the typed fields kept across a login redirect, for the panel to start with.
+type Selection = { tripId: string; eventId: string; quiet?: boolean; restored?: EventFields } | { tripId: string; draft: Draft; restored?: EventFields };
 
 // Where the user is heading when leaving the panel: another selection, or another Trip.
 type Heading = Selection | { switchTo: string };
@@ -105,8 +113,32 @@ type Removal = {
   resolve: (confirmed: boolean) => void;
 };
 
+// The Landing page after logging out, else the workspace. (The full Landing page is step 22.)
 export function App() {
+  const [landing, setLanding] = useState(() => new URLSearchParams(window.location.search).has(LOGGED_OUT_PARAM));
+  if (landing) {
+    return (
+      <Landing
+        onStart={() => {
+          window.history.replaceState(null, "", window.location.pathname);
+          setLanding(false);
+        }}
+      />
+    );
+  }
+  return <Workspace />;
+}
+
+function Workspace() {
   const t = useT();
+  const auth = useAuth();
+  const phone = useIsPhone();
+  // The session ended: the Trip stays on screen, read-only, until the user logs in again.
+  const expired = auth.status === "expired";
+  // Logged in with nothing to add from a guest session: no Trip is open, the Trip list is.
+  const [chooser, setChooser] = useState(false);
+  // Edits kept across a login redirect, restored once the Trips are in.
+  const [pending, setPending] = useState(takePendingEdits);
   const [trips, setTrips] = useState<Trip[] | undefined>();
   // The page shows one Trip at a time: the one in the URL or this browser, else the first.
   const [wantedTripId, setWantedTripId] = useState(readWantedTripId);
@@ -145,6 +177,46 @@ export function App() {
     listTrips().then(setTrips, (e: Error) => setError(e.message));
     getMe().then((me) => setMeId(me.id), () => undefined);
   }, []);
+
+  // A login that finishes after the first load failed (the session had ended while away) loads them.
+  const loggedIn = auth.status === "user";
+  useEffect(() => {
+    if (!loggedIn || tripsRef.current !== undefined) return;
+    setError(undefined);
+    listTrips().then(setTrips, (e: Error) => setError(e.message));
+    getMe().then((me) => setMeId(me.id), () => undefined);
+  }, [loggedIn]);
+
+  // What failed while the session was ending is no longer true once the user is logged in again.
+  useEffect(() => {
+    if (!expired) setSaveError(undefined);
+  }, [expired]);
+
+  // Back from the login page: Trips of the guest session were added to the account (say so and stay
+  // in the Trip), or there was nothing to add and the user lands on the Trip list.
+  const { arrival } = auth;
+  useEffect(() => {
+    if (!arrival) return;
+    if (arrival.merged > 0) setToast({ id: Date.now(), message: t("auth.merged", { count: arrival.merged }) });
+    else if (!new URLSearchParams(window.location.search).has("trip")) {
+      setChooser(true);
+      setTripListOpen(true);
+    }
+  }, [arrival]);
+
+  // Put back the Event panel and what was typed in it when the page left for the login page.
+  useEffect(() => {
+    if (!pending || !trips) return;
+    setPending(undefined);
+    const trip = trips.find((tr) => tr.id === pending.tripId);
+    if (!trip) return;
+    setWantedTripId(trip.id);
+    if (pending.newEvent) {
+      setSelection({ tripId: trip.id, draft: { ...pending.newEvent, kind: pending.fields.kind }, restored: pending.fields });
+    } else if (pending.eventId && allEvents(trip).some((e) => e.id === pending.eventId)) {
+      setSelection({ tripId: trip.id, eventId: pending.eventId, restored: pending.fields });
+    }
+  }, [pending, trips]);
 
   // The Trip whose settings are open.
   const [settingsTripId, setSettingsTripId] = useState<string | undefined>();
@@ -249,6 +321,7 @@ export function App() {
       // open, and the Trip stays.
       if (notesTripIdRef.current && closeNotes.current && !(await closeNotes.current())) return;
       setWantedTripId(next.switchTo);
+      setChooser(false);
       setSelection(undefined);
     } else {
       setSelection(next);
@@ -258,6 +331,28 @@ export function App() {
   }
   const guard = useUnsavedGuard<Heading>(apply);
   const { panelApi, select } = guard;
+
+  // Logs in again after the session ended, in a popup so the Trip and the open Event panel stay as
+  // they are. Resolves true when the same account is logged in again and edits can be saved. If the
+  // browser blocks the popup, what is typed in the panel is kept in sessionStorage and the page goes
+  // to the login page; it is restored when the page comes back.
+  async function relogin(typed?: EventFields): Promise<boolean> {
+    const outcome = await auth.loginInPlace();
+    if (outcome === "same") return true;
+    if (outcome === "blocked") {
+      const fields = typed ?? (panelApi.current?.isDirty() ? panelApi.current.fields() : undefined);
+      if (fields && selection) {
+        keepPendingEdits({
+          tripId: selection.tripId,
+          eventId: "eventId" in selection ? selection.eventId : undefined,
+          newEvent: "draft" in selection ? { dayId: selection.draft.dayId, startMinute: selection.draft.startMinute, durationMinutes: selection.draft.durationMinutes } : undefined,
+          fields,
+        });
+      }
+      await auth.login();
+    }
+    return false;
+  }
 
   // The server's answer after a Day change; the Backlog comes along when the change moves Events.
   function handleDaysChange(tripId: string, newDays: Day[], backlog?: Event[]) {
@@ -474,7 +569,7 @@ export function App() {
 
   // Single keys work only when no text field has focus and no dialog is open (PRD §13).
   function handleKey(e: KeyboardEvent) {
-    if (e.defaultPrevented) return;
+    if (e.defaultPrevented || expired) return;
     if (
       e.code === "KeyN" &&
       e.ctrlKey &&
@@ -660,7 +755,7 @@ export function App() {
     }
   }
 
-  const currentTrip = trips && chooseTrip(trips, wantedTripId);
+  const currentTrip = trips && !chooser ? chooseTrip(trips, wantedTripId) : undefined;
   const currentTripId = currentTrip?.id;
   const loaded = trips !== undefined;
   useEffect(() => {
@@ -678,16 +773,31 @@ export function App() {
       ? allEvents(selectedTrip).find((e) => e.id === selection.eventId)
       : undefined;
 
+  const account = <AccountMenu onOpenTripList={() => setTripListOpen(true)} onRelogin={() => void relogin()} />;
+  // Under the top bar: Auth0's error, the expired session, and (phone) the guest's way to log in.
+  const banners = (
+    <>
+      <LoginErrorStrip />
+      <ExpiredBanner onRelogin={() => void relogin()} />
+      {phone && <GuestBanner />}
+    </>
+  );
+
   return (
     <>
     <main className={selectedTrip ? "has-panel" : undefined}>
+      {!trip && banners}
       {trips?.length === 0 && <TitleForm label={t("app.tripTitle")} submitLabel={t("app.createTrip")} onSubmit={handleCreateTrip} />}
-      {error && <p role="alert">{error}</p>}
-      {saveError && <p role="alert">{saveError}</p>}
+      {/* An expired session already has its banner. */}
+      {error && !expired && <p role="alert">{error}</p>}
+      {saveError && !expired && <p role="alert">{saveError}</p>}
       {trip && (
         <TripCard
           key={trip.id}
           trip={trip}
+          account={account}
+          banner={banners}
+          readOnly={expired}
           onOpenSettings={() => setSettingsTripId(trip.id)}
           onOpenTripList={() => setTripListOpen(true)}
           onDaysChange={handleDaysChange}
@@ -724,9 +834,20 @@ export function App() {
         />
       )}
       {trips?.length === 0 && <p>{t("app.noTrips")}</p>}
-      {!trips?.length && (
+      {chooser && trips && trips.length > 0 && (
+        <section className="choose-trip">
+          <MapIcon size={28} aria-hidden="true" />
+          <h2>{t("app.chooseTrip")}</h2>
+          <p>{t("app.chooseTripHint")}</p>
+          <button type="button" className="btn pri" onClick={() => setTripListOpen(true)}>
+            {t("tripList.title")}
+          </button>
+        </section>
+      )}
+      {!trip && (
         <div className="standalone-switches">
-          <Sidebar onShowShortcuts={() => setSheetOpen(true)} />
+          {!phone && <Sidebar onShowShortcuts={() => setSheetOpen(true)} />}
+          {account}
         </div>
       )}
       {selectedTrip && selection && (selectedEvent || "draft" in selection) && (
@@ -752,6 +873,8 @@ export function App() {
           onTurnOnOpeningHours={(eventId) => handleTurnOnHours(selectedTrip.id, eventId)}
           onRemoveOpeningHours={(eventId) => handleTurnOffHours(selectedTrip.id, eventId)}
           quiet={"eventId" in selection && selection.quiet}
+          restored={selection.restored}
+          onLoginToSave={expired ? (typed) => relogin(typed) : undefined}
         />
       )}
       {notesTripId && trips?.some((t) => t.id === notesTripId) && (

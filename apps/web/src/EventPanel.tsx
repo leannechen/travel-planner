@@ -30,7 +30,7 @@ import { useT } from "./preferences";
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent, type MutableRefObject } from "react";
 import { useIsPhone } from "./phone";
 import { KindDropdown } from "./KindDropdown";
-import { Archive, Ellipsis, ListEnd, Maximize2, Minimize2, RotateCcw, Trash2, X } from "lucide-react";
+import { Archive, Ellipsis, ListEnd, LogIn, Maximize2, Minimize2, RotateCcw, Trash2, X } from "lucide-react";
 
 // The editor is large, so it is loaded when the first panel opens, not with the page.
 const MarkdownEditor = lazy(() => import("./MarkdownEditor").then((m) => ({ default: m.MarkdownEditor })));
@@ -85,6 +85,8 @@ export type PanelApi = {
   isDirty: () => boolean;
   // Saves them; false when the save failed or the fields are not valid.
   save: () => Promise<boolean>;
+  // What is typed now, to keep it across a login redirect.
+  fields: () => EventFields;
 };
 
 type Props = {
@@ -116,6 +118,11 @@ type Props = {
   onRemoveOpeningHours: (eventId: string) => Promise<void>;
   // Selected from the keyboard: leave the focus where it is so the arrow keys keep working.
   quiet?: boolean;
+  // The fields to start with instead of the Event's own: edits kept across a login redirect.
+  restored?: EventFields;
+  // Given while the session has ended: Save becomes "Log in to save". It logs in (in a popup, so
+  // what is typed stays) and says whether the edits can be saved now.
+  onLoginToSave?: (fields: EventFields) => Promise<boolean>;
 };
 
 
@@ -141,6 +148,8 @@ export function EventPanel({
   onTurnOnOpeningHours,
   onRemoveOpeningHours,
   quiet,
+  restored,
+  onLoginToSave,
 }: Props) {
   const t = useT();
   const { hours: placeHours, loading: hoursLoading } = useOpeningHours(event?.openingHoursOn && event.placeId ? [event.placeId] : []);
@@ -167,7 +176,7 @@ export function EventPanel({
     openingHoursOn: false,
     ...newEvent!,
   };
-  const [fields, setFields] = useState<EventFields>({
+  const original: EventFields = {
     title: initial.title,
     dayId: placeOf(initial),
     kind: initial.kind,
@@ -183,9 +192,10 @@ export function EventPanel({
     placeId: initial.placeId ?? "",
     destinationId: initial.destinationId ?? "",
     ...timeFields(initial.startMinute, initial.durationMinutes),
-  });
+  };
+  const [fields, setFields] = useState<EventFields>(restored ?? original);
   // Open from the start when there is something to show; after that only the user changes it.
-  const [contactOpen] = useState(() => hasContact(initial));
+  const [contactOpen] = useState(() => hasContact(restored ? { phone: restored.phone, email: restored.email, website: restored.website } : initial));
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   // The saved Event; for a new one this is set after it has been created.
   const saved = useRef<Event | undefined>(event);
@@ -196,7 +206,7 @@ export function EventPanel({
   // Whether the last save failed.
   const failed = useRef(false);
   // The fields as the panel opened, to tell whether anything was typed into a new Event.
-  const untouched = useRef(JSON.stringify(fields));
+  const untouched = useRef(JSON.stringify(original));
 
   // What this panel last sent for the time and place, so its own saves are not mistaken for
   // outside changes.
@@ -235,6 +245,11 @@ export function EventPanel({
       }
     }
   }
+
+  // Edits that came back from a login redirect: tell the page where a new Event now stands.
+  useEffect(() => {
+    if (restored) change({});
+  }, []);
 
   // Moving between kinds keeps the same times: the duration and the arrival describe one thing, so
   // the field that was hidden is recalculated from the shown one. A Lodging's check-in time is its
@@ -356,7 +371,7 @@ export function EventPanel({
   // Offered to the page on every render, so it never calls a stale closure.
   useEffect(() => {
     if (!apiRef) return;
-    apiRef.current = { isDirty, save: saveNow };
+    apiRef.current = { isDirty, save: saveNow, fields: () => latest.current };
   });
   useEffect(
     () => () => {
@@ -380,9 +395,14 @@ export function EventPanel({
     setExpanded(!expanded);
   }
 
+  // With the session ended, saving starts with logging in; the edits stay as they are meanwhile.
+  async function loginThenFinish() {
+    if (onLoginToSave && (await onLoginToSave(latest.current))) await finish();
+  }
+
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    void finish();
+    void (onLoginToSave ? loginThenFinish() : finish());
   }
 
   // The saved Event's Day, for the opening-hours check.
@@ -684,6 +704,7 @@ export function EventPanel({
         </section>
       )}
       </div>
+      {onLoginToSave && <p className="panel-notice">{t("event.keptOnScreen")}</p>}
       {status.kind === "error" && <p role="alert" className="panel-error">{status.message}</p>}
       <footer className="panel-foot">
         {event && (
@@ -709,8 +730,17 @@ export function EventPanel({
         <button type="button" className={`btn${phone ? " lg" : " ghost"}`} onClick={() => onClose(true)}>
           {dirty || !event ? t("generic.cancel") : t("generic.close")}
         </button>
-        <button type="button" className={`btn pri${phone ? " lg" : ""}`} onClick={() => void finish()}>
-          {event ? t("event.save") : t("event.addEvent")}
+        <button type="button" className={`btn pri${phone ? " lg" : ""}`} onClick={() => void (onLoginToSave ? loginThenFinish() : finish())}>
+          {onLoginToSave ? (
+            <>
+              <LogIn size={16} aria-hidden="true" />
+              {t("event.loginToSave")}
+            </>
+          ) : event ? (
+            t("event.save")
+          ) : (
+            t("event.addEvent")
+          )}
         </button>
       </footer>
     </aside>

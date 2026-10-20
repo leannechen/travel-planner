@@ -68,11 +68,13 @@ type Props = {
   // Phone drawer: show only this area, always open.
   only?: HoldingArea;
   id?: string;
+  // The session ended: nothing can be added.
+  readOnly?: boolean;
 };
 
 // The Backlog (Events still being considered) and the Archive (Events given up on), side by side
 // with the Days. Both are collapsible and both accept dragged Events.
-export function HoldingAreas({ backlog, archive, selectedEventId, dropTarget, onSelectEvent, onAddToBacklog, onMoveTo, footer, only, id }: Props) {
+export function HoldingAreas({ backlog, archive, selectedEventId, dropTarget, onSelectEvent, onAddToBacklog, onMoveTo, footer, only, id, readOnly }: Props) {
   const t = useT();
   const area = (name: HoldingArea) => (dropTarget === name ? "holding-area drop-target" : "holding-area");
   return (
@@ -86,6 +88,7 @@ export function HoldingAreas({ backlog, archive, selectedEventId, dropTarget, on
           <button
             type="button"
             className="holding-add"
+            disabled={readOnly}
             aria-label={t("area.addToBacklog")}
             title={tip(t("area.addToBacklog"), "new-backlog")}
             // Inside the summary, so it must not also toggle the section.

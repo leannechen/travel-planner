@@ -21,7 +21,7 @@ import {
   type Todo,
   type Trip,
 } from "@travel-planner/shared";
-import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, Map as MapIcon, Plus, Settings, Trash2 } from "lucide-react";
+import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, Lock, Map as MapIcon, Plus, Settings, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { deleteDay, insertDay, reorderDays, restoreDay } from "./api";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -70,6 +70,11 @@ type Props = {
   onAddTodo: (text: string, eventId: string | null) => Promise<void>;
   onToggleTodo: (todo: Todo) => void;
   onDeleteTodo: (todo: Todo) => void;
+  // The account spot at the end of the top bar, and what sits under the top bar (login messages).
+  account?: ReactNode;
+  banner?: ReactNode;
+  // The session ended: the Trip stays on screen but nothing in it can be changed.
+  readOnly?: boolean;
 };
 
 export type Toasted = { id: number; message: string; undo?: () => void };
@@ -91,12 +96,20 @@ function dropTargetAt(root: HTMLElement, x: number, y: number, draggedId: string
   return undefined;
 }
 
-export function TripCard({ trip, onOpenSettings, onOpenTripList, onDaysChange, selectedEventId, draft, onSelectEvent, onCreateAt, onAddToBacklog, onMove, onCreateLeg, onChangeLegMode, onDeleteLeg, onToast, notesOpen, onToggleNotes, onShowShortcuts, footer, onAddTodo, onToggleTodo, onDeleteTodo }: Props) {
+export function TripCard({ trip, onOpenSettings, onOpenTripList, onDaysChange, selectedEventId, draft, onSelectEvent: selectEventProp, onCreateAt: createAtProp, onAddToBacklog: addToBacklogProp, onMove: moveProp, onCreateLeg, onChangeLegMode, onDeleteLeg, onToast, notesOpen, onToggleNotes, onShowShortcuts, footer, onAddTodo, onToggleTodo, onDeleteTodo, account, banner, readOnly = false }: Props) {
   const t = useT();
   const { language } = usePreferences();
   const root = useRef<HTMLElement>(null);
   const [error, setError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
+  // Day changes wait for the one before, and do not happen at all in a read-only Trip.
+  const locked = busy || readOnly;
+  // What opens or changes something does nothing in a read-only Trip.
+  const editing = <A extends unknown[]>(fn: (...args: A) => void) => (readOnly ? () => undefined : fn);
+  const onSelectEvent = editing(selectEventProp);
+  const onCreateAt = editing(createAtProp);
+  const onAddToBacklog = editing(addToBacklogProp);
+  const onMove = editing(moveProp);
   // The Day waiting for the user to confirm its deletion.
   const [pendingDelete, setPendingDelete] = useState<{ day: Day; plan: DayDeletionPlan } | undefined>();
   const setToast = onToast;
@@ -107,7 +120,7 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onDaysChange, s
 
   // Runs one Day change at a time and replaces the Trip's Days with the server's answer.
   async function changeDays(action: () => Promise<Day[]>) {
-    if (busy) return;
+    if (locked) return;
     setBusy(true);
     setError(undefined);
     // The Days are about to change, so the last deletion can no longer be undone safely.
@@ -129,7 +142,7 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onDaysChange, s
   }
 
   async function performDelete(day: Day, plan: DayDeletionPlan) {
-    if (busy) return;
+    if (locked) return;
     setPendingDelete(undefined);
     setToast(undefined);
     setBusy(true);
@@ -235,7 +248,7 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onDaysChange, s
       <button
         type="button"
         className="ib insert-day"
-        disabled={busy}
+        disabled={locked}
         aria-label={t("day.insert", { n: position })}
         title={t("day.insert", { n: position })}
         onClick={() => changeDays(() => insertDay(trip.id, position))}
@@ -267,7 +280,7 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onDaysChange, s
   const deleting = pendingDelete;
 
   return (
-    <article ref={root} className={["workspace", view === "map" && "map-mode", (selectedEventId || draft) && "has-selection"].filter(Boolean).join(" ")}>
+    <article ref={root} className={["workspace", view === "map" && "map-mode", (selectedEventId || draft) && "has-selection", readOnly && "read-only"].filter(Boolean).join(" ")}>
       <div className="topbar">
         <span className="logo" aria-hidden="true">
           <MapIcon size={18} />
@@ -298,7 +311,13 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onDaysChange, s
           </button>
         </div>
         <span className="spacer" />
-        <button type="button" className="btn" aria-pressed={notesOpen} title={tip(t("notes.title"), "notes")} onClick={onToggleNotes}>
+        {readOnly && !phone && (
+          <span className="read-only-badge">
+            <Lock size={12} aria-hidden="true" />
+            {t("auth.readOnly")}
+          </span>
+        )}
+        <button type="button" className="btn" aria-pressed={notesOpen} disabled={readOnly} title={tip(t("notes.title"), "notes")} onClick={onToggleNotes}>
           {t("notes.title")} <span className="count">{trip.notes.length}</span>
           <kbd className="kbd" aria-hidden="true">
             {keyOf("notes")}
@@ -307,7 +326,9 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onDaysChange, s
         <button type="button" className="ib" title={tip(t("shortcuts.title"), "help")} aria-label={t("shortcuts.title")} onClick={onShowShortcuts}>
           <CircleHelp size={16} aria-hidden="true" />
         </button>
+        {account}
       </div>
+      {banner}
       {error && <p role="alert">{error}</p>}
       {phone && view === "schedule" && (
         <nav className="day-tabs" aria-label={t("day.tabs")}>
@@ -331,7 +352,7 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onDaysChange, s
           <button
             type="button"
             className="day-tab add"
-            disabled={busy}
+            disabled={locked}
             aria-label={t("day.add")}
             title={t("day.add")}
             onClick={() =>
@@ -350,7 +371,7 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onDaysChange, s
         <MapView trip={trip} selectedEventId={selectedEventId} panelOpen={!phone && !!(selectedEventId || draft)} onSelectEvent={onSelectEvent} footer={phone ? undefined : footer} />
       ) : (
       <DragDropProvider
-        sensors={sensors}
+        sensors={readOnly ? [] : sensors}
         plugins={(defaults) => [...defaults.filter((p) => p !== Accessibility), accessibility(events, t)]}
         onDragMove={(_, manager) => {
           // The library writes the new pointer position after this callback runs, so the state is
@@ -393,6 +414,7 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onDaysChange, s
               setDrawer(undefined);
               onAddToBacklog();
             }}
+            readOnly={readOnly}
             onMoveTo={(eventId, area: HoldingArea) => onMove(eventId, { holding: area })}
             footer={phone ? undefined : footer}
           />
@@ -433,7 +455,7 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onDaysChange, s
                       className="ib"
                       aria-label={t("day.earlier")}
                       title={t("day.earlier")}
-                      disabled={busy || day.position === 1}
+                      disabled={locked || day.position === 1}
                       onClick={() => changeDays(() => reorderDays(trip.id, moveBy(dayIds, day.id, -1)))}
                     >
                       <ChevronLeft size={16} aria-hidden="true" />
@@ -443,7 +465,7 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onDaysChange, s
                       className="ib"
                       aria-label={t("day.later")}
                       title={t("day.later")}
-                      disabled={busy || day.position === lastPosition}
+                      disabled={locked || day.position === lastPosition}
                       onClick={() => changeDays(() => reorderDays(trip.id, moveBy(dayIds, day.id, 1)))}
                     >
                       <ChevronRight size={16} aria-hidden="true" />
@@ -453,7 +475,7 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onDaysChange, s
                       className="ib"
                       aria-label={t("day.delete")}
                       title={t("day.delete")}
-                      disabled={busy || lastPosition === 1}
+                      disabled={locked || lastPosition === 1}
                       onClick={() => requestDelete(day)}
                     >
                       <Trash2 size={15} aria-hidden="true" />
@@ -462,7 +484,7 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onDaysChange, s
                   <button
                     type="button"
                     className="ib"
-                    disabled={busy}
+                    disabled={locked}
                     aria-label={t("day.addEvent")}
                     title={tip(t("day.addEvent"), "new-event")}
                     onClick={() => onCreateAt(day.id, DEFAULT_START_MINUTE)}
@@ -492,7 +514,7 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onDaysChange, s
                     onChangeTimes={(eventId: string, times: EventTimes) => onMove(eventId, times)}
                     onCreateAt={(startMinute) => onCreateAt(day.id, startMinute)}
                     legs={trip.legs.filter((l) => l.dayId === day.id)}
-                    onOpenLeg={(target, anchor) => setLegUi({ fromId: target.from.id, toId: target.to.id, anchor })}
+                    onOpenLeg={(target, anchor) => !readOnly && setLegUi({ fromId: target.from.id, toId: target.to.id, anchor })}
                     openingConflicts={new Set(onAxis(day).filter((e) => eventConflicts(e, day.position, startDate, openingHours)).map((e) => e.id))}
                   />
                 </div>,
@@ -500,7 +522,7 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onDaysChange, s
             })}
             {!phone && <div style={{ gridColumn: 2 + lastPosition * 2, gridRow: 1 }}>{insertButton(lastPosition + 1)}</div>}
           </div>
-          {(!phone || drawer === "todos") && <TodosPanel id={phone ? `drawer-${trip.id}` : undefined} trip={trip} onSelectEvent={phone ? selectFromDrawer : onSelectEvent} onAdd={onAddTodo} onToggle={onToggleTodo} onDelete={onDeleteTodo} />}
+          {(!phone || drawer === "todos") && <TodosPanel id={phone ? `drawer-${trip.id}` : undefined} trip={trip} readOnly={readOnly} onSelectEvent={phone ? selectFromDrawer : onSelectEvent} onAdd={onAddTodo} onToggle={onToggleTodo} onDelete={onDeleteTodo} />}
         </div>
       </DragDropProvider>
       )}
@@ -519,7 +541,6 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onDaysChange, s
       )}
       {phone && (
         <>
-          {footer}
           {view === "schedule" && drawer && <div className="drawer-scrim" onClick={() => setDrawer(undefined)} />}
           {view === "schedule" && (
           <nav className="drawer-bar" aria-label={t("drawer.tabs")}>

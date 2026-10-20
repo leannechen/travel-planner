@@ -4,6 +4,11 @@ import type { OpeningHours } from "@travel-planner/shared";
 
 export const users = pgTable("users", {
   id: uuid().primaryKey().defaultRandom(),
+  // Who the user is: the Auth0 subject of an account (ADR 0006), or the secret of an anonymous
+  // guest session kept in the browser. Exactly one is set; a guest's Trips move to the account on
+  // login and the guest row goes.
+  auth0Sub: text().unique(),
+  guestToken: uuid().unique(),
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });
 

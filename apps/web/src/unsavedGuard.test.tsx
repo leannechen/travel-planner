@@ -4,10 +4,12 @@ import { describe, expect, it, vi } from "vitest";
 import type { PanelApi } from "./EventPanel";
 import { useUnsavedGuard } from "./unsavedGuard";
 
+const fields = () => ({}) as ReturnType<PanelApi["fields"]>;
+
 function setup(panel?: Partial<PanelApi>) {
   const apply = vi.fn();
   const hook = renderHook(() => useUnsavedGuard<string>(apply));
-  if (panel) hook.result.current.panelApi.current = { isDirty: () => false, save: async () => true, ...panel };
+  if (panel) hook.result.current.panelApi.current = { isDirty: () => false, save: async () => true, fields, ...panel };
   return { apply, hook };
 }
 
@@ -16,7 +18,7 @@ describe("useUnsavedGuard", () => {
     const { apply, hook } = setup();
     act(() => hook.result.current.select("b"));
     expect(apply).toHaveBeenCalledWith("b");
-    hook.result.current.panelApi.current = { isDirty: () => false, save: async () => true };
+    hook.result.current.panelApi.current = { isDirty: () => false, save: async () => true, fields };
     act(() => hook.result.current.select("c"));
     expect(apply).toHaveBeenLastCalledWith("c");
     expect(hook.result.current.asking).toBe(false);

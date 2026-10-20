@@ -994,7 +994,11 @@ describe("restoring a deleted Day (undo)", () => {
 });
 
 describe("Todos", () => {
-  const ME = "00000000-0000-4000-8000-000000000001";
+  // The user the test app acts as, known once a request has created it.
+  let ME = "";
+  beforeEach(async () => {
+    ME = ((await (await fetch(`${app.baseUrl}/api/me`)).json()) as { id: string }).id;
+  });
 
   async function listedTrip(tripId: string) {
     const all = z.array(tripSchema).parse(await (await fetch(`${app.baseUrl}/api/trips`)).json());
@@ -1012,7 +1016,7 @@ describe("Todos", () => {
 
   it("tells who the current user is", async () => {
     const res = await fetch(`${app.baseUrl}/api/me`);
-    expect(await res.json()).toEqual({ id: ME });
+    expect(await res.json()).toEqual({ id: ME, guest: false });
   });
 
   it("starts a Trip with no Todos", async () => {
@@ -1553,6 +1557,12 @@ describe("opening hours", () => {
     const res = await fetch(`${app.baseUrl}/api/places/opening-hours?ids=fake:kinkaku-ji,fake:nara-park`);
     const { openingHours } = (await res.json()) as { openingHours: Record<string, unknown> };
     expect(Object.keys(openingHours)).toEqual(["fake:kinkaku-ji"]);
+  });
+
+  it("serves hours only for places the user's own Events use", async () => {
+    await eventAt("fake:kinkaku-ji");
+    const res = await fetch(`${app.baseUrl}/api/places/opening-hours?ids=fake:kinkaku-ji`, { headers: { authorization: "Bearer fake:someone-else" } });
+    expect(await res.json()).toEqual({ openingHours: {} });
   });
 
   it("stays off when the provider has no hours for the place", async () => {

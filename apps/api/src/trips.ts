@@ -792,3 +792,15 @@ export async function restoreNote(
     .returning();
   return row ? toNote(row) : "exists";
 }
+
+// Which of these places the user's own Events use. Opening hours are only handed out for those, so
+// the hours endpoint is not a way to read the paid provider through our cache.
+export async function ownPlaceIds(db: Db, ownerId: string, ids: string[]): Promise<string[]> {
+  if (ids.length === 0) return [];
+  const rows = await db
+    .selectDistinct({ placeId: events.placeId })
+    .from(events)
+    .innerJoin(trips, eq(events.tripId, trips.id))
+    .where(and(eq(trips.ownerId, ownerId), inArray(events.placeId, ids)));
+  return rows.map((r) => r.placeId!);
+}

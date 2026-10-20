@@ -9,11 +9,13 @@ type Props = {
   onToggle: (todo: Todo) => void;
   onDelete: (todo: Todo) => void;
   id?: string;
+  // The session ended: the Todos can be read, not changed.
+  readOnly?: boolean;
 };
 
 // All Todos of a Trip: the Trip's own first, then each Event's under the Event's name. New Event
 // Todos are added in the Event's panel; only Trip Todos are added here.
-export function TodosPanel({ trip, onSelectEvent, onAdd, onToggle, onDelete, id }: Props) {
+export function TodosPanel({ trip, onSelectEvent, onAdd, onToggle, onDelete, id, readOnly }: Props) {
   const t = useT();
   const groups = todoGroups(trip.todos, allEvents(trip), trip.days);
   return (
@@ -29,9 +31,10 @@ export function TodosPanel({ trip, onSelectEvent, onAdd, onToggle, onDelete, id 
               todos={group.todos}
               label={t("todo.tripList")}
               addLabel={t("todo.addTrip")}
-              onAdd={(text) => onAdd(text, null)}
+              onAdd={readOnly ? undefined : (text) => onAdd(text, null)}
               onToggle={onToggle}
               onDelete={onDelete}
+              readOnly={readOnly}
             />
           </section>
         ) : (
@@ -45,7 +48,7 @@ export function TodosPanel({ trip, onSelectEvent, onAdd, onToggle, onDelete, id 
                 {typeof group.place === "object" && group.place ? t("day.title", { n: group.place.day }) : t(group.place === "archive" ? "area.archive" : "area.backlog")}
               </span>
             </h4>
-            <TodoList todos={group.todos} label={t("todo.ofEvent", { title: group.title ?? "" })} onToggle={onToggle} onDelete={onDelete} />
+            <TodoList todos={group.todos} label={t("todo.ofEvent", { title: group.title ?? "" })} onToggle={onToggle} onDelete={onDelete} readOnly={readOnly} />
           </section>
         ),
       )}

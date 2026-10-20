@@ -253,7 +253,8 @@ export type UpdateTodoInput = z.infer<typeof updateTodoInputSchema>;
 export const deletedEventSchema = z.object({ event: eventSchema, todos: z.array(todoSchema) });
 export type DeletedEvent = z.infer<typeof deletedEventSchema>;
 
-export const meSchema = z.object({ id: z.uuid() });
+// Who the request acts as: an account, or an anonymous guest session (PRD §8).
+export const meSchema = z.object({ id: z.uuid(), guest: z.boolean() });
 export type Me = z.infer<typeof meSchema>;
 
 // A Note always has some text: a new one is not saved until something is typed, and a Note

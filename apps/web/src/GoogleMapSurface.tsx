@@ -24,7 +24,7 @@ function configure(language: string) {
 
 type Overlays = { markers: google.maps.marker.AdvancedMarkerElement[]; lines: google.maps.Polyline[] };
 
-export function GoogleMapSurface({ markers, lines, selectedEventId, onSelect, fitKey }: SurfaceProps) {
+export function GoogleMapSurface({ markers, lines, selectedEventId, onSelect, fitKey, rightInset }: SurfaceProps) {
   const t = useT();
   const { language } = usePreferences();
   const box = useRef<HTMLDivElement>(null);
@@ -95,12 +95,14 @@ export function GoogleMapSurface({ markers, lines, selectedEventId, onSelect, fi
   // Fit the markers when the filter changes, not on every selection.
   const latest = useRef(markers);
   latest.current = markers;
+  const inset = useRef(rightInset);
+  inset.current = rightInset;
   useEffect(() => {
     const current = map.current;
     if (!ready || !current || latest.current.length === 0) return;
     const bounds = new google.maps.LatLngBounds();
     for (const { place } of latest.current) bounds.extend(place);
-    current.fitBounds(bounds, 72);
+    current.fitBounds(bounds, { top: 72, bottom: 72, left: 72, right: 72 + inset.current });
     // A single place would zoom in as far as it goes.
     google.maps.event.addListenerOnce(current, "idle", () => {
       if ((current.getZoom() ?? 0) > 16) current.setZoom(16);

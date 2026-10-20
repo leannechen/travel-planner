@@ -12,7 +12,12 @@ export type SurfaceProps = {
   onSelect: (eventId: string) => void;
   // Changes when the map should fit its markers again (the filter changed, or "Fit all").
   fitKey: string;
+  // Width in px at the right edge that the Event panel covers; markers are fitted left of it.
+  rightInset: number;
 };
+
+// The Event panel is 26rem wide (styles.css), plus a little air.
+export const PANEL_INSET_PX = 26 * 16 + 12;
 
 // The CSS variable holding a Day's color (`--d1` to `--d8` in styles.css); gray for the Backlog.
 export const dayColorVar = (position: number | null) => (position === null ? "var(--muted)" : `var(--d${dayColorIndex(position) + 1})`);

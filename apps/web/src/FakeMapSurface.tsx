@@ -6,7 +6,7 @@ const PADDING = 72;
 
 // A stand-in for Google Maps while no browser key is set (development and tests): the places are
 // spread over a plain canvas by their coordinates. It does not pan or zoom.
-export function FakeMapSurface({ markers, lines, selectedEventId, onSelect }: SurfaceProps) {
+export function FakeMapSurface({ markers, lines, selectedEventId, onSelect, rightInset }: SurfaceProps) {
   const t = useT();
   const box = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 800, height: 600 });
@@ -31,9 +31,11 @@ export function FakeMapSurface({ markers, lines, selectedEventId, onSelect }: Su
   const stretch = Math.cos((((minLat + maxLat) / 2) * Math.PI) / 180);
   const spanX = Math.max((maxLng - minLng) * stretch, 1e-6);
   const spanY = Math.max(maxLat - minLat, 1e-6);
-  const scale = Math.min((size.width - 2 * PADDING) / spanX, (size.height - 2 * PADDING) / spanY);
+  // The part of the canvas the Event panel does not cover.
+  const visibleWidth = Math.max(size.width - rightInset, PADDING * 2 + 1);
+  const scale = Math.min((visibleWidth - 2 * PADDING) / spanX, (size.height - 2 * PADDING) / spanY);
   const project = (p: { lat: number; lng: number }) => ({
-    x: size.width / 2 + (p.lng - (minLng + maxLng) / 2) * stretch * scale,
+    x: visibleWidth / 2 + (p.lng - (minLng + maxLng) / 2) * stretch * scale,
     y: size.height / 2 + ((minLat + maxLat) / 2 - p.lat) * scale,
   });
 

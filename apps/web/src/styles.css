@@ -3127,15 +3127,16 @@ main.has-panel .topbar {
 /* The Event panel floats over the map instead of narrowing it, so the map does not shift when the
    panel opens (design 06). The Days view still makes room by shrinking the page. */
 @media (min-width: 40.01rem) {
-  main.has-panel:has(.map-mode) {
+  /* Only for the Trip that owns the open panel: the page shows every Trip in one column. */
+  main.has-panel:has(.workspace.map-mode.has-selection) {
     margin-right: 0;
   }
 
-  main.has-panel .map-mode .topbar {
+  main.has-panel .workspace.map-mode.has-selection .topbar {
     padding-right: calc(26rem + 16px);
   }
 
-  main.has-panel .map-mode .map-filters {
+  main.has-panel .workspace.map-mode.has-selection .map-filters {
     right: calc(26rem + 12px);
   }
 }

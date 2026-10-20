@@ -260,7 +260,7 @@ export function TripCard({ trip, onOpenSettings, onDaysChange, selectedEventId, 
   const deleting = pendingDelete;
 
   return (
-    <article ref={root} className={view === "map" ? "workspace map-mode" : "workspace"}>
+    <article ref={root} className={["workspace", view === "map" && "map-mode", (selectedEventId || draft) && "has-selection"].filter(Boolean).join(" ")}>
       <div className="topbar">
         <span className="logo" aria-hidden="true">
           <MapIcon size={18} />
@@ -335,7 +335,7 @@ export function TripCard({ trip, onOpenSettings, onDaysChange, selectedEventId, 
         </nav>
       )}
       {view === "map" ? (
-        <MapView trip={trip} selectedEventId={selectedEventId} onSelectEvent={onSelectEvent} footer={phone ? undefined : footer} />
+        <MapView trip={trip} selectedEventId={selectedEventId} panelOpen={!phone && !!(selectedEventId || draft)} onSelectEvent={onSelectEvent} footer={phone ? undefined : footer} />
       ) : (
       <DragDropProvider
         sensors={sensors}

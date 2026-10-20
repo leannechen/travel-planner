@@ -1,10 +1,10 @@
 import { formatMinute, mapPlan, type Trip } from "@travel-planner/shared";
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { FakeMapSurface } from "./FakeMapSurface";
 import { GOOGLE_MAPS_BROWSER_KEY, GoogleMapSurface } from "./GoogleMapSurface";
 import { formatDuration } from "./HoldingAreas";
 import { kindKey } from "./kinds";
-import { dayColorVar, type PlacedLine, type PlacedMarker } from "./mapPins";
+import { dayColorVar, PANEL_INSET_PX, type PlacedLine, type PlacedMarker } from "./mapPins";
 import { usePlaces } from "./placeCache";
 import { useT } from "./preferences";
 
@@ -12,13 +12,15 @@ type Props = {
   trip: Trip;
   selectedEventId?: string;
   onSelectEvent: (eventId: string) => void;
+  // An Event panel floats over the right edge of the map.
+  panelOpen?: boolean;
   // The language and theme switches, shown under the list (they live in the left column elsewhere).
   footer?: ReactNode;
 };
 
 // The Map View (PRD §6): Event places on a map, colored by Day. Selecting a marker or a list row
 // opens the same Event panel as the time axis; nothing is edited here.
-export function MapView({ trip, selectedEventId, onSelectEvent, footer }: Props) {
+export function MapView({ trip, selectedEventId, onSelectEvent, panelOpen, footer }: Props) {
   const t = useT();
   const [chosenDayId, setChosenDayId] = useState<string | null>(null);
   const [showBacklog, setShowBacklog] = useState(true);
@@ -58,9 +60,20 @@ export function MapView({ trip, selectedEventId, onSelectEvent, footer }: Props)
     [plan, places],
   );
 
-  // `loading` is in the key so the map fits once the places of a new filter have arrived.
-  const fitKey = `${dayId ?? "all"}:${showBacklog}:${fitCount}:${loading}`;
-  const surfaceProps = { markers, lines, selectedEventId, onSelect: onSelectEvent, fitKey };
+  // The map fits its markers when the filter changes or "Fit all" is pressed, once the places
+  // involved have arrived. While places load, the key keeps its last value, so a change of place
+  // (a collaborator's, or one made in the panel) does not throw away the user's pan and zoom.
+  const fitKeyNow = `${dayId ?? "all"}:${showBacklog}:${fitCount}`;
+  const fitted = useRef("");
+  if (!loading) fitted.current = fitKeyNow;
+  const surfaceProps = {
+    markers,
+    lines,
+    selectedEventId,
+    onSelect: onSelectEvent,
+    fitKey: fitted.current,
+    rightInset: panelOpen ? PANEL_INSET_PX : 0,
+  };
   const total = plan.groups.reduce((sum, g) => sum + g.events.length, 0);
 
   return (

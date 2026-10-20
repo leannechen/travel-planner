@@ -389,7 +389,6 @@ main > [role="alert"] {
 }
 
 .workspace {
-  margin-bottom: 24px;
   background: var(--surface);
   border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
@@ -476,6 +475,47 @@ main.has-panel .topbar {
   border-radius: var(--r-lg);
   background: var(--surface);
   box-shadow: var(--sh-card);
+}
+
+/* Desktop: the workspace is as tall as the window, so the side columns fit it and only the Days
+   scroll (and a column scrolls inside itself when its content is longer than the window). */
+@media (min-width: 40.0625rem) {
+  /* The workspace has its own title in the top bar. */
+  main:has(> .workspace) > h1 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .workspace {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+  }
+
+  .trip-layout {
+    flex: 1;
+    grid-template-rows: minmax(0, 1fr);
+    min-height: 0;
+  }
+
+  .holding-areas,
+  .todos-panel {
+    overflow-y: auto;
+  }
+
+  .days-grid {
+    overflow: auto;
+  }
+
+  .day-head {
+    position: sticky;
+    z-index: 3;
+    top: 0;
+    background: var(--surface);
+  }
 }
 
 /* ---------- Days ---------- */

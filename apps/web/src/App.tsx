@@ -681,7 +681,6 @@ export function App() {
   return (
     <>
     <main className={selectedTrip ? "has-panel" : undefined}>
-      <h1>{t("app.title")}</h1>
       {trips?.length === 0 && <TitleForm label={t("app.tripTitle")} submitLabel={t("app.createTrip")} onSubmit={handleCreateTrip} />}
       {error && <p role="alert">{error}</p>}
       {saveError && <p role="alert">{saveError}</p>}

@@ -122,7 +122,10 @@ export function App() {
   // The Trip whose Notes panel is open. The shortcut opens it for the Trip being worked on.
   const [notesTripId, setNotesTripId] = useState<string | undefined>();
   // The open panel's own close, which saves what is typed first.
-  const closeNotes = useRef<(() => void) | undefined>(undefined);
+  const closeNotes = useRef<(() => Promise<boolean>) | undefined>(undefined);
+  // The same id, readable from a switch that finishes later.
+  const notesTripIdRef = useRef(notesTripId);
+  notesTripIdRef.current = notesTripId;
   const dismissToast = useCallback(() => setToast(undefined), []);
   // Changes when the user picks something else, so the panel starts fresh. It stays the same when
   // a new Event is saved, so the panel keeps its fields and focus.
@@ -240,11 +243,12 @@ export function App() {
 
   const showArchived = () => setToast({ id: Date.now(), message: t("event.archived") });
 
-  function apply(next: Heading | undefined) {
+  async function apply(next: Heading | undefined) {
     if (next && "switchTo" in next) {
+      // Notes of the Trip being left close first, saving what is typed. A failed save keeps them
+      // open, and the Trip stays.
+      if (notesTripIdRef.current && closeNotes.current && !(await closeNotes.current())) return;
       setWantedTripId(next.switchTo);
-      // Notes of the Trip being left close, saving what is typed first.
-      closeNotes.current?.();
       setSelection(undefined);
     } else {
       setSelection(next);
@@ -432,18 +436,17 @@ export function App() {
   }
 
   function toggleNotes(tripId: string) {
-    if (notesTripId === tripId) return closeNotes.current?.();
+    if (notesTripId === tripId) return void closeNotes.current?.();
     setNotesTripId(tripId);
   }
 
   // The Trip the keyboard works on: the one shown.
-  const workingTrip = () => currentTrip;
 
   // Ctrl+Alt+N opens or closes the Notes panel from anywhere. (Browsers keep Ctrl+Shift+N, and
   // Alt+Shift switches the input language on Windows.)
   function notesShortcut() {
-    if (notesTripId) return closeNotes.current?.();
-    const target = workingTrip();
+    if (notesTripId) return void closeNotes.current?.();
+    const target = currentTrip;
     if (target) toggleNotes(target.id);
   }
 
@@ -493,7 +496,7 @@ export function App() {
       e.preventDefault();
       return setSheetOpen(true);
     }
-    const trip = workingTrip();
+    const trip = currentTrip;
     if (!trip) return;
     const current =
       selection && "eventId" in selection && selection.tripId === trip.id
@@ -659,10 +662,11 @@ export function App() {
 
   const currentTrip = trips && chooseTrip(trips, wantedTripId);
   const currentTripId = currentTrip?.id;
+  const loaded = trips !== undefined;
   useEffect(() => {
     // Once the Trips are loaded, the URL and this browser follow the Trip shown.
-    if (trips) rememberTripId(currentTripId);
-  }, [trips, currentTripId]);
+    if (loaded) rememberTripId(currentTripId);
+  }, [loaded, currentTripId]);
 
   // The Trip shown, and its part of the selection.
   const trip = currentTrip;
@@ -682,43 +686,43 @@ export function App() {
       {error && <p role="alert">{error}</p>}
       {saveError && <p role="alert">{saveError}</p>}
       {trip && (
-          <TripCard
-            key={trip.id}
-            trip={trip}
-            onOpenSettings={() => setSettingsTripId(trip.id)}
-            onOpenTripList={() => setTripListOpen(true)}
-            onDaysChange={handleDaysChange}
-            selectedEventId={mine && "eventId" in mine ? mine.eventId : undefined}
-            draft={mine && "draft" in mine ? mine.draft : undefined}
-            onMove={(eventId, move) => handleMove(trip.id, eventId, move)}
-            onCreateLeg={(input) => handleCreateLeg(trip.id, input)}
-            onChangeLegMode={(leg, mode) => handleChangeLegMode(trip.id, leg, mode)}
-            onDeleteLeg={(leg) => handleDeleteLeg(trip.id, leg)}
-            onToast={setToast}
-            notesOpen={notesTripId === trip.id}
-            onToggleNotes={() => toggleNotes(trip.id)}
-            onShowShortcuts={() => setSheetOpen(true)}
-            footer={<Sidebar onShowShortcuts={() => setSheetOpen(true)} />}
-            onAddTodo={(text, eventId) => handleAddTodo(trip.id, text, eventId)}
-            onToggleTodo={(todo) => handleToggleTodo(trip.id, todo)}
-            onDeleteTodo={(todo) => handleDeleteTodo(trip.id, todo)}
-            onSelectEvent={(eventId) => {
-              // Clicking the Event that is already open must not reset the panel.
-              if (!(mine && "eventId" in mine && mine.eventId === eventId)) select({ tripId: trip.id, eventId });
-            }}
-            onCreateAt={(dayId, startMinute) =>
-              select({
-                tripId: trip.id,
-                draft: { dayId, startMinute, durationMinutes: DEFAULT_DURATION_MINUTES },
-              })
-            }
-            onAddToBacklog={() =>
-              select({
-                tripId: trip.id,
-                draft: { dayId: "backlog", startMinute: DEFAULT_START_MINUTE, durationMinutes: DEFAULT_DURATION_MINUTES },
-              })
-            }
-          />
+        <TripCard
+          key={trip.id}
+          trip={trip}
+          onOpenSettings={() => setSettingsTripId(trip.id)}
+          onOpenTripList={() => setTripListOpen(true)}
+          onDaysChange={handleDaysChange}
+          selectedEventId={mine && "eventId" in mine ? mine.eventId : undefined}
+          draft={mine && "draft" in mine ? mine.draft : undefined}
+          onMove={(eventId, move) => handleMove(trip.id, eventId, move)}
+          onCreateLeg={(input) => handleCreateLeg(trip.id, input)}
+          onChangeLegMode={(leg, mode) => handleChangeLegMode(trip.id, leg, mode)}
+          onDeleteLeg={(leg) => handleDeleteLeg(trip.id, leg)}
+          onToast={setToast}
+          notesOpen={notesTripId === trip.id}
+          onToggleNotes={() => toggleNotes(trip.id)}
+          onShowShortcuts={() => setSheetOpen(true)}
+          footer={<Sidebar onShowShortcuts={() => setSheetOpen(true)} />}
+          onAddTodo={(text, eventId) => handleAddTodo(trip.id, text, eventId)}
+          onToggleTodo={(todo) => handleToggleTodo(trip.id, todo)}
+          onDeleteTodo={(todo) => handleDeleteTodo(trip.id, todo)}
+          onSelectEvent={(eventId) => {
+            // Clicking the Event that is already open must not reset the panel.
+            if (!(mine && "eventId" in mine && mine.eventId === eventId)) select({ tripId: trip.id, eventId });
+          }}
+          onCreateAt={(dayId, startMinute) =>
+            select({
+              tripId: trip.id,
+              draft: { dayId, startMinute, durationMinutes: DEFAULT_DURATION_MINUTES },
+            })
+          }
+          onAddToBacklog={() =>
+            select({
+              tripId: trip.id,
+              draft: { dayId: "backlog", startMinute: DEFAULT_START_MINUTE, durationMinutes: DEFAULT_DURATION_MINUTES },
+            })
+          }
+        />
       )}
       {trips?.length === 0 && <p>{t("app.noTrips")}</p>}
       {!trips?.length && (

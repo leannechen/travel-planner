@@ -63,7 +63,7 @@ type Props = {
   onDelete: (note: Note) => Promise<void>;
   onClose: () => void;
   // Filled with the panel's own close, which saves first; the shortcut and the Notes button use it.
-  closeRef: { current: (() => void) | undefined };
+  closeRef: { current: (() => Promise<boolean>) | undefined };
 };
 
 // The Trip's Notes in a floating panel with three states: a new Note, the list, one open Note.
@@ -188,10 +188,13 @@ export function NotesPanel({ tripId, notes, onAdd, onUpdate, onDelete, onClose, 
   }
 
   // Saves what is typed, then closes. When a save fails the panel stays open with the text.
+  // Saves what is typed, then closes. Answers whether it closed: a failed save keeps the panel open.
   async function close() {
-    if (await save(true)) onClose();
+    const saved = await save(true);
+    if (saved) onClose();
+    return saved;
   }
-  closeRef.current = () => void close();
+  closeRef.current = close;
 
   function dragStart(e: React.PointerEvent<HTMLElement>) {
     if ((e.target as HTMLElement).closest("button")) return;

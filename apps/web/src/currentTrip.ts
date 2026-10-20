@@ -20,9 +20,14 @@ export function readWantedTripId(): string | undefined {
 
 export function rememberTripId(id: string | undefined) {
   const url = new URL(window.location.href);
+  if (url.searchParams.get(PARAM) === (id ?? null)) return rememberInBrowser(id);
   if (id) url.searchParams.set(PARAM, id);
   else url.searchParams.delete(PARAM);
-  window.history.replaceState(null, "", url);
+  window.history.replaceState(window.history.state, "", url);
+  rememberInBrowser(id);
+}
+
+function rememberInBrowser(id: string | undefined) {
   try {
     if (id) localStorage.setItem(KEY, id);
     else localStorage.removeItem(KEY);

@@ -4,7 +4,8 @@ export default defineConfig({
   test: {
     projects: [
       { test: { name: "shared", root: "packages/shared", environment: "node" } },
-      { test: { name: "web", root: "apps/web", environment: "node" } },
+      // The Map View tests need the sample map, whatever key the developer's .env holds.
+      { test: { name: "web", root: "apps/web", environment: "node", env: { VITE_GOOGLE_MAPS_API_KEY: "" } } },
       {
         test: {
           name: "api",

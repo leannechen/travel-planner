@@ -13,6 +13,7 @@ Product rules are in [`PRD.md`](./PRD.md); vocabulary in [`CONTEXT.md`](../CONTE
 - Everything committed is in English.
 - Before each commit, `npm run lint`, `npm run typecheck`, `npm test` and `npm run build` all pass.
 - At the end of each step, say how to check the new behavior in the browser.
+- Several steps can run in parallel in git worktrees (`scripts/wt-setup.sh` prepares one; `npm run dev` picks free ports; see [`parallel-development.md`](./parallel-development.md)). All worktrees share one local Postgres database, so a step marked **Schema: yes** (it adds a migration) runs alone: merge it first, then the other worktrees rebase and migrate. Mark a step "Schema: yes" when it first turns out to need a migration.
 
 ## Stack
 
@@ -67,15 +68,15 @@ Each step lists what it needs from earlier steps and when it is done.
 
 ### Accounts and collaboration
 
-- [ ] **18. Sign-in.** Auth0 login, API token validation, `User` record, ownership; account menu, guest session and merge on login, session-expiry banner with a read-only Trip, pass the interface language to the hosted page, check how the hosted page follows the theme. *Needs:* 1. (ADR 0006)
-- [ ] **19. Viewer link.** Read-only share link that can be turned off; Viewers do not see Todos, Notes or the Archive. *Needs:* 18.
-- [ ] **20. Editors.** Invite by email, invitation landing page for logged-out invitees, roles and permissions per PRD §8. *Needs:* 19.
+- [ ] **18. Sign-in.** Auth0 login, API token validation, `User` record, ownership; account menu, guest session and merge on login, session-expiry banner with a read-only Trip, pass the interface language to the hosted page, check how the hosted page follows the theme. *Needs:* 1. (ADR 0006) **Schema: yes.**
+- [ ] **19. Viewer link.** Read-only share link that can be turned off; Viewers do not see Todos, Notes or the Archive. *Needs:* 18. **Schema: yes.**
+- [ ] **20. Editors.** Invite by email, invitation landing page for logged-out invitees, roles and permissions per PRD §8. *Needs:* 19. **Schema: yes.**
 - [ ] **21. Live collaboration.** WebSocket updates, last write wins per Event, highlight of others' changes. *Needs:* 20. (ADR 0003)
 
 ### Onboarding, AI and export
 
 - [ ] **22. Sample Trip.** Landing page with only "Open a sample Trip" and log in, an editable copy for a guest, and a "Log in to save your progress" button. *Needs:* 18.
-- [ ] **23. AI generation.** Prompt (from the New Trip action, logged-in users only) to a new Trip with real places and times, daily limit. *Needs:* 14, 15, 18.
+- [ ] **23. AI generation.** Prompt (from the New Trip action, logged-in users only) to a new Trip with real places and times, daily limit. *Needs:* 14, 15, 18. **Schema: yes.**
 - [ ] **24. Export.** Document, backup with import, and whole-Trip image. *Needs:* 15.
 
 ### Trips

@@ -31,6 +31,7 @@ import { dayLabel, formatTripRange, tripStartDate, weekdayKey } from "./tripDate
 import { accessibility, DayTimeline, HourLabels, PX_PER_HOUR, sensors, type EventTimes } from "./DayTimeline";
 import { endGesture } from "./gesture";
 import { HoldingAreas } from "./HoldingAreas";
+import { readView, rememberView, type TripView } from "./currentTrip";
 import { MapView } from "./MapView";
 import { LegPopover } from "./LegPopover";
 import { LodgingBanners, staysOf } from "./LodgingBanners";
@@ -190,7 +191,8 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onDaysChange, s
 
   const phone = useIsPhone();
   // The time-axis view is where Events are edited; the Map View only shows them (PRD §6).
-  const [view, setView] = useState<"schedule" | "map">("schedule");
+  const [view, setView] = useState<TripView>(readView);
+  useEffect(() => rememberView(view), [view]);
   // Phone: one Day at a time, and one of the drawers (Backlog, Archive, Todos) open at most.
   const [dayId, setDayId] = useState(trip.days[0]?.id);
   const [drawer, setDrawer] = useState<"backlog" | "archive" | "todos" | undefined>();

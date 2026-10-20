@@ -35,6 +35,7 @@ function setup(selectedEventId?: string) {
 
 beforeEach(() => {
   setPhone(false);
+  window.history.replaceState(null, "", "/");
   vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
 });
 afterEach(() => {

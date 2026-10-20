@@ -35,3 +35,19 @@ function rememberInBrowser(id: string | undefined) {
     // Without storage the URL still keeps the choice.
   }
 }
+
+// The view of the Trip (`?view=schedule|map`) lives in the URL only, so switching Trips keeps it.
+// `rememberTripId` leaves other parameters alone.
+export type TripView = "schedule" | "map";
+const VIEW_PARAM = "view";
+
+export function readView(): TripView {
+  return new URLSearchParams(window.location.search).get(VIEW_PARAM) === "map" ? "map" : "schedule";
+}
+
+export function rememberView(view: TripView) {
+  const url = new URL(window.location.href);
+  if (url.searchParams.get(VIEW_PARAM) === view) return;
+  url.searchParams.set(VIEW_PARAM, view);
+  window.history.replaceState(window.history.state, "", url);
+}

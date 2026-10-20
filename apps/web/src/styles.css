@@ -365,14 +365,6 @@ input[type="checkbox"]:checked::after {
 }
 
 /* ---------- page and workspace ---------- */
-main > h1 {
-  margin: 0;
-  padding: 12px 16px 0;
-  font-size: 26px;
-  line-height: 32px;
-  font-weight: 800;
-}
-
 main > form {
   display: flex;
   gap: 8px;
@@ -480,15 +472,6 @@ main.has-panel .topbar {
 /* Desktop: the workspace is as tall as the window, so the side columns fit it and only the Days
    scroll (and a column scrolls inside itself when its content is longer than the window). */
 @media (min-width: 40.0625rem) {
-  /* The workspace has its own title in the top bar. */
-  main:has(> .workspace) > h1 {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-  }
-
   .workspace {
     display: flex;
     flex-direction: column;

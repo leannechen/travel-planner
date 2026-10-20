@@ -14,7 +14,6 @@ export const en = {
   "generic.add": "Add",
   "generic.save": "Save",
   "generic.saving": "Saving…",
-  "generic.saved": "Saved",
 
   "count.event_one": "{count} Event",
   "count.event_other": "{count} Events",
@@ -139,7 +138,6 @@ export const en = {
   "event.loadingEditor": "Loading editor…",
   "event.todos": "Event Todos",
   "event.addTodo": "Add an Event Todo",
-  "event.delete": "Delete Event",
   "event.save": "Save",
   "event.titleRequired": "Enter a title to save this Event",
   "event.autosaved": "Saved automatically",
@@ -292,7 +290,6 @@ export const zh: Record<FullKey, string> = {
   "generic.add": "新增",
   "generic.save": "儲存",
   "generic.saving": "儲存中…",
-  "generic.saved": "已儲存",
 
   "count.event_one": "{count} 個事件",
   "count.event_other": "{count} 個事件",
@@ -417,7 +414,6 @@ export const zh: Record<FullKey, string> = {
   "event.loadingEditor": "載入編輯器…",
   "event.todos": "事件待辦",
   "event.addTodo": "新增事件待辦",
-  "event.delete": "刪除事件",
   "event.save": "儲存",
   "event.titleRequired": "請先輸入標題才能儲存這個事件",
   "event.autosaved": "已自動儲存",

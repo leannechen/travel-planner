@@ -51,6 +51,7 @@ function setup(overrides: { event?: Event; onUpdate?: (id: string, input: Record
 beforeEach(() => setPhone(true));
 afterEach(() => {
   cleanup();
+  localStorage.clear();
   vi.unstubAllGlobals();
 });
 
@@ -141,6 +142,16 @@ describe("EventPanel on a phone", () => {
     await user.click(screen.getByRole("menuitem", { name: /^Move to Backlog/ }));
     await waitFor(() => expect(props.onClose).toHaveBeenCalled());
     expect(props.onUpdate).toHaveBeenCalledWith(props.event.id, expect.objectContaining({ area: "backlog", title: `${props.event.title}!` }));
+  });
+
+  it("stays open when Move to Backlog is declined", async () => {
+    const user = userEvent.setup();
+    const event = makeEvent({ dayId: days[0]!.id, holding: null });
+    const props = setup({ event, onUpdate: async () => event });
+    await openMenu(user);
+    await user.click(screen.getByRole("menuitem", { name: /^Move to Backlog/ }));
+    await waitFor(() => expect(props.onUpdate).toHaveBeenCalled());
+    expect(props.onClose).not.toHaveBeenCalled();
   });
 
   it("Delete from the menu asks the page to delete", async () => {
@@ -265,7 +276,6 @@ describe("EventPanel on a desktop", () => {
 
   it("Expand makes it a dialog, Collapse brings back the side panel, and the choice is kept", async () => {
     setPhone(false);
-    localStorage.clear();
     const user = userEvent.setup();
     setup();
     expect(screen.queryByRole("dialog")).toBeNull();
@@ -274,7 +284,19 @@ describe("EventPanel on a desktop", () => {
     expect(localStorage.getItem("travel-planner.event-panel-expanded")).toBe("1");
     await user.click(screen.getByRole("button", { name: "Collapse" }));
     expect(screen.queryByRole("dialog")).toBeNull();
-    localStorage.clear();
+  });
+
+  it("a click on the backdrop closes the panel, but only closes the ⋯ menu when it is open", async () => {
+    setPhone(false);
+    const user = userEvent.setup();
+    const props = setup();
+    await user.click(screen.getByRole("button", { name: "Expand" }));
+    await openMenu(user);
+    await user.click(document.querySelector(".panel-backdrop")!);
+    expect(screen.queryByRole("menu")).toBeNull();
+    expect(props.onClose).not.toHaveBeenCalled();
+    await user.click(document.querySelector(".panel-backdrop")!);
+    expect(props.onClose).toHaveBeenCalledTimes(1);
   });
 
   it("has no Expand button on a phone", () => {

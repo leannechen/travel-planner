@@ -53,7 +53,7 @@ function saveExpanded(expanded: boolean) {
   }
 }
 
-type Status = { kind: "idle" } | { kind: "saving" } | { kind: "saved" } | { kind: "error"; message: string };
+type Status = { kind: "idle" } | { kind: "error"; message: string };
 
 // The time fields for a start and duration; a Transport event shows the arrival instead of the duration.
 function timeFields(startMinute: number, durationMinutes: number) {
@@ -286,13 +286,11 @@ export function EventPanel({
         place: plan.patch.area ?? plan.patch.dayId ?? placeOf(current),
       };
     }
-    setStatus({ kind: "saving" });
     try {
       saved.current =
         plan.kind === "update"
           ? await onUpdate(current!.id, plan.patch)
           : await onCreate(plan.input, plan.dayId);
-      setStatus({ kind: "saved" });
       // A move to the Archive the user declined leaves the Event where it was; show that.
       const result = saved.current;
       if (plan.kind === "update" && plan.patch.area && result && result.holding !== plan.patch.area) {
@@ -316,7 +314,7 @@ export function EventPanel({
     const onPointer = (e: PointerEvent) => {
       // A tap on the scrim is handled by the scrim, which only closes the menu.
       const target = e.target as HTMLElement;
-      if (!more.current?.contains(target) && !target.closest(".sheet-scrim")) setMenuOpen(false);
+      if (!more.current?.contains(target) && !target.closest(".sheet-scrim, .panel-backdrop")) setMenuOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
@@ -449,7 +447,7 @@ export function EventPanel({
     {/* Phone: the page behind the sheet cannot be used; tapping it closes the sheet, asking first about unsaved changes.
         Expanded: the same for the page behind the dialog. */}
     {phone && <div className="sheet-scrim" onClick={() => (menuOpen ? setMenuOpen(false) : onClose())} />}
-    {modal && <div className="panel-backdrop" onClick={() => onClose()} />}
+    {modal && <div className="panel-backdrop" onClick={() => (menuOpen ? setMenuOpen(false) : onClose())} />}
     <aside
       className={`event-panel${modal ? " expanded" : ""}`}
       aria-label={t("event.panel")}
@@ -480,7 +478,7 @@ export function EventPanel({
         <label>
           {t("event.title")}
           <input
-            autoFocus={!quiet}
+            autoFocus={!quiet || modal}
             data-field="title"
             value={fields.title}
             onChange={(e) => change({ title: e.target.value })}
@@ -670,7 +668,6 @@ export function EventPanel({
         {/* Lets Enter submit from any field without a visible button. */}
         <button type="submit" hidden />
       </form>
-      {status.kind === "error" && <p role="alert" className="panel-error">{status.message}</p>}
       {event && event.holding !== "archive" && (
         <section className="event-todos">
           <h4>
@@ -687,6 +684,7 @@ export function EventPanel({
         </section>
       )}
       </div>
+      {status.kind === "error" && <p role="alert" className="panel-error">{status.message}</p>}
       <footer className="panel-foot">
         {event && (
           <div className="more" ref={more}>

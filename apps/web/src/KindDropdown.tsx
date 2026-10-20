@@ -6,6 +6,13 @@ import { useT } from "./preferences";
 
 type Kind = EventFields["kind"];
 
+const HINTS = {
+  attraction: "kind.attractionHint",
+  meal: "kind.mealHint",
+  lodging: "kind.lodgingHint",
+  transport: "kind.transportHint",
+} as const satisfies Record<Kind, string>;
+
 // The kind picker at the top of the Event panel. The trigger takes the kind's tint and icon.
 export function KindDropdown({ value, onChange, large }: { value: Kind; onChange: (kind: Kind) => void; large?: boolean }) {
   const t = useT();
@@ -57,13 +64,22 @@ export function KindDropdown({ value, onChange, large }: { value: Kind; onChange
   }
 
   return (
-    <div className="kind-dd" ref={root} onKeyDown={onKeyDown}>
+    <div
+      className="kind-dd"
+      ref={root}
+      onKeyDown={onKeyDown}
+      onBlur={(e) => {
+        // Tabbing away closes the list.
+        if (open && !root.current?.contains(e.relatedTarget as Node | null)) setOpen(false);
+      }}
+    >
       <button
         ref={trigger}
         type="button"
         className={`kdd kind-${value}${large ? " lgx" : ""}`}
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-activedescendant={open ? `kind-option-${EVENT_KINDS[active]}` : undefined}
         aria-label={`${t("event.kind")}: ${t(kindKey(value))}`}
         onClick={() => (open ? setOpen(false) : openMenu())}
       >
@@ -78,6 +94,8 @@ export function KindDropdown({ value, onChange, large }: { value: Kind; onChange
           {EVENT_KINDS.map((kind, i) => (
             <button
               key={kind}
+              id={`kind-option-${kind}`}
+              tabIndex={-1}
               type="button"
               role="option"
               aria-selected={kind === value}
@@ -89,7 +107,7 @@ export function KindDropdown({ value, onChange, large }: { value: Kind; onChange
               </span>
               <span>
                 <b>{t(kindKey(kind))}</b>
-                <em>{t(`${kindKey(kind)}Hint` as "kind.attractionHint")}</em>
+                <em>{t(HINTS[kind])}</em>
               </span>
               {kind === value && <Check className="ck" size={16} aria-hidden="true" />}
             </button>

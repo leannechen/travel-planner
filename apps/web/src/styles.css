@@ -1030,7 +1030,11 @@ main.has-panel .topbar {
 }
 
 .event-panel .panel-error {
+  flex: none;
+  margin: 0;
+  padding: 8px 16px 0;
   color: var(--danger);
+  font-size: 13px;
 }
 
 .event-panel .panel-form {
@@ -1334,10 +1338,6 @@ main.has-panel .topbar {
   grid-column: 2;
   grid-row: 2;
   align-self: start;
-}
-
-.event-panel.expanded .panel-error {
-  grid-column: 1 / -1;
 }
 
 .event-panel label,

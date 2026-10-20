@@ -66,7 +66,7 @@ describe("Map View", () => {
     setup();
     const map = screen.getByTestId("fake-map");
     await within(map).findByRole("button", { name: /Maybe the park/ });
-    fireEvent.click(screen.getByRole("checkbox", { name: "Backlog" }));
+    fireEvent.click(screen.getByRole("switch", { name: "Backlog" }));
     expect(within(map).queryByRole("button", { name: /Maybe the park/ })).toBeNull();
   });
 
@@ -77,7 +77,7 @@ describe("Map View", () => {
     const map = screen.getByTestId("fake-map");
     await within(map).findByRole("button", { name: /Second/ });
     expect(map.querySelectorAll("line")).toHaveLength(1);
-    fireEvent.click(screen.getByRole("checkbox", { name: "Day lines" }));
+    fireEvent.click(screen.getByRole("switch", { name: "Day lines" }));
     expect(map.querySelectorAll("line")).toHaveLength(0);
   });
 

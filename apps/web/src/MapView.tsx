@@ -122,11 +122,11 @@ export function MapView({ trip, selectedEventId, onSelectEvent, footer }: Props)
             </button>
           ))}
           <label className="map-toggle">
-            <input type="checkbox" checked={showBacklog} onChange={(e) => setShowBacklog(e.target.checked)} />
+            <input type="checkbox" role="switch" checked={showBacklog} onChange={(e) => setShowBacklog(e.target.checked)} />
             {t("area.backlog")}
           </label>
           <label className="map-toggle">
-            <input type="checkbox" checked={showDayLines} onChange={(e) => setShowDayLines(e.target.checked)} />
+            <input type="checkbox" role="switch" checked={showDayLines} onChange={(e) => setShowDayLines(e.target.checked)} />
             {t("map.dayLines")}
           </label>
         </div>

@@ -3123,3 +3123,63 @@ main.has-panel .topbar {
     display: none;
   }
 }
+
+/* The Event panel floats over the map instead of narrowing it, so the map does not shift when the
+   panel opens (design 06). The Days view still makes room by shrinking the page. */
+@media (min-width: 40.01rem) {
+  main.has-panel:has(.map-mode) {
+    margin-right: 0;
+  }
+
+  main.has-panel .map-mode .topbar {
+    padding-right: calc(26rem + 16px);
+  }
+
+  main.has-panel .map-mode .map-filters {
+    right: calc(26rem + 12px);
+  }
+}
+
+/* Toggle switch (design 06): a pill that turns blue, with its label after it. */
+.map-toggle {
+  gap: 8px;
+  cursor: pointer;
+}
+
+.map-toggle input[role="switch"] {
+  appearance: none;
+  position: relative;
+  flex: none;
+  width: 36px;
+  height: 20px;
+  margin: 0;
+  border-radius: 999px;
+  background: var(--border2);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.map-toggle input[role="switch"]::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(22, 34, 59, 0.3);
+  transition: transform 0.15s;
+}
+
+.map-toggle input[role="switch"]:checked {
+  background: var(--pri);
+}
+
+.map-toggle input[role="switch"]:checked::after {
+  transform: translateX(16px);
+}
+
+.map-toggle input[role="switch"]:focus-visible {
+  box-shadow: var(--focus);
+}

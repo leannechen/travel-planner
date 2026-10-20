@@ -260,7 +260,7 @@ export function TripCard({ trip, onOpenSettings, onDaysChange, selectedEventId, 
   const deleting = pendingDelete;
 
   return (
-    <article ref={root} className="workspace">
+    <article ref={root} className={view === "map" ? "workspace map-mode" : "workspace"}>
       <div className="topbar">
         <span className="logo" aria-hidden="true">
           <MapIcon size={18} />

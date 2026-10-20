@@ -480,13 +480,13 @@ main.has-panel .topbar {
 
 /* Without a Trip the switches have no left column; they sit at the top right. */
 .standalone-switches {
-  position: fixed;
+  position: relative;
   z-index: 9;
-  top: 12px;
-  right: 16px;
   display: flex;
   align-items: flex-start;
+  justify-content: flex-end;
   gap: 8px;
+  padding: 12px 16px 0;
 }
 
 .standalone-switches .sidebar {

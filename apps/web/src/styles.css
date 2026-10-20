@@ -1068,7 +1068,7 @@ main.has-panel .topbar {
   background: var(--surface);
 }
 
-.event-panel .panel-foot .grow {
+.event-panel .panel-foot .spacer {
   flex: 1;
 }
 
@@ -2531,7 +2531,7 @@ main.has-panel .topbar {
     justify-content: center;
   }
 
-  .event-panel .panel-foot .grow {
+  .event-panel .panel-foot .spacer {
     display: none;
   }
 

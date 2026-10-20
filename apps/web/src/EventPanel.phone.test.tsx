@@ -64,6 +64,8 @@ describe("EventPanel on a phone", () => {
     expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "More actions" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
+    // Save is not hidden by a style rule (the stylesheet is not loaded in tests, so check the class).
+    expect(screen.getByRole("button", { name: "Save" }).className).not.toContain("grow");
   });
 
   it("Save saves what was typed, then closes", async () => {

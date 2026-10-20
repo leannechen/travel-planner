@@ -19,6 +19,7 @@ function setup(events = [onTime, late, off]) {
     <TripCard
       trip={trip}
       onOpenSettings={vi.fn()}
+      onOpenTripList={vi.fn()}
       onDaysChange={vi.fn()}
       onSelectEvent={vi.fn()}
       onCreateAt={vi.fn()}
@@ -91,6 +92,7 @@ describe("Trip dates on the Trip", () => {
       <TripCard
         trip={trip}
         onOpenSettings={onOpenSettings}
+        onOpenTripList={vi.fn()}
         onDaysChange={vi.fn()}
         onSelectEvent={vi.fn()}
         onCreateAt={vi.fn()}

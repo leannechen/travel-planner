@@ -21,7 +21,7 @@ import {
   type Todo,
   type Trip,
 } from "@travel-planner/shared";
-import { ChevronLeft, ChevronRight, CircleHelp, Map as MapIcon, Plus, Settings, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, CircleHelp, Map as MapIcon, Plus, Settings, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { deleteDay, insertDay, reorderDays, restoreDay } from "./api";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -44,6 +44,8 @@ type Props = {
   trip: Trip;
   // Opens Trip settings (the start date).
   onOpenSettings: () => void;
+  // Opens the list of Trips, from the Trip title.
+  onOpenTripList: () => void;
   onDaysChange: (tripId: string, days: Day[], backlog?: Event[]) => void;
   selectedEventId?: string;
   // A new Event being set up in the panel.
@@ -86,7 +88,7 @@ function dropTargetAt(root: HTMLElement, x: number, y: number, draggedId: string
   return undefined;
 }
 
-export function TripCard({ trip, onOpenSettings, onDaysChange, selectedEventId, draft, onSelectEvent, onCreateAt, onAddToBacklog, onMove, onCreateLeg, onChangeLegMode, onDeleteLeg, onToast, notesOpen, onToggleNotes, onShowShortcuts, footer, onAddTodo, onToggleTodo, onDeleteTodo }: Props) {
+export function TripCard({ trip, onOpenSettings, onOpenTripList, onDaysChange, selectedEventId, draft, onSelectEvent, onCreateAt, onAddToBacklog, onMove, onCreateLeg, onChangeLegMode, onDeleteLeg, onToast, notesOpen, onToggleNotes, onShowShortcuts, footer, onAddTodo, onToggleTodo, onDeleteTodo }: Props) {
   const t = useT();
   const { language } = usePreferences();
   const root = useRef<HTMLElement>(null);
@@ -262,7 +264,12 @@ export function TripCard({ trip, onOpenSettings, onDaysChange, selectedEventId, 
         <span className="logo" aria-hidden="true">
           <MapIcon size={18} />
         </span>
-        <h2>{trip.title}</h2>
+        <h2>
+          <button type="button" className="trip-title" aria-haspopup="dialog" title={t("tripList.switch")} onClick={onOpenTripList}>
+            {trip.title}
+            <ChevronDown size={16} aria-hidden="true" />
+          </button>
+        </h2>
         {!phone && (
           <span className="trip-dates">
             {startDate && `${formatTripRange(startDate, trip.days.length, language)} · `}

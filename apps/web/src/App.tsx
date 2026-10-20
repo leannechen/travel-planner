@@ -61,6 +61,8 @@ import { useT } from "./preferences";
 import { ShortcutSheet } from "./ShortcutSheet";
 import { Toast } from "./Toast";
 import { TitleForm } from "./TitleForm";
+import { chooseTrip, readWantedTripId, rememberTripId } from "./currentTrip";
+import { TripListDialog } from "./TripListDialog";
 import { TripCard, type EventMove, type Toasted } from "./TripCard";
 
 // `dayId` is a Day id, or "backlog" or "archive" for an Event outside any Day.
@@ -71,6 +73,9 @@ const emptyAreas: Areas = { days: [], backlog: [], archive: [] };
 
 // `quiet`: chosen with the keyboard, so the panel must not take the focus.
 type Selection = { tripId: string; eventId: string; quiet?: boolean } | { tripId: string; draft: Draft };
+
+// Where the user is heading when leaving the panel: another selection, or another Trip.
+type Heading = Selection | { switchTo: string };
 
 // "Do not remind me again" for the Todo-deletion dialogs. Kept in this browser until accounts exist
 // (step 18); there is no setting to turn it back on in v1 (PRD §5).
@@ -103,6 +108,9 @@ type Removal = {
 export function App() {
   const t = useT();
   const [trips, setTrips] = useState<Trip[] | undefined>();
+  // The page shows one Trip at a time: the one in the URL or this browser, else the first.
+  const [wantedTripId, setWantedTripId] = useState(readWantedTripId);
+  const [tripListOpen, setTripListOpen] = useState(false);
   const [error, setError] = useState<string | undefined>();
   // Why a drag or resize could not be saved; kept apart from the load error.
   const [saveError, setSaveError] = useState<string | undefined>();
@@ -113,7 +121,6 @@ export function App() {
   const [sheetOpen, setSheetOpen] = useState(false);
   // The Trip whose Notes panel is open. The shortcut opens it for the Trip being worked on.
   const [notesTripId, setNotesTripId] = useState<string | undefined>();
-  const lastNotesTripId = useRef<string | undefined>(undefined);
   // The open panel's own close, which saves what is typed first.
   const closeNotes = useRef<(() => void) | undefined>(undefined);
   const dismissToast = useCallback(() => setToast(undefined), []);
@@ -147,6 +154,13 @@ export function App() {
   async function handleCreateTrip(title: string) {
     const trip = await createTrip({ title });
     setTrips((current) => [trip, ...(current ?? [])]);
+    switchTrip(trip.id);
+  }
+
+  // Shows another Trip, after the usual question about unsaved changes in the Event panel.
+  function switchTrip(tripId: string) {
+    setTripListOpen(false);
+    if (tripId !== currentTrip?.id) select({ switchTo: tripId });
   }
 
   // Legs between Events that stop being adjacent go at once; the server decides for good and
@@ -226,12 +240,19 @@ export function App() {
 
   const showArchived = () => setToast({ id: Date.now(), message: t("event.archived") });
 
-  function apply(next: Selection | undefined) {
-    setSelection(next);
+  function apply(next: Heading | undefined) {
+    if (next && "switchTo" in next) {
+      setWantedTripId(next.switchTo);
+      // Notes of the Trip being left close, saving what is typed first.
+      closeNotes.current?.();
+      setSelection(undefined);
+    } else {
+      setSelection(next);
+    }
     panelKeyRef.current += 1;
     setPanelKey(panelKeyRef.current);
   }
-  const guard = useUnsavedGuard<Selection>(apply);
+  const guard = useUnsavedGuard<Heading>(apply);
   const { panelApi, select } = guard;
 
   // The server's answer after a Day change; the Backlog comes along when the change moves Events.
@@ -411,16 +432,12 @@ export function App() {
   }
 
   function toggleNotes(tripId: string) {
-    lastNotesTripId.current = tripId;
     if (notesTripId === tripId) return closeNotes.current?.();
     setNotesTripId(tripId);
   }
 
-  // The Trip the keyboard works on: the one with the selection, else the last one used.
-  const workingTrip = () => {
-    const id = selection?.tripId ?? lastNotesTripId.current;
-    return trips?.find((t) => t.id === id) ?? trips?.[0];
-  };
+  // The Trip the keyboard works on: the one shown.
+  const workingTrip = () => currentTrip;
 
   // Ctrl+Alt+N opens or closes the Notes panel from anywhere. (Browsers keep Ctrl+Shift+N, and
   // Alt+Shift switches the input language on Windows.)
@@ -640,6 +657,17 @@ export function App() {
     }
   }
 
+  const currentTrip = trips && chooseTrip(trips, wantedTripId);
+  const currentTripId = currentTrip?.id;
+  useEffect(() => {
+    // Once the Trips are loaded, the URL and this browser follow the Trip shown.
+    if (trips) rememberTripId(currentTripId);
+  }, [trips, currentTripId]);
+
+  // The Trip shown, and its part of the selection.
+  const trip = currentTrip;
+  const mine = trip && selection?.tripId === trip.id ? selection : undefined;
+
   const selectedTrip = selection && trips?.find((t) => t.id === selection.tripId);
   const selectedEvent =
     selectedTrip && selection && "eventId" in selection
@@ -650,16 +678,15 @@ export function App() {
     <>
     <main className={selectedTrip ? "has-panel" : undefined}>
       <h1>{t("app.title")}</h1>
-      <TitleForm label={t("app.tripTitle")} submitLabel={t("app.createTrip")} onSubmit={handleCreateTrip} />
+      {trips?.length === 0 && <TitleForm label={t("app.tripTitle")} submitLabel={t("app.createTrip")} onSubmit={handleCreateTrip} />}
       {error && <p role="alert">{error}</p>}
       {saveError && <p role="alert">{saveError}</p>}
-      {trips?.map((trip, index) => {
-        const mine = selection?.tripId === trip.id ? selection : undefined;
-        return (
+      {trip && (
           <TripCard
             key={trip.id}
             trip={trip}
             onOpenSettings={() => setSettingsTripId(trip.id)}
+            onOpenTripList={() => setTripListOpen(true)}
             onDaysChange={handleDaysChange}
             selectedEventId={mine && "eventId" in mine ? mine.eventId : undefined}
             draft={mine && "draft" in mine ? mine.draft : undefined}
@@ -671,8 +698,7 @@ export function App() {
             notesOpen={notesTripId === trip.id}
             onToggleNotes={() => toggleNotes(trip.id)}
             onShowShortcuts={() => setSheetOpen(true)}
-            // The switches are shown once, under the first Trip, until Trip management (step 25).
-            footer={index === 0 ? <Sidebar onShowShortcuts={() => setSheetOpen(true)} /> : undefined}
+            footer={<Sidebar onShowShortcuts={() => setSheetOpen(true)} />}
             onAddTodo={(text, eventId) => handleAddTodo(trip.id, text, eventId)}
             onToggleTodo={(todo) => handleToggleTodo(trip.id, todo)}
             onDeleteTodo={(todo) => handleDeleteTodo(trip.id, todo)}
@@ -693,8 +719,7 @@ export function App() {
               })
             }
           />
-        );
-      })}
+      )}
       {trips?.length === 0 && <p>{t("app.noTrips")}</p>}
       {!trips?.length && (
         <div className="standalone-switches">
@@ -746,6 +771,9 @@ export function App() {
           onChangeStartDate={(startDate) => handleChangeStartDate(settingsTripId, startDate)}
           onClose={() => setSettingsTripId(undefined)}
         />
+      )}
+      {tripListOpen && trips && (
+        <TripListDialog trips={trips} currentId={currentTripId} onSwitch={switchTrip} onCreate={handleCreateTrip} onClose={() => setTripListOpen(false)} />
       )}
       {sheetOpen && <ShortcutSheet onClose={() => setSheetOpen(false)} />}
       {guard.asking && (

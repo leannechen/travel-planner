@@ -159,6 +159,9 @@ export const en = {
   "place.remove": "Remove {label}",
 
   "trip.settings": "Trip settings",
+  "tripList.title": "My Trips",
+  "tripList.switch": "Switch Trip",
+  "tripList.new": "New Trip",
   "trip.startDate": "Start date",
   "trip.optional": "optional",
   "trip.pickDate": "Pick a date",
@@ -427,6 +430,9 @@ export const zh: Record<FullKey, string> = {
   "place.remove": "移除{label}",
 
   "trip.settings": "行程設定",
+  "tripList.title": "我的旅程",
+  "tripList.switch": "切換旅程",
+  "tripList.new": "新增旅程",
   "trip.startDate": "出發日期",
   "trip.optional": "選填",
   "trip.pickDate": "選擇日期",

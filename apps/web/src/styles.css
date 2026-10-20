@@ -412,6 +412,17 @@ main > [role="alert"] {
   font-weight: 800;
 }
 
+.topbar .trip-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
 .logo {
   display: flex;
   flex: none;
@@ -1681,6 +1692,78 @@ main.has-panel .topbar {
   margin: 0 0 6px;
   font-size: 17px;
   font-weight: 800;
+}
+
+.trip-list-dialog {
+  width: min(26rem, calc(100vw - 32px));
+  padding: 20px 22px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--sh-dlg);
+  color: var(--text);
+}
+
+.trip-list-dialog::backdrop {
+  background: rgba(14, 21, 38, 0.5);
+}
+
+.trip-list-dialog h2 {
+  margin: 0 0 10px;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.trip-list-dialog ul {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+}
+
+.trip-list-dialog li button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.trip-list-dialog li button[aria-current="true"] {
+  background: var(--pri-tint);
+  font-weight: 700;
+}
+
+.trip-list-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trip-list-days {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+@media (max-width: 40rem) {
+  /* A full screen on a phone (design 24, "Trips screen"). */
+  .trip-list-dialog {
+    width: 100vw;
+    max-width: none;
+    height: 100dvh;
+    max-height: none;
+    border: 0;
+    border-radius: 0;
+  }
 }
 
 .dialog-actions {

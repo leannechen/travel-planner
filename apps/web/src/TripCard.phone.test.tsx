@@ -18,6 +18,7 @@ function setup(selectedEventId?: string) {
   const props = {
     trip,
     onOpenSettings: vi.fn(),
+    onOpenTripList: vi.fn(),
     onDaysChange: vi.fn(),
     selectedEventId,
     onSelectEvent: vi.fn(),

@@ -80,7 +80,9 @@ Each step lists what it needs from earlier steps and when it is done.
 
 ### Trips
 
-- [ ] **25. Trip management.** Trip list and Shared-with-me, New Trip, rename, delete with typed confirmation, import backup, switching Trips. *Needs:* 18, 20, 24. (PRD §8.1)
+- [x] **25a. Show one Trip at a time.** The page shows only the current Trip instead of every Trip one under another. A Trip title menu (a sidebar on desktop, a full screen on phone, as in PRD §8.1) lists the user's Trips and switches between them; the chosen Trip is kept in the browser and in the URL, so a reload shows the same Trip. New Trip is available from the same list. Switching goes through the same unsaved-changes question as leaving the Event panel. Only the user's own Trips for now: Shared-with-me, delete, import and the Trip list "⋯" menu stay in step 25. *Needs:* 35. *Done when:* with two or more Trips only one is shown; switching, creating and reloading keep the right Trip; a test covers choosing the Trip to show; a browser check passes on desktop and phone.
+  - **Done as:** `currentTrip.ts` chooses the Trip (the one in `?trip=<id>`, else the one kept in this browser, else the first) and keeps the URL and the browser in step; the page renders only that Trip. The Trip title in the top bar is a button that opens `TripListDialog` (a modal; a full screen at phone width) with the Trips, a New Trip field and Close. Switching and creating go through the same unsaved-changes guard as leaving the Event panel (the guard now also takes `{ switchTo }`), and close the open Notes panel. The create-Trip form at the top of the page shows only when there are no Trips. Not done (step 25): the sidebar form of the list (design 24), Trip counts and dates in the list, Shared-with-me, "⋯" menu. The browser check is left to the user.
+- [ ] **25. Trip management.** Trip list and Shared-with-me, New Trip, rename, delete with typed confirmation, import backup (switching Trips is already done in step 25a). *Needs:* 18, 20, 24, 25a. (PRD §8.1)
 
 ### Release
 

@@ -41,7 +41,7 @@ Language, theme, log out, Share and Export were spread over several phone screen
 - [x] Trip `⋯` button opens a bottom sheet: Share…, Export…, Trip settings…. Share is no longer in the top bar, so the Trip title keeps about 230px.
 - [x] By role: Owner has all three; Editor has Export and Trip settings (no Share); Viewer has no `⋯` and no Notes, with a "Read only" chip; guest sees Share and Export marked "Needs login".
 - [x] No "My Trips" row on phone: tapping the Trip title opens the Trip list. Desktop keeps My Trips in the account menu.
-- [ ] Open: a logged-in Viewer's title has no ▾, so there is no way to the Trip list on phone.
+- [x] A logged-in Viewer's Trip title keeps the ▾ (Trip list and Shared with me); a Viewer who is not logged in has none (#47 top bar strips).
 - [x] PRD §8 and §14 updated.
 
 ## Earlier list

@@ -53,7 +53,9 @@ import { AccountMenu, ExpiredBanner, GuestBanner, LoginErrorStrip } from "./Acco
 import { useAuth } from "./AuthProvider";
 import { LOGGED_OUT_PARAM } from "./authClient";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { InvitePage } from "./InvitePage";
 import { Landing } from "./Landing";
+import { ShareDialog } from "./ShareDialog";
 import { clearNotice, clearPendingEdits, keepPendingEdits, peekNotice, peekPendingEdits } from "./pendingEdits";
 import { useIsPhone } from "./phone";
 import { EventPanel } from "./EventPanel";
@@ -114,8 +116,29 @@ type Removal = {
 };
 
 // The Landing page after logging out, else the workspace. (The full Landing page is step 22.)
+const INVITE_PARAM = "invite";
+
+function leaveInvitation() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete(INVITE_PARAM);
+  window.history.replaceState(null, "", url);
+}
+
+// The address Auth0 sends the browser back to; it is replaced by the page the login came from.
+function isLoginCallback() {
+  const params = new URLSearchParams(window.location.search);
+  return params.has("code") && params.has("state");
+}
+
 export function App() {
+  const t = useT();
   const [landing, setLanding] = useState(() => new URLSearchParams(window.location.search).has(LOGGED_OUT_PARAM));
+  const auth = useAuth();
+  // An invitation link is open until it was accepted or the user goes to their own Trips. Not read
+  // while the login redirect is being finished: the address only becomes the invitation link after.
+  const [leftInvite, setLeftInvite] = useState(false);
+  const invite = leftInvite ? null : new URLSearchParams(window.location.search).get(INVITE_PARAM);
+  const [joined, setJoined] = useState<string | undefined>();
   if (landing) {
     return (
       <Landing
@@ -126,10 +149,28 @@ export function App() {
       />
     );
   }
-  return <Workspace />;
+  if (auth.status === "loading" && isLoginCallback()) return null;
+  if (invite) {
+    return (
+      <InvitePage
+        token={invite}
+        onLeave={() => {
+          leaveInvitation();
+          setLeftInvite(true);
+        }}
+        onJoined={({ tripId, tripTitle }) => {
+          rememberTripId(tripId);
+          leaveInvitation();
+          setJoined(t("invite.joined", { trip: tripTitle }));
+          setLeftInvite(true);
+        }}
+      />
+    );
+  }
+  return <Workspace joinedMessage={joined} />;
 }
 
-function Workspace() {
+function Workspace({ joinedMessage }: { joinedMessage?: string }) {
   const t = useT();
   const auth = useAuth();
   const phone = useIsPhone();
@@ -149,7 +190,7 @@ function Workspace() {
   const [selection, setSelection] = useState<Selection | undefined>();
   const [meId, setMeId] = useState<string | undefined>();
   const [removal, setRemoval] = useState<Removal | undefined>();
-  const [toast, setToast] = useState<Toasted | undefined>();
+  const [toast, setToast] = useState<Toasted | undefined>(() => (joinedMessage ? { id: Date.now(), message: joinedMessage } : undefined));
   const [sheetOpen, setSheetOpen] = useState(false);
   // The Trip whose Notes panel is open. The shortcut opens it for the Trip being worked on.
   const [notesTripId, setNotesTripId] = useState<string | undefined>();
@@ -197,6 +238,8 @@ function Workspace() {
   const { arrival } = auth;
   useEffect(() => {
     if (!arrival) return;
+    // The "You joined" message is the news when both apply.
+    if (joinedMessage) return;
     if (arrival.merged > 0) setToast({ id: Date.now(), message: t("auth.merged", { count: arrival.merged }) });
     else if (!new URLSearchParams(window.location.search).has("trip")) {
       setChooser(true);
@@ -230,6 +273,8 @@ function Workspace() {
     }
   }, [pending, trips]);
 
+  // The Trip whose Share dialog is open.
+  const [shareTripId, setShareTripId] = useState<string | undefined>();
   // The Trip whose settings are open.
   const [settingsTripId, setSettingsTripId] = useState<string | undefined>();
 
@@ -818,6 +863,7 @@ function Workspace() {
           readOnly={expired}
           onOpenSettings={() => setSettingsTripId(trip.id)}
           onOpenTripList={() => setTripListOpen(true)}
+          onShare={trip.role === "owner" ? () => (auth.status === "guest" ? void auth.login() : setShareTripId(trip.id)) : undefined}
           onDaysChange={handleDaysChange}
           selectedEventId={mine && "eventId" in mine ? mine.eventId : undefined}
           draft={mine && "draft" in mine ? mine.draft : undefined}
@@ -915,6 +961,9 @@ function Workspace() {
           onChangeStartDate={(startDate) => handleChangeStartDate(settingsTripId, startDate)}
           onClose={() => setSettingsTripId(undefined)}
         />
+      )}
+      {shareTripId && trips?.some((tr) => tr.id === shareTripId) && (
+        <ShareDialog tripId={shareTripId} tripTitle={trips.find((tr) => tr.id === shareTripId)!.title} ownerEmail={auth.email} onClose={() => setShareTripId(undefined)} />
       )}
       {tripListOpen && trips && (
         <TripListDialog readOnly={expired} trips={trips} currentId={currentTripId} onSwitch={switchTrip} onCreate={handleCreateTrip} onClose={() => setTripListOpen(false)} />

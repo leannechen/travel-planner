@@ -6,6 +6,7 @@ import { createApp } from "../src/app";
 import { fakeTokenVerifier, GUEST_HEADER, type TokenVerifier } from "../src/auth";
 import { fakeRouteProvider, type RouteProvider } from "../src/routes";
 import { fakePlaceProvider, type PlaceProvider } from "../src/places";
+import type { IdentityAdmin, InvitationMailer } from "../src/sharing";
 import { createDb } from "../src/db/client";
 import { TEST_DATABASE_URL } from "./global-setup";
 
@@ -14,10 +15,15 @@ export const testToken = (sub = "test-user") => `fake:${sub}`;
 // Starts the app against the test database. Call reset() before each test.
 export async function startTestApp(places: PlaceProvider = fakePlaceProvider(), routes: RouteProvider = fakeRouteProvider(), auth: TokenVerifier = fakeTokenVerifier()) {
   const { db, pool } = createDb(TEST_DATABASE_URL);
+  // What would have been sent: invitations by email, and requests to Auth0 to send a verification email again.
+  const mails: Parameters<InvitationMailer["send"]>[0][] = [];
+  const resends: string[] = [];
+  const mailer: InvitationMailer = { send: async (mail) => void mails.push(mail) };
+  const identityAdmin: IdentityAdmin = { resendVerification: async (sub) => void resends.push(sub) };
 
   let server!: Server;
   await new Promise<void>((resolve) => {
-    server = createApp(db, { places, routes, auth }).listen(0, () => resolve());
+    server = createApp(db, { places, routes, auth, mailer, identityAdmin, appOrigin: "http://app.test" }).listen(0, () => resolve());
   });
   const baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 
@@ -36,7 +42,11 @@ export async function startTestApp(places: PlaceProvider = fakePlaceProvider(), 
   return {
     baseUrl,
     db,
+    mails,
+    resends,
     async reset() {
+      mails.length = 0;
+      resends.length = 0;
       await db.execute(sql`truncate table events, days, trips, users, places, route_estimates cascade`);
     },
     async stop() {

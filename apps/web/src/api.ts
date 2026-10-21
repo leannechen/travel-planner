@@ -1,5 +1,9 @@
 import {
+  acceptedInvitationSchema,
   daySchema,
+  invitationPreviewSchema,
+  invitationSchema,
+  sharingSchema,
   dayDeletionSchema,
   deletedEventSchema,
   eventSchema,
@@ -14,7 +18,9 @@ import {
   type CreateEventInput,
   type CreateLegInput,
   type CreateTripInput,
+  type AcceptedInvitation,
   type DeletedEvent,
+  type InvitationPreview,
   type HoldingArea,
   type RestoreDayInput,
   type Note,
@@ -45,9 +51,16 @@ async function send(path: string, init: RequestInit = {}): Promise<Response> {
   return res;
 }
 
+// A failed request; `code` is the server's machine-readable reason when it gave one.
+export class ApiError extends Error {
+  constructor(message: string, readonly code?: string) {
+    super(message);
+  }
+}
+
 async function failure(res: Response): Promise<Error> {
-  const detail = (await res.json().catch(() => undefined)) as { error?: string } | undefined;
-  return new Error(detail?.error ?? `Request failed: ${res.status}`);
+  const detail = (await res.json().catch(() => undefined)) as { error?: string; code?: string } | undefined;
+  return new ApiError(detail?.error ?? `Request failed: ${res.status}`, detail?.code);
 }
 
 async function request<T>(
@@ -159,3 +172,33 @@ export const updateLegMode = (tripId: string, legId: string, mode: TravelMode) =
 
 // The server answers 204 with no body.
 export const deleteLeg = (tripId: string, legId: string) => requestNothing(`/api/trips/${tripId}/legs/${legId}`, "DELETE");
+
+// Sharing (PRD §8): the Owner's list of Editors and waiting invitations.
+export const getSharing = (tripId: string) => request(`/api/trips/${tripId}/sharing`, sharingSchema);
+
+export const inviteEditor = (tripId: string, email: string) => request(`/api/trips/${tripId}/invitations`, invitationSchema, { email });
+
+export const revokeInvitation = (tripId: string, invitationId: string) => requestNothing(`/api/trips/${tripId}/invitations/${invitationId}`, "DELETE");
+
+export const removeEditor = (tripId: string, editorId: string) => requestNothing(`/api/trips/${tripId}/editors/${editorId}`, "DELETE");
+
+// The invitation page is for people who may not be logged in, so it sends no credentials.
+// undefined: the link is not valid (any more).
+export async function getInvitationPreview(token: string): Promise<InvitationPreview | undefined> {
+  const res = await fetch(`/api/invitations/${encodeURIComponent(token)}`);
+  if (res.status === 404) return undefined;
+  if (!res.ok) throw await failure(res);
+  return invitationPreviewSchema.parse(await res.json());
+}
+
+export type AcceptResult = { ok: true; trip: AcceptedInvitation } | { ok: false; reason: "wrong_account" | "email_not_verified" | "invitation_not_found" };
+
+export async function acceptInvitation(token: string): Promise<AcceptResult> {
+  const res = await send(`/api/invitations/${encodeURIComponent(token)}/accept`, { method: "POST" });
+  if (res.ok) return { ok: true, trip: acceptedInvitationSchema.parse(await res.json()) };
+  const detail = (await res.clone().json().catch(() => undefined)) as { code?: string } | undefined;
+  if (detail?.code === "wrong_account" || detail?.code === "email_not_verified" || detail?.code === "invitation_not_found") return { ok: false, reason: detail.code };
+  throw await failure(res);
+}
+
+export const resendVerification = () => requestNothing("/api/me/resend-verification", "POST");

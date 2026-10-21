@@ -6,7 +6,9 @@ import type { Db } from "./db/client";
 import { todos, trips, users } from "./db/schema";
 
 // What the API needs from a valid access token: who it is for.
-export type Identity = { sub: string };
+// `email` and `emailVerified` come from custom claims that an Auth0 Action adds to the access token
+// (see the plan, step 20); without them the API asks Auth0's /userinfo, and when that fails both are left out.
+export type Identity = { sub: string; email?: string; emailVerified?: boolean };
 
 // Checks an access token and says who it belongs to; rejects when the token is not valid. Auth0 is
 // behind this (ADR 0006); a fake stands in for it in tests and local development.
@@ -39,6 +41,10 @@ declare global {
       userId: string;
       // Set when the request carries a valid account token (not for a guest).
       accountId?: string;
+      // From the account's token: the Auth0 subject, and the email address with whether it is verified.
+      sub?: string;
+      email?: string;
+      emailVerified?: boolean;
     }
   }
 }
@@ -55,8 +61,38 @@ export function authSettingsFromEnv(env: NodeJS.ProcessEnv = process.env): AuthS
 
 // Accepts the access tokens Auth0 issues for this API: a signature from the tenant's keys, the
 // tenant as issuer, this API as audience, not expired. `keys` is the tenant's JWKS; tests pass their own.
-export function jwtVerifier({ domain, audience }: AuthSettings, keys?: JWTVerifyGetKey): TokenVerifier {
+export function jwtVerifier(
+  { domain, audience }: AuthSettings,
+  keys?: JWTVerifyGetKey,
+  fetchFn: typeof fetch = fetch,
+): TokenVerifier {
   const issuer = `https://${domain.replace(/^https?:\/\//, "").replace(/\/$/, "")}/`;
+  // Auth0 only allows namespaced custom claims: the audience plus the claim name.
+  const claimNamespace = `${audience.replace(/\/$/, "")}/`;
+  // Without the Action's claims, Auth0's /userinfo gives the same answer for the token. Asked once
+  // per token for a few minutes, and a failure just leaves the email out.
+  const userinfo = new Map<string, { at: number; email?: string; emailVerified?: boolean }>();
+  const fromUserinfo = async (token: string) => {
+    const cached = userinfo.get(token);
+    if (cached && Date.now() - cached.at < 5 * 60_000) return cached;
+    let found: { at: number; email?: string; emailVerified?: boolean } = { at: Date.now() };
+    try {
+      const res = await fetchFn(`${issuer}userinfo`, { headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(5000) });
+      if (res.ok) {
+        const body = (await res.json()) as { email?: unknown; email_verified?: unknown };
+        found = {
+          at: found.at,
+          ...(typeof body.email === "string" && body.email ? { email: body.email.toLowerCase() } : {}),
+          ...(typeof body.email_verified === "boolean" ? { emailVerified: body.email_verified } : {}),
+        };
+      }
+    } catch {
+      // Not reachable: no email this time.
+    }
+    if (userinfo.size >= 500) userinfo.clear();
+    userinfo.set(token, found);
+    return found;
+  };
   const jwks = keys ?? createRemoteJWKSet(new URL(`${issuer}.well-known/jwks.json`));
   return {
     async verify(token) {
@@ -70,18 +106,32 @@ export function jwtVerifier({ domain, audience }: AuthSettings, keys?: JWTVerify
         throw err;
       }
       if (!payload.sub) throw new TokenRejected("The token has no subject");
-      return { sub: payload.sub };
+      const email = payload[`${claimNamespace}email`];
+      const emailVerified = payload[`${claimNamespace}email_verified`];
+      if (typeof email !== "string" || !email) {
+        const { email: found, emailVerified: foundVerified } = await fromUserinfo(token);
+        return { sub: payload.sub, ...(found ? { email: found } : {}), ...(foundVerified !== undefined ? { emailVerified: foundVerified } : {}) };
+      }
+      return {
+        sub: payload.sub,
+        email: email.toLowerCase(),
+        ...(typeof emailVerified === "boolean" ? { emailVerified } : {}),
+      };
     },
   };
 }
 
-// Development and tests: the token "fake:<sub>" belongs to <sub>. Only with AUTH_FAKE=1 and no Auth0 settings.
+// Development and tests: the token "fake:<sub>" belongs to <sub>, and when that looks like an email
+// address it is also the account's verified email; "fake-unverified:<email>" has an unverified one.
+// Only with AUTH_FAKE=1 and no Auth0 settings.
 export function fakeTokenVerifier(): TokenVerifier {
   return {
     async verify(token) {
-      const match = /^fake:(.+)$/.exec(token);
+      const match = /^(fake|fake-unverified):(.+)$/.exec(token);
       if (!match) throw new TokenRejected("Not a fake token");
-      return { sub: match[1]! };
+      const sub = match[2]!;
+      if (!sub.includes("@")) return { sub };
+      return { sub, email: sub.toLowerCase(), emailVerified: match[1] === "fake" };
     },
   };
 }
@@ -95,11 +145,15 @@ export function verifierFromEnv(env: NodeJS.ProcessEnv = process.env): TokenVeri
 }
 
 // The user row of an account, created on its first request.
-export async function findOrCreateAccount(db: Db, sub: string): Promise<string> {
-  const [found] = await db.select({ id: users.id }).from(users).where(eq(users.auth0Sub, sub));
-  if (found) return found.id;
+// The email address is kept up to date from the token, so the Share dialog can name people.
+export async function findOrCreateAccount(db: Db, sub: string, email?: string): Promise<string> {
+  const [found] = await db.select({ id: users.id, email: users.email }).from(users).where(eq(users.auth0Sub, sub));
+  if (found) {
+    if (email && found.email !== email) await db.update(users).set({ email }).where(eq(users.id, found.id));
+    return found.id;
+  }
   // Two first requests can race; the loser finds the winner's row.
-  const [created] = await db.insert(users).values({ auth0Sub: sub }).onConflictDoNothing().returning({ id: users.id });
+  const [created] = await db.insert(users).values({ auth0Sub: sub, email }).onConflictDoNothing().returning({ id: users.id });
   if (created) return created.id;
   const [row] = await db.select({ id: users.id }).from(users).where(eq(users.auth0Sub, sub));
   return row!.id;
@@ -138,7 +192,10 @@ export function authenticate(db: Db, verifier: TokenVerifier) {
           res.status(401).json({ error: "Your session is not valid", code: "invalid_token" });
           return;
         }
-        res.locals.userId = res.locals.accountId = await findOrCreateAccount(db, identity.sub);
+        res.locals.userId = res.locals.accountId = await findOrCreateAccount(db, identity.sub, identity.email);
+        res.locals.sub = identity.sub;
+        res.locals.email = identity.email;
+        res.locals.emailVerified = identity.emailVerified;
         next();
         return;
       }

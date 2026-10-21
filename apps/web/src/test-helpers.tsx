@@ -72,5 +72,5 @@ export const makeDay = (position: number, events: Event[] = []): Day => {
 };
 
 export function makeTrip(overrides: Partial<Trip> = {}): Trip {
-  return { id: id(), title: "Kyoto", days: [makeDay(1), makeDay(2)], backlog: [], archive: [], todos: [], notes: [], legs: [], travelMode: "transit", startDate: null, ...overrides };
+  return { id: id(), title: "Kyoto", days: [makeDay(1), makeDay(2)], backlog: [], archive: [], todos: [], notes: [], legs: [], travelMode: "transit", startDate: null, role: "owner", ...overrides };
 }

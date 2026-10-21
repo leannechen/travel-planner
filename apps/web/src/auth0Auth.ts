@@ -43,6 +43,7 @@ export function createAuth0Auth({ domain, clientId, audience }: Auth0Settings): 
     ui_locales: uiLocale(o.language),
     ...(o.loginHint ? { login_hint: o.loginHint } : {}),
     ...(o.screenHint ? { screen_hint: o.screenHint } : {}),
+    ...(o.prompt ? { prompt: o.prompt } : {}),
   });
 
   return {
@@ -93,10 +94,10 @@ export function createAuth0Auth({ domain, clientId, audience }: Auth0Settings): 
     async currentSub() {
       return toUser(await (await client()).getUser())?.sub;
     },
-    async getToken() {
+    async getToken(fresh = false) {
       const auth0 = await client();
       try {
-        const token = await auth0.getTokenSilently({ authorizationParams: { audience } } satisfies GetTokenSilentlyOptions);
+        const token = await auth0.getTokenSilently({ authorizationParams: { audience }, ...(fresh ? { cacheMode: "off" as const } : {}) } satisfies GetTokenSilentlyOptions);
         if (!token) throw new SessionEndedError();
         return token;
       } catch (err) {

@@ -9,6 +9,7 @@ import {
   deletedEventSchema,
   restoreNoteInputSchema,
   holdingAreaSchema,
+  inviteEditorInputSchema,
   MAX_PLACE_IDS,
   MAX_PLACE_QUERY_LENGTH,
   placeIdSchema,
@@ -21,9 +22,12 @@ import {
   updateTodoInputSchema,
 } from "@travel-planner/shared";
 import type { HealthResponse, Me } from "@travel-planner/shared";
+import { eq } from "drizzle-orm";
 import express from "express";
 import { z, ZodError } from "zod";
 import type { Db } from "./db/client";
+import { users } from "./db/schema";
+import { acceptInvitation, getSharing, identityAdminFromEnv, IdentityAdminError, inviteEditor, logInvitationMailer, previewInvitation, removeEditor, revokeInvitation, type IdentityAdmin, type InvitationMailer } from "./sharing";
 import { authenticate, GUEST_HEADER, mergeGuest, verifierFromEnv, type TokenVerifier } from "./auth";
 import { createLeg, deleteLeg, isProviderError, listLegs, setLegMode, syncLegs } from "./legs";
 import { fetchOpeningHours, getOpeningHours, getPlaces, PlaceProviderError, placeProviderFromEnv, searchPlaces, type PlaceProvider } from "./places";
@@ -42,7 +46,7 @@ import {
   insertDay,
   listTrips,
   ownPlaceIds,
-  ownsTrip,
+  canEditTrip,
   reorderDays,
   restoreDay,
   restoreEvent,
@@ -54,6 +58,9 @@ import {
   updateTodo,
 } from "./trips";
 
+const invitationParamsSchema = z.object({ token: z.string().min(1).max(200) });
+const editorParamsSchema = z.object({ tripId: z.uuid(), editorId: z.uuid() });
+const invitationIdParamsSchema = z.object({ tripId: z.uuid(), invitationId: z.uuid() });
 const tripParamsSchema = z.object({ tripId: z.uuid() });
 const eventIdParamsSchema = z.object({ tripId: z.uuid(), eventId: z.uuid() });
 const dayParamsSchema = z.object({ tripId: z.uuid(), dayId: z.uuid() });
@@ -73,7 +80,10 @@ const idsQuerySchema = z.object({
     .pipe(z.array(placeIdSchema).max(MAX_PLACE_IDS)),
 });
 
-export function createApp(db: Db, options: { places?: PlaceProvider; routes?: RouteProvider; auth?: TokenVerifier } = {}) {
+export function createApp(db: Db, options: { places?: PlaceProvider; routes?: RouteProvider; auth?: TokenVerifier; mailer?: InvitationMailer; identityAdmin?: IdentityAdmin; appOrigin?: string } = {}) {
+  const mailer = options.mailer ?? logInvitationMailer();
+  const identityAdmin = options.identityAdmin ?? identityAdminFromEnv();
+  const appOrigin = options.appOrigin ?? process.env.APP_ORIGIN ?? "http://localhost:5173";
   const provider = options.places ?? placeProviderFromEnv();
   const legDeps = { places: provider, routes: options.routes ?? routeProviderFromEnv() };
   // After Events or Days change: Legs between Events that are no longer adjacent go, and Legs whose
@@ -90,6 +100,17 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
   app.get("/api/health", (_req, res) => {
     const body: HealthResponse = { status: "ok" };
     res.json(body);
+  });
+
+  // The invitation page is shown before login, to whoever holds the link (its token is the secret).
+  app.get("/api/invitations/:token", async (req, res) => {
+    const { token } = invitationParamsSchema.parse(req.params);
+    const preview = await previewInvitation(db, token);
+    if (!preview) {
+      res.status(404).json({ error: "This invitation is not valid any more", code: "invitation_not_found" });
+      return;
+    }
+    res.json(preview);
   });
 
   // Everything below is for an account or a guest session.
@@ -110,6 +131,44 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
     const guestToken = z.uuid().safeParse(req.header(GUEST_HEADER));
     const merged = guestToken.success ? await mergeGuest(db, res.locals.accountId, guestToken.data) : 0;
     res.json({ merged });
+  });
+
+  app.post("/api/me/resend-verification", async (_req, res) => {
+    if (!res.locals.sub) {
+      res.status(401).json({ error: "Log in first", code: "no_session" });
+      return;
+    }
+    try {
+      await identityAdmin.resendVerification(res.locals.sub);
+    } catch (err) {
+      if (!(err instanceof IdentityAdminError)) throw err;
+      res.status(502).json({ error: "The verification email could not be sent. Try again in a moment." });
+      return;
+    }
+    res.status(204).end();
+  });
+
+  // Accepting an invitation needs an account whose verified email is the invited one.
+  app.post("/api/invitations/:token/accept", async (req, res) => {
+    const { token } = invitationParamsSchema.parse(req.params);
+    if (!res.locals.accountId) {
+      res.status(401).json({ error: "Log in first", code: "no_session" });
+      return;
+    }
+    const result = await acceptInvitation(
+      db,
+      { userId: res.locals.userId, email: res.locals.email, emailVerified: res.locals.emailVerified },
+      token,
+    );
+    if (typeof result === "object") {
+      res.json(result);
+    } else if (result === "not-found") {
+      res.status(404).json({ error: "This invitation is not valid any more", code: "invitation_not_found" });
+    } else if (result === "wrong-account") {
+      res.status(403).json({ error: "This invitation is for another account", code: "wrong_account" });
+    } else {
+      res.status(403).json({ error: "Verify your email address first", code: "email_not_verified" });
+    }
   });
 
   app.get("/api/places/search", async (req, res) => {
@@ -150,10 +209,69 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
     res.json(trip);
   });
 
+  // Sharing is for accounts (a guest logs in first, PRD §8) and the Owner's: an Editor's Trip
+  // answers 404 as if it were not theirs.
+  const accountOnly: express.RequestHandler = (_req, res, next) => {
+    if (res.locals.accountId) next();
+    else res.status(401).json({ error: "Log in first", code: "no_session" });
+  };
+  app.use("/api/trips/:tripId/sharing", accountOnly);
+  app.use("/api/trips/:tripId/invitations", accountOnly);
+  app.use("/api/trips/:tripId/editors", accountOnly);
+  app.get("/api/trips/:tripId/sharing", async (req, res) => {
+    const { tripId } = tripParamsSchema.parse(req.params);
+    const sharing = await getSharing(db, res.locals.userId, tripId);
+    if (!sharing) {
+      res.status(404).json({ error: "Trip not found" });
+      return;
+    }
+    res.json(sharing);
+  });
+
+  app.post("/api/trips/:tripId/invitations", async (req, res) => {
+    const { tripId } = tripParamsSchema.parse(req.params);
+    const { email } = inviteEditorInputSchema.parse(req.body);
+    const result = await inviteEditor(db, res.locals.userId, tripId, email);
+    if (!result) {
+      res.status(404).json({ error: "Trip not found" });
+    } else if (result === "owner") {
+      res.status(409).json({ error: "That is your own address", code: "own_address" });
+    } else if (result === "editor") {
+      res.status(409).json({ error: "That person can already edit this Trip", code: "already_editor" });
+    } else {
+      const [inviter] = await db.select({ email: users.email }).from(users).where(eq(users.id, res.locals.userId));
+      await mailer.send({
+        to: result.invitation.email,
+        inviterEmail: inviter?.email ?? null,
+        tripTitle: result.tripTitle,
+        link: `${appOrigin}/?invite=${result.invitation.token}`,
+      });
+      res.status(201).json(result.invitation);
+    }
+  });
+
+  app.delete("/api/trips/:tripId/invitations/:invitationId", async (req, res) => {
+    const { tripId, invitationId } = invitationIdParamsSchema.parse(req.params);
+    if (!(await revokeInvitation(db, res.locals.userId, tripId, invitationId))) {
+      res.status(404).json({ error: "Invitation not found" });
+      return;
+    }
+    res.status(204).end();
+  });
+
+  app.delete("/api/trips/:tripId/editors/:editorId", async (req, res) => {
+    const { tripId, editorId } = editorParamsSchema.parse(req.params);
+    if (!(await removeEditor(db, res.locals.userId, tripId, editorId))) {
+      res.status(404).json({ error: "Editor not found" });
+      return;
+    }
+    res.status(204).end();
+  });
+
   app.post("/api/trips/:tripId/days/:dayId/events", async (req, res) => {
     const { tripId, dayId } = dayParamsSchema.parse(req.params);
     const input = createEventInputSchema.parse(req.body);
-    if (!(await ownsTrip(db, res.locals.userId, tripId))) {
+    if (!(await canEditTrip(db, res.locals.userId, tripId))) {
       res.status(404).json({ error: "Trip not found" });
       return;
     }
@@ -177,7 +295,7 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
   app.post("/api/trips/:tripId/:area/events", async (req, res) => {
     const { tripId, area } = areaParamsSchema.parse(req.params);
     const input = createEventInputSchema.parse(req.body);
-    if (!(await ownsTrip(db, res.locals.userId, tripId))) {
+    if (!(await canEditTrip(db, res.locals.userId, tripId))) {
       res.status(404).json({ error: "Trip not found" });
       return;
     }
@@ -200,7 +318,7 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
   app.patch("/api/trips/:tripId/events/:eventId", async (req, res) => {
     const { tripId, eventId } = eventIdParamsSchema.parse(req.params);
     const input = updateEventInputSchema.parse(req.body);
-    if (!(await ownsTrip(db, res.locals.userId, tripId))) {
+    if (!(await canEditTrip(db, res.locals.userId, tripId))) {
       res.status(404).json({ error: "Trip not found" });
       return;
     }
@@ -291,7 +409,7 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
 
   app.get("/api/trips/:tripId/legs", async (req, res) => {
     const { tripId } = tripParamsSchema.parse(req.params);
-    if (!(await ownsTrip(db, res.locals.userId, tripId))) {
+    if (!(await canEditTrip(db, res.locals.userId, tripId))) {
       res.status(404).json({ error: "Trip not found" });
       return;
     }
@@ -301,7 +419,7 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
   app.post("/api/trips/:tripId/legs", async (req, res) => {
     const { tripId } = tripParamsSchema.parse(req.params);
     const input = createLegInputSchema.parse(req.body);
-    if (!(await ownsTrip(db, res.locals.userId, tripId))) {
+    if (!(await canEditTrip(db, res.locals.userId, tripId))) {
       res.status(404).json({ error: "Trip not found" });
       return;
     }
@@ -324,7 +442,7 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
   app.patch("/api/trips/:tripId/legs/:legId", async (req, res) => {
     const { tripId, legId } = legParamsSchema.parse(req.params);
     const { mode } = updateLegInputSchema.parse(req.body);
-    if (!(await ownsTrip(db, res.locals.userId, tripId))) {
+    if (!(await canEditTrip(db, res.locals.userId, tripId))) {
       res.status(404).json({ error: "Trip not found" });
       return;
     }
@@ -338,7 +456,7 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
 
   app.delete("/api/trips/:tripId/legs/:legId", async (req, res) => {
     const { tripId, legId } = legParamsSchema.parse(req.params);
-    if (!(await ownsTrip(db, res.locals.userId, tripId)) || !(await deleteLeg(db, tripId, legId))) {
+    if (!(await canEditTrip(db, res.locals.userId, tripId)) || !(await deleteLeg(db, tripId, legId))) {
       res.status(404).json({ error: "Leg not found" });
       return;
     }

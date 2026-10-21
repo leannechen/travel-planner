@@ -22,17 +22,39 @@ describe("access token check", () => {
 
   beforeAll(async () => {
     keys = await makeKeys();
-    verifier = jwtVerifier(settings, keys.jwks);
+    verifier = jwtVerifier(settings, keys.jwks, async () => new Response(null, { status: 401 }));
   });
 
-  const sign = (claims: { iss?: string; aud?: string; sub?: string | null; exp?: string | number } = {}, key = keys.privateKey, kid = keys.kid) => {
-    const jwt = new SignJWT({}).setProtectedHeader({ alg: "RS256", kid }).setIssuer(claims.iss ?? ISSUER).setAudience(claims.aud ?? settings.audience).setIssuedAt();
+  const sign = (claims: { iss?: string; aud?: string; sub?: string | null; exp?: string | number; extra?: Record<string, unknown> } = {}, key = keys.privateKey, kid = keys.kid) => {
+    const jwt = new SignJWT(claims.extra ?? {}).setProtectedHeader({ alg: "RS256", kid }).setIssuer(claims.iss ?? ISSUER).setAudience(claims.aud ?? settings.audience).setIssuedAt();
     if (claims.sub !== null) jwt.setSubject(claims.sub ?? "auth0|abc");
     return jwt.setExpirationTime(claims.exp ?? "5m").sign(key);
   };
 
   it("accepts a token from the tenant for this API and returns its subject", async () => {
     expect(await verifier.verify(await sign())).toEqual({ sub: "auth0|abc" });
+  });
+
+  it("reads the email address and its verification from the namespaced claims", async () => {
+    const extra = { [`${settings.audience}/email`]: "Mei@Example.com", [`${settings.audience}/email_verified`]: false };
+    expect(await verifier.verify(await sign({ extra }))).toEqual({ sub: "auth0|abc", email: "mei@example.com", emailVerified: false });
+  });
+
+  it("asks Auth0's userinfo for the email when the token has no claims, once per token", async () => {
+    const calls: string[] = [];
+    const asking = jwtVerifier(settings, keys.jwks, async (url) => {
+      calls.push(String(url));
+      return Response.json({ email: "Mei@Example.com", email_verified: true });
+    });
+    const token = await sign({});
+    const expected = { sub: "auth0|abc", email: "mei@example.com", emailVerified: true };
+    expect(await asking.verify(token)).toEqual(expected);
+    expect(await asking.verify(token)).toEqual(expected);
+    expect(calls).toEqual([`https://${settings.domain}/userinfo`]);
+  });
+
+  it("does not take an email from a claim that is not namespaced", async () => {
+    expect(await verifier.verify(await sign({ extra: { email: "mei@example.com", email_verified: true } }))).toEqual({ sub: "auth0|abc" });
   });
 
   it("rejects a token for another audience", async () => {

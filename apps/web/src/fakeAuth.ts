@@ -6,18 +6,20 @@ const SESSION_KEY = "travel-planner.fake-auth";
 const RETURNED_KEY = "travel-planner.fake-auth-returned";
 const FAIL_KEY = "travel-planner.fake-auth-fail";
 
-type Session = { email: string; expired?: boolean };
+type Session = { email: string; expired?: boolean; unverified?: boolean };
 
 export type FakeAuth = AuthClient & {
   // Development helpers (window.__fakeAuth): end the session as if the refresh token ran out, make
   // the next full-page login come back with an error, or refuse to open the popup.
   expire(): void;
+  // Says whether the logged-in address counts as verified (it does by default).
+  setVerified(verified: boolean): void;
   failNextLogin(): void;
   blockPopups: boolean;
 };
 
 // Auth0 stand-in for tests and for development without a tenant: logging in is instant and uses
-// `options.email`. Its token "fake:<email>" is only accepted by the API's fake verifier.
+// `options.email`. Its token "fake:<email>" (or "fake-unverified:<email>") is only accepted by the API's fake verifier.
 export function createFakeAuth({
   store = localStorage,
   email = "lena@example.com",
@@ -42,12 +44,13 @@ export function createFakeAuth({
       const session = read();
       return { user: session && userOf(session), returned, error };
     }),
-    async loginRedirect({ returnTo }) {
+    async loginRedirect({ returnTo, loginHint }) {
       if (store.getItem(FAIL_KEY)) {
         store.removeItem(FAIL_KEY);
         store.setItem(RETURNED_KEY, "error");
       } else {
-        write({ email });
+        // The address Auth0 would have prefilled: logging in with it is logging in as that account.
+        write({ email: loginHint ?? email });
         store.setItem(RETURNED_KEY, "ok");
       }
       navigate(returnTo ?? window.location.href);
@@ -69,11 +72,15 @@ export function createFakeAuth({
     async getToken() {
       const session = read();
       if (!session || session.expired) throw new SessionEndedError();
-      return `fake:${session.email}`;
+      return `${session.unverified ? "fake-unverified" : "fake"}:${session.email}`;
     },
     expire() {
       const session = read();
       if (session) write({ ...session, expired: true });
+    },
+    setVerified(verified) {
+      const session = read();
+      if (session) write({ ...session, unverified: !verified });
     },
     failNextLogin() {
       store.setItem(FAIL_KEY, "1");

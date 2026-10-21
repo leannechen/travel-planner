@@ -145,6 +145,8 @@ export const tripSchema = z.object({
   travelMode: travelModeSchema,
   // The first Day's calendar date, or null: Days are then just Day 1, Day 2... (PRD §3.1).
   startDate: startDateSchema.nullable(),
+  // What the user may do with it: the Owner also shares and deletes; an Editor edits (PRD §8).
+  role: z.enum(["owner", "editor"]),
 });
 
 export const createTripInputSchema = z.object({ title, travelMode: travelModeSchema.optional(), startDate: startDateSchema.nullable().optional() });
@@ -252,6 +254,32 @@ export type UpdateTodoInput = z.infer<typeof updateTodoInputSchema>;
 // A deleted Event with its Todos as they were; also what restoring it (undo) sends back.
 export const deletedEventSchema = z.object({ event: eventSchema, todos: z.array(todoSchema) });
 export type DeletedEvent = z.infer<typeof deletedEventSchema>;
+
+// Sharing a Trip with Editors (PRD §8). The Owner sees who can edit and which invitations wait.
+export const emailSchema = z.string().trim().toLowerCase().max(254).pipe(z.email());
+export const inviteEditorInputSchema = z.object({ email: emailSchema });
+export type InviteEditorInput = z.infer<typeof inviteEditorInputSchema>;
+export const invitationSchema = z.object({ id: z.uuid(), email: z.string(), token: z.string() });
+export const editorSchema = z.object({ userId: z.uuid(), email: z.string().nullable() });
+export const sharingSchema = z.object({ editors: z.array(editorSchema), invitations: z.array(invitationSchema) });
+export type Invitation = z.infer<typeof invitationSchema>;
+export type Sharing = z.infer<typeof sharingSchema>;
+// An address with the middle of its name hidden ("l*****w@gmail.com"), for pages that anyone holding
+// a link can open.
+export function maskEmail(email: string): string {
+  const at = email.lastIndexOf("@");
+  if (at < 1) return "***";
+  const name = email.slice(0, at);
+  const hidden = name.length <= 2 ? "*".repeat(name.length) : `${name[0]}${"*".repeat(Math.min(name.length - 2, 6))}${name.at(-1)}`;
+  return `${hidden}${email.slice(at)}`;
+}
+
+// What the invitation page shows to whoever holds the link, before login. The invited address is
+// masked: the page only needs to tell the person which address to use.
+export const invitationPreviewSchema = z.object({ tripTitle: z.string(), invitedEmail: z.string(), inviterEmail: z.string().nullable() });
+export type InvitationPreview = z.infer<typeof invitationPreviewSchema>;
+export const acceptedInvitationSchema = z.object({ tripId: z.uuid(), tripTitle: z.string() });
+export type AcceptedInvitation = z.infer<typeof acceptedInvitationSchema>;
 
 // Who the request acts as: an account, or an anonymous guest session (PRD §8).
 export const meSchema = z.object({ id: z.uuid(), guest: z.boolean() });

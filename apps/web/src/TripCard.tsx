@@ -21,7 +21,7 @@ import {
   type Todo,
   type Trip,
 } from "@travel-planner/shared";
-import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, Lock, Map as MapIcon, Plus, Settings, Trash2 } from "lucide-react";
+import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, Lock, Map as MapIcon, Plus, Settings, Share2, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { deleteDay, insertDay, reorderDays, restoreDay } from "./api";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -49,6 +49,8 @@ type Props = {
   onOpenSettings: () => void;
   // Opens the list of Trips, from the Trip title.
   onOpenTripList: () => void;
+  // Opens Share (the Owner's; left out for an Editor).
+  onShare?: () => void;
   onDaysChange: (tripId: string, days: Day[], backlog?: Event[]) => void;
   selectedEventId?: string;
   // A new Event being set up in the panel.
@@ -96,7 +98,7 @@ function dropTargetAt(root: HTMLElement, x: number, y: number, draggedId: string
   return undefined;
 }
 
-export function TripCard({ trip, onOpenSettings, onOpenTripList, onDaysChange, selectedEventId, draft, onSelectEvent: selectEventProp, onCreateAt: createAtProp, onAddToBacklog: addToBacklogProp, onMove: moveProp, onCreateLeg, onChangeLegMode, onDeleteLeg, onToast, notesOpen, onToggleNotes, onShowShortcuts, footer, onAddTodo, onToggleTodo, onDeleteTodo, account, banner, readOnly = false }: Props) {
+export function TripCard({ trip, onOpenSettings, onOpenTripList, onShare, onDaysChange, selectedEventId, draft, onSelectEvent: selectEventProp, onCreateAt: createAtProp, onAddToBacklog: addToBacklogProp, onMove: moveProp, onCreateLeg, onChangeLegMode, onDeleteLeg, onToast, notesOpen, onToggleNotes, onShowShortcuts, footer, onAddTodo, onToggleTodo, onDeleteTodo, account, banner, readOnly = false }: Props) {
   const t = useT();
   const { language } = usePreferences();
   const root = useRef<HTMLElement>(null);
@@ -300,6 +302,11 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onDaysChange, s
         <button type="button" className="ib" disabled={readOnly} title={t("trip.settings")} aria-label={t("trip.settings")} onClick={onOpenSettings}>
           <Settings size={16} aria-hidden="true" />
         </button>
+        {onShare && (
+          <button type="button" className="ib" disabled={readOnly} title={t("share.button")} aria-label={t("share.button")} onClick={onShare}>
+            <Share2 size={16} aria-hidden="true" />
+          </button>
+        )}
         <div className="view-switch" role="group" aria-label={t("map.switch")}>
           <button type="button" aria-pressed={view === "schedule"} onClick={() => setView("schedule")}>
             <CalendarDays size={15} aria-hidden="true" />

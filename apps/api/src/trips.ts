@@ -26,9 +26,16 @@ import {
   type UpdateEventInput,
   type UpdateTripInput,
 } from "@travel-planner/shared";
-import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, or, sql } from "drizzle-orm";
 import type { Db } from "./db/client";
 import { days, events, legs, notes, todos, trips, users } from "./db/schema";
+
+// A Trip the user owns or has been invited to edit. Everything but sharing needs this much (PRD §8).
+export const editableBy = (userId: string) =>
+  or(
+    eq(trips.ownerId, userId),
+    sql`exists (select 1 from trip_members tm where tm."tripId" = ${trips.id} and tm."userId" = ${userId})`,
+  )!;
 
 function toEvent(row: Pick<typeof events.$inferSelect, keyof Event>): Event {
   return {
@@ -111,11 +118,16 @@ const eventColumnsSelect = {
   openingHoursOn: events.openingHoursOn,
 };
 
-export async function listTrips(db: Db, ownerId: string): Promise<Trip[]> {
+export async function listTrips(db: Db, userId: string): Promise<Trip[]> {
   const rows = await db.query.trips.findMany({
-    where: eq(trips.ownerId, ownerId),
+    // Written against the query's own table alias, so it cannot reuse `editableBy`.
+    where: (t) =>
+      or(
+        eq(t.ownerId, userId),
+        sql`exists (select 1 from trip_members tm where tm."tripId" = ${t.id} and tm."userId" = ${userId})`,
+      ),
     orderBy: [desc(trips.createdAt), desc(trips.id)],
-    columns: { id: true, title: true, travelMode: true, startDate: true },
+    columns: { id: true, title: true, travelMode: true, startDate: true, ownerId: true },
     with: {
       days: {
         orderBy: asc(days.position),
@@ -146,19 +158,20 @@ export async function listTrips(db: Db, ownerId: string): Promise<Trip[]> {
       },
     },
   });
-  return rows.map(({ events: held, notes: noteRows, ...trip }) => ({
+  return rows.map(({ events: held, notes: noteRows, ownerId, ...trip }) => ({
     ...trip,
+    role: ownerId === userId ? ("owner" as const) : ("editor" as const),
     notes: noteRows.map((n) => ({ ...n, updatedAt: n.updatedAt.toISOString() })),
     backlog: held.filter((e) => e.holding === "backlog"),
     archive: held.filter((e) => e.holding === "archive"),
   }));
 }
 
-export async function createTrip(db: Db, ownerId: string, input: CreateTripInput): Promise<Trip> {
+export async function createTrip(db: Db, userId: string, input: CreateTripInput): Promise<Trip> {
   return db.transaction(async (tx) => {
     const [trip] = await tx
       .insert(trips)
-      .values({ ownerId, title: input.title, travelMode: input.travelMode, startDate: input.startDate })
+      .values({ ownerId: userId, title: input.title, travelMode: input.travelMode, startDate: input.startDate })
       .returning();
     const [day] = await tx.insert(days).values({ tripId: trip!.id, position: 1 }).returning();
     return {
@@ -172,16 +185,17 @@ export async function createTrip(db: Db, ownerId: string, input: CreateTripInput
       legs: [],
       travelMode: trip!.travelMode,
       startDate: trip!.startDate,
+      role: "owner",
     };
   });
 }
 
 // Changes the Trip's settings; undefined when it is not owned by this user.
-export async function updateTrip(db: Db, ownerId: string, tripId: string, input: UpdateTripInput): Promise<{ startDate: string | null } | undefined> {
+export async function updateTrip(db: Db, userId: string, tripId: string, input: UpdateTripInput): Promise<{ startDate: string | null } | undefined> {
   const [row] = await db
     .update(trips)
     .set({ startDate: input.startDate })
-    .where(and(eq(trips.id, tripId), eq(trips.ownerId, ownerId)))
+    .where(and(eq(trips.id, tripId), editableBy(userId)))
     .returning({ startDate: trips.startDate });
   return row;
 }
@@ -191,7 +205,7 @@ export async function updateTrip(db: Db, ownerId: string, tripId: string, input:
 // exclusive lock); otherwise an Event added while its Day is being deleted would be cascaded away.
 export async function addEvent(
   db: Db,
-  ownerId: string,
+  userId: string,
   tripId: string,
   dayId: string,
   input: CreateEventInput,
@@ -200,7 +214,7 @@ export async function addEvent(
     const [trip] = await tx
       .select({ id: trips.id })
       .from(trips)
-      .where(and(eq(trips.id, tripId), eq(trips.ownerId, ownerId)))
+      .where(and(eq(trips.id, tripId), editableBy(userId)))
       .for("share");
     if (!trip) return undefined;
 
@@ -221,7 +235,7 @@ export async function addEvent(
 // Trip. A Lodging still needs its nights, but they need not fit the Trip's Days yet.
 export async function addHeldEvent(
   db: Db,
-  ownerId: string,
+  userId: string,
   tripId: string,
   holding: HoldingArea,
   input: CreateEventInput,
@@ -231,7 +245,7 @@ export async function addHeldEvent(
     const [trip] = await tx
       .select({ id: trips.id })
       .from(trips)
-      .where(and(eq(trips.id, tripId), eq(trips.ownerId, ownerId)))
+      .where(and(eq(trips.id, tripId), editableBy(userId)))
       .for("share");
     if (!trip) return undefined;
     const [event] = await tx.insert(events).values({ tripId, holding, ...input }).returning();
@@ -245,7 +259,7 @@ export async function addHeldEvent(
 // Takes the same shared Trip lock as addEvent.
 export async function updateEvent(
   db: Db,
-  ownerId: string,
+  userId: string,
   tripId: string,
   eventId: string,
   input: UpdateEventInput,
@@ -254,7 +268,7 @@ export async function updateEvent(
     const [trip] = await tx
       .select({ id: trips.id })
       .from(trips)
-      .where(and(eq(trips.id, tripId), eq(trips.ownerId, ownerId)))
+      .where(and(eq(trips.id, tripId), editableBy(userId)))
       .for("share");
     if (!trip) return undefined;
 
@@ -301,12 +315,12 @@ export async function updateEvent(
 }
 
 // The kind and place of an Event of this user's Trip, for the opening hours request.
-export async function findEventPlace(db: Db, ownerId: string, tripId: string, eventId: string) {
+export async function findEventPlace(db: Db, userId: string, tripId: string, eventId: string) {
   const [row] = await db
     .select({ kind: events.kind, placeId: events.placeId })
     .from(events)
     .innerJoin(trips, eq(trips.id, events.tripId))
-    .where(and(eq(events.id, eventId), eq(events.tripId, tripId), eq(trips.ownerId, ownerId)));
+    .where(and(eq(events.id, eventId), eq(events.tripId, tripId), editableBy(userId)));
   return row;
 }
 
@@ -315,13 +329,13 @@ export async function findEventPlace(db: Db, ownerId: string, tripId: string, ev
 // between leaves it off. Returns the Event, or undefined when it is not in this user's Trip.
 export async function setOpeningHours(
   db: Db,
-  ownerId: string,
+  userId: string,
   tripId: string,
   eventId: string,
   on: boolean,
   placeId?: string,
 ): Promise<Event | undefined> {
-  const found = await findEventPlace(db, ownerId, tripId, eventId);
+  const found = await findEventPlace(db, userId, tripId, eventId);
   if (!found) return undefined;
   const [row] = await db
     .update(events)
@@ -365,11 +379,11 @@ async function placeStays(tx: Tx, orderedIds: string[], stays: PlacedStay[]) {
 
 // Locks the Trip row so concurrent Day changes on one Trip run one after another.
 // Returns the Trip's Day ids in position order, or undefined when the user does not own the Trip.
-async function lockTripDays(tx: Tx, ownerId: string, tripId: string): Promise<string[] | undefined> {
+async function lockTripDays(tx: Tx, userId: string, tripId: string): Promise<string[] | undefined> {
   const [trip] = await tx
     .select({ id: trips.id })
     .from(trips)
-    .where(and(eq(trips.id, tripId), eq(trips.ownerId, ownerId)))
+    .where(and(eq(trips.id, tripId), editableBy(userId)))
     .for("update");
   if (!trip) return undefined;
   const rows = await tx
@@ -409,12 +423,12 @@ async function loadDays(tx: Tx, tripId: string): Promise<Day[]> {
 // Inserts a new empty Day at `position` (1..N+1); later Days are renumbered.
 export async function insertDay(
   db: Db,
-  ownerId: string,
+  userId: string,
   tripId: string,
   position: number,
 ): Promise<Day[] | undefined | "invalid-position"> {
   return db.transaction(async (tx) => {
-    const ids = await lockTripDays(tx, ownerId, tripId);
+    const ids = await lockTripDays(tx, userId, tripId);
     if (!ids) return undefined;
     if (position > ids.length + 1) return "invalid-position";
 
@@ -434,12 +448,12 @@ export async function insertDay(
 // `dayIds` must be exactly the Trip's Day ids in the new order.
 export async function reorderDays(
   db: Db,
-  ownerId: string,
+  userId: string,
   tripId: string,
   dayIds: string[],
 ): Promise<Day[] | undefined | "invalid-order"> {
   return db.transaction(async (tx) => {
-    const ids = await lockTripDays(tx, ownerId, tripId);
+    const ids = await lockTripDays(tx, userId, tripId);
     if (!ids) return undefined;
     if (!isReorderOf(ids, dayIds)) return "invalid-order";
 
@@ -465,12 +479,12 @@ async function loadBacklog(tx: Tx, tripId: string): Promise<Event[]> {
 // Days are renumbered. Returns the Trip's Days and Backlog after the change.
 export async function deleteDay(
   db: Db,
-  ownerId: string,
+  userId: string,
   tripId: string,
   dayId: string,
 ): Promise<DayDeletion | undefined | "last-day"> {
   return db.transaction(async (tx) => {
-    const ids = await lockTripDays(tx, ownerId, tripId);
+    const ids = await lockTripDays(tx, userId, tripId);
     if (!ids?.includes(dayId)) return undefined;
     if (ids.length === 1) return "last-day";
 
@@ -505,12 +519,12 @@ class RestoreRefused extends Error {}
 
 export async function restoreDay(
   db: Db,
-  ownerId: string,
+  userId: string,
   tripId: string,
   input: RestoreDayInput,
 ): Promise<DayDeletion | undefined | "invalid" | "exists"> {
   try {
-    return await restoreInTransaction(db, ownerId, tripId, input);
+    return await restoreInTransaction(db, userId, tripId, input);
   } catch (err) {
     if (err instanceof RestoreRefused) return "invalid";
     throw err;
@@ -519,12 +533,12 @@ export async function restoreDay(
 
 async function restoreInTransaction(
   db: Db,
-  ownerId: string,
+  userId: string,
   tripId: string,
   input: RestoreDayInput,
 ): Promise<DayDeletion | undefined | "invalid" | "exists"> {
   return db.transaction(async (tx) => {
-    const ids = await lockTripDays(tx, ownerId, tripId);
+    const ids = await lockTripDays(tx, userId, tripId);
     if (!ids) return undefined;
     if (input.position > ids.length + 1) return "invalid";
     const [taken] = await tx.select({ id: days.id }).from(days).where(eq(days.id, input.dayId));
@@ -574,7 +588,7 @@ async function restoreInTransaction(
 // (they are deleted on archiving), so it is refused with "archived".
 export async function addTodo(
   db: Db,
-  ownerId: string,
+  userId: string,
   tripId: string,
   input: CreateTodoInput,
 ): Promise<Todo | undefined | "archived"> {
@@ -582,7 +596,7 @@ export async function addTodo(
     const [trip] = await tx
       .select({ id: trips.id })
       .from(trips)
-      .where(and(eq(trips.id, tripId), eq(trips.ownerId, ownerId)))
+      .where(and(eq(trips.id, tripId), editableBy(userId)))
       .for("share");
     if (!trip) return undefined;
     if (input.eventId) {
@@ -597,28 +611,28 @@ export async function addTodo(
     }
     const [row] = await tx
       .insert(todos)
-      .values({ tripId, eventId: input.eventId, text: input.text, createdBy: ownerId })
+      .values({ tripId, eventId: input.eventId, text: input.text, createdBy: userId })
       .returning();
     return toTodo(row!);
   });
 }
 
-export async function ownsTrip(db: Db, ownerId: string, tripId: string) {
+export async function canEditTrip(db: Db, userId: string, tripId: string) {
   const [trip] = await db
     .select({ id: trips.id })
     .from(trips)
-    .where(and(eq(trips.id, tripId), eq(trips.ownerId, ownerId)));
+    .where(and(eq(trips.id, tripId), editableBy(userId)));
   return !!trip;
 }
 
 export async function updateTodo(
   db: Db,
-  ownerId: string,
+  userId: string,
   tripId: string,
   todoId: string,
   input: UpdateTodoInput,
 ): Promise<Todo | undefined> {
-  if (!(await ownsTrip(db, ownerId, tripId))) return undefined;
+  if (!(await canEditTrip(db, userId, tripId))) return undefined;
   const [row] = await db
     .update(todos)
     .set(input)
@@ -627,8 +641,8 @@ export async function updateTodo(
   return row && toTodo(row);
 }
 
-export async function deleteTodo(db: Db, ownerId: string, tripId: string, todoId: string): Promise<true | undefined> {
-  if (!(await ownsTrip(db, ownerId, tripId))) return undefined;
+export async function deleteTodo(db: Db, userId: string, tripId: string, todoId: string): Promise<true | undefined> {
+  if (!(await canEditTrip(db, userId, tripId))) return undefined;
   const rows = await db
     .delete(todos)
     .where(and(eq(todos.id, todoId), eq(todos.tripId, tripId)))
@@ -639,7 +653,7 @@ export async function deleteTodo(db: Db, ownerId: string, tripId: string, todoId
 // Deletes an Event with its Todos and returns both as they were, so the deletion can be undone.
 export async function deleteEvent(
   db: Db,
-  ownerId: string,
+  userId: string,
   tripId: string,
   eventId: string,
 ): Promise<DeletedEvent | undefined> {
@@ -647,7 +661,7 @@ export async function deleteEvent(
     const [trip] = await tx
       .select({ id: trips.id })
       .from(trips)
-      .where(and(eq(trips.id, tripId), eq(trips.ownerId, ownerId)))
+      .where(and(eq(trips.id, tripId), editableBy(userId)))
       .for("share");
     if (!trip) return undefined;
     const [event] = await tx
@@ -668,7 +682,7 @@ export async function deleteEvent(
 // fails for that reason. Placed Events are trusted to be what deleteEvent returned.
 export async function restoreEvent(
   db: Db,
-  ownerId: string,
+  userId: string,
   tripId: string,
   input: DeletedEvent,
 ): Promise<Event | undefined | "invalid" | "exists"> {
@@ -678,10 +692,10 @@ export async function restoreEvent(
     new Set(restored.map((t) => t.id)).size === restored.length &&
     // An archived Event has no Todos.
     (event.holding !== "archive" || restored.length === 0);
-  if (!consistent) return (await ownsTrip(db, ownerId, tripId)) ? "invalid" : undefined;
+  if (!consistent) return (await canEditTrip(db, userId, tripId)) ? "invalid" : undefined;
 
   try {
-    return await restoreEventInTransaction(db, ownerId, tripId, input);
+    return await restoreEventInTransaction(db, userId, tripId, input);
   } catch (err) {
     // Two restores of the same snapshot at once: the second hits the primary key.
     const code = (err as { code?: string; cause?: { code?: string } }).code ?? (err as { cause?: { code?: string } }).cause?.code;
@@ -692,7 +706,7 @@ export async function restoreEvent(
 
 async function restoreEventInTransaction(
   db: Db,
-  ownerId: string,
+  userId: string,
   tripId: string,
   input: DeletedEvent,
 ): Promise<Event | undefined | "invalid" | "exists"> {
@@ -702,7 +716,7 @@ async function restoreEventInTransaction(
     const [trip] = await tx
       .select({ id: trips.id })
       .from(trips)
-      .where(and(eq(trips.id, tripId), eq(trips.ownerId, ownerId)))
+      .where(and(eq(trips.id, tripId), editableBy(userId)))
       .for("share");
     if (!trip) return undefined;
 
@@ -743,8 +757,8 @@ async function restoreEventInTransaction(
 // Notes: each function returns undefined when the Trip is not owned by this user (or the Note is
 // not in it).
 
-export async function addNote(db: Db, ownerId: string, tripId: string, input: CreateNoteInput): Promise<Note | undefined> {
-  if (!(await ownsTrip(db, ownerId, tripId))) return undefined;
+export async function addNote(db: Db, userId: string, tripId: string, input: CreateNoteInput): Promise<Note | undefined> {
+  if (!(await canEditTrip(db, userId, tripId))) return undefined;
   const [row] = await db.insert(notes).values({ tripId, body: input.body }).returning();
   return toNote(row!);
 }
@@ -752,12 +766,12 @@ export async function addNote(db: Db, ownerId: string, tripId: string, input: Cr
 // Editing the text moves the Note to the top of the list; pinning does not.
 export async function updateNote(
   db: Db,
-  ownerId: string,
+  userId: string,
   tripId: string,
   noteId: string,
   input: UpdateNoteInput,
 ): Promise<Note | undefined> {
-  if (!(await ownsTrip(db, ownerId, tripId))) return undefined;
+  if (!(await canEditTrip(db, userId, tripId))) return undefined;
   const [row] = await db
     .update(notes)
     .set({ ...input, ...(input.body !== undefined ? { updatedAt: sql`now()` } : {}) })
@@ -766,8 +780,8 @@ export async function updateNote(
   return row && toNote(row);
 }
 
-export async function deleteNote(db: Db, ownerId: string, tripId: string, noteId: string): Promise<true | undefined> {
-  if (!(await ownsTrip(db, ownerId, tripId))) return undefined;
+export async function deleteNote(db: Db, userId: string, tripId: string, noteId: string): Promise<true | undefined> {
+  if (!(await canEditTrip(db, userId, tripId))) return undefined;
   const rows = await db
     .delete(notes)
     .where(and(eq(notes.id, noteId), eq(notes.tripId, tripId)))
@@ -779,11 +793,11 @@ export async function deleteNote(db: Db, ownerId: string, tripId: string, noteId
 // a Note with that id is there already.
 export async function restoreNote(
   db: Db,
-  ownerId: string,
+  userId: string,
   tripId: string,
   input: RestoreNoteInput,
 ): Promise<Note | undefined | "exists"> {
-  if (!(await ownsTrip(db, ownerId, tripId))) return undefined;
+  if (!(await canEditTrip(db, userId, tripId))) return undefined;
   const { note } = input;
   const [row] = await db
     .insert(notes)
@@ -795,12 +809,12 @@ export async function restoreNote(
 
 // Which of these places the user's own Events use. Opening hours are only handed out for those, so
 // the hours endpoint is not a way to read the paid provider through our cache.
-export async function ownPlaceIds(db: Db, ownerId: string, ids: string[]): Promise<string[]> {
+export async function ownPlaceIds(db: Db, userId: string, ids: string[]): Promise<string[]> {
   if (ids.length === 0) return [];
   const rows = await db
     .selectDistinct({ placeId: events.placeId })
     .from(events)
     .innerJoin(trips, eq(events.tripId, trips.id))
-    .where(and(eq(trips.ownerId, ownerId), inArray(events.placeId, ids)));
+    .where(and(editableBy(userId), inArray(events.placeId, ids)));
   return rows.map((r) => r.placeId!);
 }

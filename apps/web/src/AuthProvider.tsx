@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { configureApi, mergeGuest } from "./apiAuth";
-import { loggedOutUrl, PopupBlockedError, PopupClosedError, SessionEndedError, type AuthClient } from "./authClient";
+import { loggedOutUrl, PopupBlockedError, PopupClosedError, SessionEndedError, type AuthClient, type LoginOptions } from "./authClient";
 import { forgetGuestId, guestId, peekGuestId } from "./guest";
 import { keepNotice } from "./pendingEdits";
 import { usePreferences } from "./preferences";
@@ -21,7 +21,9 @@ export type Auth = {
   loginError: boolean;
   dismissLoginError: () => void;
   // Full-page login from the current address (or `returnTo`).
-  login: (returnTo?: string) => Promise<void>;
+  login: (returnTo?: string, options?: Pick<LoginOptions, "loginHint" | "screenHint" | "prompt">) => Promise<void>;
+  // Asks Auth0 for a new access token, so a changed claim (the email is verified now) is in it.
+  refreshToken: () => Promise<void>;
   // Login in a popup, for an expired session; call it straight from a click.
   // "other": a different account logged in, so the page was reloaded.
   loginInPlace: () => Promise<"same" | "blocked" | "closed" | "other">;
@@ -104,9 +106,13 @@ export function AuthProvider({ client, children }: { client: AuthClient; childre
   }, [client]);
 
   const login = useCallback(
-    (returnTo?: string) => client.loginRedirect({ language: languageRef.current, returnTo }),
+    (returnTo?: string, options: Pick<LoginOptions, "loginHint" | "screenHint" | "prompt"> = {}) =>
+      client.loginRedirect({ language: languageRef.current, returnTo, ...options }),
     [client],
   );
+  const refreshToken = useCallback(async () => {
+    await client.getToken(true);
+  }, [client]);
 
   const loginInPlace = useCallback(async () => {
     try {
@@ -134,8 +140,8 @@ export function AuthProvider({ client, children }: { client: AuthClient; childre
   const dismissLoginError = useCallback(() => setLoginError(false), []);
 
   const value = useMemo<Auth>(
-    () => ({ status, email, arrival, loginError, dismissLoginError, login, loginInPlace, logout }),
-    [status, email, arrival, loginError, dismissLoginError, login, loginInPlace, logout],
+    () => ({ status, email, arrival, loginError, dismissLoginError, login, refreshToken, loginInPlace, logout }),
+    [status, email, arrival, loginError, dismissLoginError, login, refreshToken, loginInPlace, logout],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

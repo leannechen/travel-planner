@@ -8,9 +8,11 @@ export type LoginOptions = {
   language: Language;
   // Where the page comes back to after a full-page login. The current address when left out.
   returnTo?: string;
-  // Step 20: the invited address, and opening the sign-up screen.
+  // The invited address (step 20), the sign-up screen instead of the log-in one, and asking for a
+  // login even when Auth0 still has a session (to switch to the invited account).
   loginHint?: string;
   screenHint?: "signup";
+  prompt?: "login";
 };
 
 export type StartResult = {
@@ -60,7 +62,8 @@ export interface AuthClient {
   // Who is logged in right now, read from where the session is kept. Another tab may have changed it.
   currentSub(): Promise<string | undefined>;
   // An access token for the API. Throws SessionEndedError when there is no session any more.
-  getToken(): Promise<string>;
+  // `fresh` skips the kept token, so claims that changed since (a verified email) are in it.
+  getToken(fresh?: boolean): Promise<string>;
 }
 
 // Auth0's name for the interface language (Traditional Chinese must be enabled in the tenant).

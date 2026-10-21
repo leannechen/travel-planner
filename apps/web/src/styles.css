@@ -3800,3 +3800,156 @@ main.has-panel .topbar {
     padding: 12px 0;
   }
 }
+
+/* ---------- Invitation page (design 41, 48) and Share dialog (design 19) ---------- */
+.invite-page .landing-hero {
+  padding-top: 12vh;
+}
+
+.invite-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--pri-tint);
+  color: var(--pri-ink);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.invite-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.invite-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.invite-page .landing-hero .invite-actions .btn:not(.pri) {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.invite-account {
+  display: grid;
+  gap: 2px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface2);
+}
+
+.invite-account small {
+  color: var(--muted);
+}
+
+.invite-page p strong {
+  color: var(--text);
+}
+
+@media (max-width: 40rem) {
+  .invite-actions {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+}
+
+.trip-list-section {
+  margin: 12px 0 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.share-invite {
+  display: flex;
+  gap: 8px;
+}
+
+.share-email {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--muted);
+}
+
+.share-email input {
+  flex: 1;
+  min-width: 0;
+  height: 34px;
+  border: 0;
+  background: none;
+  outline: none;
+}
+
+/* The ring belongs to the field's own border, not to the bare input inside it. */
+.share-email input:focus-visible {
+  box-shadow: none;
+}
+
+.share-email:focus-within {
+  border-color: var(--pri);
+  box-shadow: var(--focus);
+}
+
+.share-people {
+  display: grid;
+  gap: 2px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.share-people li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+
+.share-who {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.share-role {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.avatar-dot {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--pri-tint);
+  color: var(--pri-ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.share-people .pending .share-who {
+  color: var(--muted);
+}

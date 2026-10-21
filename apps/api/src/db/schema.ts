@@ -9,6 +9,9 @@ export const users = pgTable("users", {
   // login and the guest row goes.
   auth0Sub: text().unique(),
   guestToken: uuid().unique(),
+  // An account's email address as the last access token said it (lower case), shown in the Share
+  // dialog; null for a guest and for a token that carries none.
+  email: text(),
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -26,6 +29,42 @@ export const trips = pgTable("trips", {
   startDate: date({ mode: "string" }),
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });
+
+// An Editor of a Trip other than its Owner (PRD §8). The Owner is `trips.ownerId`, not a row here.
+export const tripMembers = pgTable(
+  "trip_members",
+  {
+    tripId: uuid()
+      .notNull()
+      .references(() => trips.id, { onDelete: "cascade" }),
+    userId: uuid()
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.tripId, t.userId] })],
+);
+
+// An invitation to edit a Trip, sent to one email address. The secret `token` is in the link; the
+// invitation is accepted only by a verified account with that address, and once (`acceptedBy`).
+export const tripInvitations = pgTable(
+  "trip_invitations",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    tripId: uuid()
+      .notNull()
+      .references(() => trips.id, { onDelete: "cascade" }),
+    // Lower case.
+    email: text().notNull(),
+    token: text().notNull().unique(),
+    invitedBy: uuid()
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    acceptedBy: uuid().references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("trip_invitations_trip_email_unique").on(t.tripId, t.email)],
+);
 
 export const days = pgTable(
   "days",

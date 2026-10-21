@@ -24,20 +24,28 @@ export function TripListDialog({ trips, currentId, onSwitch, onCreate, onClose, 
     if (element && !element.open) element.showModal();
   }, []);
 
+  const own = trips.filter((trip) => trip.role === "owner");
+  const shared = trips.filter((trip) => trip.role === "editor");
+  const row = (trip: Trip) => (
+    <li key={trip.id}>
+      <button type="button" aria-current={trip.id === currentId ? "true" : undefined} onClick={() => onSwitch(trip.id)}>
+        <MapIcon size={16} aria-hidden="true" />
+        <span className="trip-list-name">{trip.title}</span>
+        <span className="trip-list-days">{t("trip.days", { count: trip.days.length })}</span>
+      </button>
+    </li>
+  );
+
   return (
     <dialog ref={dialog} className="trip-list-dialog" aria-labelledby="trip-list-title" onCancel={(e) => { e.preventDefault(); onClose(); }} onClose={onClose}>
       <h2 id="trip-list-title">{t("tripList.title")}</h2>
-      <ul>
-        {trips.map((trip) => (
-          <li key={trip.id}>
-            <button type="button" aria-current={trip.id === currentId ? "true" : undefined} onClick={() => onSwitch(trip.id)}>
-              <MapIcon size={16} aria-hidden="true" />
-              <span className="trip-list-name">{trip.title}</span>
-              <span className="trip-list-days">{t("trip.days", { count: trip.days.length })}</span>
-            </button>
-          </li>
-        ))}
-      </ul>
+      <ul>{own.map(row)}</ul>
+      {shared.length > 0 && (
+        <>
+          <h3 className="trip-list-section">{t("tripList.shared")}</h3>
+          <ul>{shared.map(row)}</ul>
+        </>
+      )}
       {!readOnly && <TitleForm label={t("app.tripTitle")} submitLabel={t("tripList.new")} onSubmit={onCreate} />}
       <div className="dialog-actions">
         <button type="button" onClick={onClose}>

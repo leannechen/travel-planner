@@ -1,4 +1,5 @@
 import {
+  CLIENT_ID_HEADER,
   createDayInputSchema,
   createEventInputSchema,
   createLegInputSchema,
@@ -29,6 +30,7 @@ import type { Db } from "./db/client";
 import { users } from "./db/schema";
 import { acceptInvitation, getSharing, identityAdminFromEnv, IdentityAdminError, inviteEditor, logInvitationMailer, previewInvitation, removeEditor, revokeInvitation, type IdentityAdmin, type InvitationMailer } from "./sharing";
 import { authenticate, GUEST_HEADER, mergeGuest, verifierFromEnv, type TokenVerifier } from "./auth";
+import { createLiveHub } from "./live";
 import { createLeg, deleteLeg, isProviderError, listLegs, setLegMode, syncLegs } from "./legs";
 import { fetchOpeningHours, getOpeningHours, getPlaces, PlaceProviderError, placeProviderFromEnv, searchPlaces, type PlaceProvider } from "./places";
 import { routeProviderFromEnv, type RouteProvider } from "./routes";
@@ -96,6 +98,9 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
   };
   const app = express();
   app.use(express.json());
+  const verifier = options.auth ?? verifierFromEnv();
+  const live = createLiveHub(db, verifier);
+  app.locals.live = live;
 
   app.get("/api/health", (_req, res) => {
     const body: HealthResponse = { status: "ok" };
@@ -114,7 +119,20 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
   });
 
   // Everything below is for an account or a guest session.
-  app.use("/api", authenticate(db, options.auth ?? verifierFromEnv()));
+  app.use("/api", authenticate(db, verifier));
+
+  // Anyone with the Trip open is told when a request changed it (a Trip is changed by what happens
+  // under its address). Sharing is not part of the Trip's content.
+  app.use("/api/trips/:tripId", (req, res, next) => {
+    const { tripId } = req.params;
+    const changes = req.method !== "GET" && !/^\/(invitations|editors|sharing)(\/|$)/.test(req.path) && z.uuid().safeParse(tripId).success;
+    if (changes) {
+      res.on("finish", () => {
+        if (res.statusCode < 400) live.publish(String(tripId), req.header(CLIENT_ID_HEADER) ?? null);
+      });
+    }
+    next();
+  });
 
   app.get("/api/me", (_req, res) => {
     const body: Me = { id: res.locals.userId, guest: !res.locals.accountId };
@@ -265,6 +283,7 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
       res.status(404).json({ error: "Editor not found" });
       return;
     }
+    live.kick(tripId, editorId);
     res.status(204).end();
   });
 

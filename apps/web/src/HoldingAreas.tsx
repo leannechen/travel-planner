@@ -4,7 +4,8 @@ import { Plus } from "lucide-react";
 import { KindIcon } from "./kinds";
 import { gestureJustEnded } from "./gesture";
 import { useT } from "./preferences";
-import type { ReactNode } from "react";
+import { useContext, type ReactNode } from "react";
+import { ChangedEventsContext } from "./liveContext";
 import { tip } from "./shortcuts";
 
 // "1h 30m", "45m", "2h".
@@ -30,7 +31,8 @@ type CardProps = {
 function HoldingCard({ event, selected, actionLabel, onSelect, onAction }: CardProps) {
   const t = useT();
   const { ref, handleRef, isDragging } = useDraggable({ id: event.id });
-  const classes = ["holding-card", `kind-${event.kind}`, selected && "selected", isDragging && "dragging"].filter(Boolean).join(" ");
+  const changedByOther = useContext(ChangedEventsContext).has(event.id);
+  const classes = ["holding-card", `kind-${event.kind}`, selected && "selected", isDragging && "dragging", changedByOther && "changed"].filter(Boolean).join(" ");
   return (
     <li ref={ref} className={classes} data-event-id={event.id}>
       <button

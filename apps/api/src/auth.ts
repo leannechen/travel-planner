@@ -176,36 +176,46 @@ function bearerToken(req: Request): string | undefined {
   return match?.[1];
 }
 
+export type Caller =
+  | { ok: true; userId: string; accountId?: string; sub?: string; email?: string; emailVerified?: boolean }
+  | { ok: false; status: 401; error: string; code: "invalid_token" | "no_session" };
+
 // Works out who a request acts as. A bearer token wins: a bad or expired one is a 401 (never
 // quietly a guest), which is how the page learns that the session ended. Without a token, the
 // guest id the browser keeps stands for an anonymous user. Anything else is a 401.
+export async function resolveCaller(db: Db, verifier: TokenVerifier, token: string | undefined, guestId: string | undefined): Promise<Caller> {
+  if (token) {
+    let identity: Identity;
+    try {
+      identity = await verifier.verify(token);
+    } catch (err) {
+      if (!(err instanceof TokenRejected)) throw err;
+      return { ok: false, status: 401, error: "Your session is not valid", code: "invalid_token" };
+    }
+    const userId = await findOrCreateAccount(db, identity.sub, identity.email);
+    return { ok: true, userId, accountId: userId, sub: identity.sub, email: identity.email, emailVerified: identity.emailVerified };
+  }
+  const guest = guestTokenSchema.safeParse(guestId);
+  if (guest.success) return { ok: true, userId: await findOrCreateGuest(db, guest.data) };
+  return { ok: false, status: 401, error: "Log in or start a guest session first", code: "no_session" };
+}
+
 export function authenticate(db: Db, verifier: TokenVerifier) {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const token = bearerToken(req);
-      if (token) {
-        let identity: Identity;
-        try {
-          identity = await verifier.verify(token);
-        } catch (err) {
-          if (!(err instanceof TokenRejected)) throw err;
-          res.status(401).json({ error: "Your session is not valid", code: "invalid_token" });
-          return;
-        }
-        res.locals.userId = res.locals.accountId = await findOrCreateAccount(db, identity.sub, identity.email);
-        res.locals.sub = identity.sub;
-        res.locals.email = identity.email;
-        res.locals.emailVerified = identity.emailVerified;
-        next();
+      const caller = await resolveCaller(db, verifier, bearerToken(req), req.header(GUEST_HEADER));
+      if (!caller.ok) {
+        res.status(caller.status).json({ error: caller.error, code: caller.code });
         return;
       }
-      const guest = guestTokenSchema.safeParse(req.header(GUEST_HEADER));
-      if (guest.success) {
-        res.locals.userId = await findOrCreateGuest(db, guest.data);
-        next();
-        return;
+      res.locals.userId = caller.userId;
+      if (caller.accountId) {
+        res.locals.accountId = caller.accountId;
+        res.locals.sub = caller.sub;
+        res.locals.email = caller.email;
+        res.locals.emailVerified = caller.emailVerified;
       }
-      res.status(401).json({ error: "Log in or start a guest session first", code: "no_session" });
+      next();
     } catch (err) {
       next(err);
     }

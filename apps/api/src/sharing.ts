@@ -13,7 +13,8 @@ export type InvitationMailer = {
 export function logInvitationMailer(log: (line: string) => void = console.log): InvitationMailer {
   return {
     async send({ to, tripTitle, link }) {
-      log(`Invitation to edit "${tripTitle}" for ${to}: ${link}`);
+      // JSON quoting keeps line breaks in a title from forging extra log lines.
+      log(`Invitation to edit ${JSON.stringify(tripTitle)} for ${JSON.stringify(to)}: ${link}`);
     },
   };
 }
@@ -103,17 +104,19 @@ async function ownedTrip(db: Db, userId: string, tripId: string) {
 }
 
 // Invites an address to edit the Trip. Asking again for the same address gives the same invitation.
-// undefined: not the Owner's Trip (or no such Trip).
+// undefined: not the Owner's Trip (or no such Trip). `ownEmail` is the address in the Owner's
+// token, verified or not: only verified addresses are kept, but an unverified one is still theirs.
 export async function inviteEditor(
   db: Db,
   userId: string,
   tripId: string,
   email: string,
+  ownEmail?: string,
 ): Promise<{ invitation: Invitation; tripTitle: string } | "owner" | "editor" | undefined> {
   const trip = await ownedTrip(db, userId, tripId);
   if (!trip) return undefined;
   const [owner] = await db.select({ email: users.email }).from(users).where(eq(users.id, userId));
-  if (owner?.email === email) return "owner";
+  if (owner?.email === email || ownEmail === email) return "owner";
   const [member] = await db
     .select({ userId: tripMembers.userId })
     .from(tripMembers)

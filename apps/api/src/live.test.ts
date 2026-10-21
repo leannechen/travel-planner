@@ -1,3 +1,4 @@
+import net from "node:net";
 import { liveMessageSchema, tripSchema, type LiveMessage } from "@travel-planner/shared";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { WebSocket } from "ws";
@@ -116,6 +117,20 @@ describe("live collaboration", () => {
     const closed = new Promise<number>((resolve) => socket.on("close", (code) => resolve(code)));
     socket.on("open", () => socket.send("not json"));
     expect(await closed).toBe(4400);
+  });
+
+  it("drops an upgrade request whose target is not a valid URL and keeps serving", async () => {
+    const { port } = new URL(app.baseUrl);
+    const raw = net.connect(Number(port), "127.0.0.1");
+    raw.on("error", () => {});
+    try {
+      raw.write("GET //a:99999/ HTTP/1.1\r\nHost: x\r\nConnection: Upgrade\r\nUpgrade: websocket\r\n\r\n");
+      await new Promise<void>((resolve) => raw.on("close", () => resolve()));
+    } finally {
+      raw.destroy();
+    }
+
+    expect((await fetch(`${app.baseUrl}/api/health`, { headers: { "x-no-auth": "1" } })).status).toBe(200);
   });
 
   it("ends the Editor's connection when they are removed", async () => {

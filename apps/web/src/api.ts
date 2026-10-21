@@ -25,8 +25,30 @@ import {
   type UpdateTodoInput,
 } from "@travel-planner/shared";
 import { z } from "zod";
+import { authHooks } from "./apiAuth";
+import { SessionEndedError } from "./authClient";
 
 type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+
+async function send(path: string, init: RequestInit = {}): Promise<Response> {
+  const hooks = authHooks();
+  const auth = hooks ? await hooks.headers() : {};
+  const res = await fetch(path, { ...init, headers: { ...(init.headers as Record<string, string> | undefined), ...auth } });
+  if (res.status === 401) {
+    // A token the API no longer accepts is the end of the session, not a failed request.
+    const detail = (await res.clone().json().catch(() => undefined)) as { code?: string } | undefined;
+    if (detail?.code === "invalid_token") {
+      hooks?.onSessionEnded();
+      throw new SessionEndedError();
+    }
+  }
+  return res;
+}
+
+async function failure(res: Response): Promise<Error> {
+  const detail = (await res.json().catch(() => undefined)) as { error?: string } | undefined;
+  return new Error(detail?.error ?? `Request failed: ${res.status}`);
+}
 
 async function request<T>(
   path: string,
@@ -34,16 +56,19 @@ async function request<T>(
   body?: unknown,
   method: Method = body === undefined ? "GET" : "POST",
 ): Promise<T> {
-  const res = await fetch(path, {
+  const res = await send(path, {
     method,
     headers: body === undefined ? undefined : { "content-type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  if (!res.ok) {
-    const detail = (await res.json().catch(() => undefined)) as { error?: string } | undefined;
-    throw new Error(detail?.error ?? `Request failed: ${res.status}`);
-  }
+  if (!res.ok) throw await failure(res);
   return schema.parse(await res.json());
+}
+
+// For the calls the server answers with 204 and no body.
+async function requestNothing(path: string, method: Method): Promise<void> {
+  const res = await send(path, { method });
+  if (!res.ok) throw await failure(res);
 }
 
 const placesSchema = z.object({ places: z.array(placeSchema) });
@@ -107,13 +132,7 @@ export const updateTodo = (tripId: string, todoId: string, input: UpdateTodoInpu
   request(`/api/trips/${tripId}/todos/${todoId}`, todoSchema, input, "PATCH");
 
 // The server answers 204 with no body.
-export async function deleteTodo(tripId: string, todoId: string): Promise<void> {
-  const res = await fetch(`/api/trips/${tripId}/todos/${todoId}`, { method: "DELETE" });
-  if (!res.ok) {
-    const detail = (await res.json().catch(() => undefined)) as { error?: string } | undefined;
-    throw new Error(detail?.error ?? `Request failed: ${res.status}`);
-  }
-}
+export const deleteTodo = (tripId: string, todoId: string) => requestNothing(`/api/trips/${tripId}/todos/${todoId}`, "DELETE");
 
 // Deletes an Event with its Todos; the answer is what restoreEvent needs to undo it.
 export const deleteEvent = (tripId: string, eventId: string) =>
@@ -127,13 +146,7 @@ export const addNote = (tripId: string, body: string) => request(`/api/trips/${t
 export const updateNote = (tripId: string, noteId: string, input: UpdateNoteInput) =>
   request(`/api/trips/${tripId}/notes/${noteId}`, noteSchema, input, "PATCH");
 
-export async function deleteNote(tripId: string, noteId: string): Promise<void> {
-  const res = await fetch(`/api/trips/${tripId}/notes/${noteId}`, { method: "DELETE" });
-  if (!res.ok) {
-    const detail = (await res.json().catch(() => undefined)) as { error?: string } | undefined;
-    throw new Error(detail?.error ?? `Request failed: ${res.status}`);
-  }
-}
+export const deleteNote = (tripId: string, noteId: string) => requestNothing(`/api/trips/${tripId}/notes/${noteId}`, "DELETE");
 
 export const restoreNote = (tripId: string, note: Note) => request(`/api/trips/${tripId}/notes/restore`, noteSchema, { note });
 
@@ -145,7 +158,4 @@ export const updateLegMode = (tripId: string, legId: string, mode: TravelMode) =
   request(`/api/trips/${tripId}/legs/${legId}`, legSchema, { mode }, "PATCH");
 
 // The server answers 204 with no body.
-export async function deleteLeg(tripId: string, legId: string): Promise<void> {
-  const res = await fetch(`/api/trips/${tripId}/legs/${legId}`, { method: "DELETE" });
-  if (!res.ok) throw new Error(`Request failed: ${res.status}`);
-}
+export const deleteLeg = (tripId: string, legId: string) => requestNothing(`/api/trips/${tripId}/legs/${legId}`, "DELETE");

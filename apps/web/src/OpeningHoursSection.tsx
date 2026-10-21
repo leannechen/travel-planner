@@ -24,11 +24,13 @@ type Props = {
   // Turns them on; "none" when Google has no hours for the place. Rejects when the request fails.
   onTurnOn: () => Promise<"on" | "none">;
   onRemove: () => Promise<void>;
+  // A Viewer: only the hours, with nothing to turn on or remove.
+  readOnly?: boolean;
 };
 
 // The Opening hours section of the Event panel (PRD §3.5, design 44): a button to get them from
 // Google, then the hours, a note when they may conflict with the Event's time, and a way to remove them.
-export function OpeningHoursSection({ on, hours, fetching, weekday, dated, conflict, onSetDate, onTurnOn, onRemove }: Props) {
+export function OpeningHoursSection({ on, hours, fetching, weekday, dated, conflict, onSetDate, onTurnOn, onRemove, readOnly = false }: Props) {
   const t = useT();
   const [pending, setPending] = useState(false);
   const [note, setNote] = useState<"none" | "error" | undefined>();
@@ -60,6 +62,7 @@ export function OpeningHoursSection({ on, hours, fetching, weekday, dated, confl
   }
 
   if (!on || !hours) {
+    if (readOnly) return null;
     const busy = pending || (on && fetching);
     return (
       <div className="oh">
@@ -122,7 +125,7 @@ export function OpeningHoursSection({ on, hours, fetching, weekday, dated, confl
           ))}
         </div>
       )}
-      {!dated && !closed && (
+      {!readOnly && !dated && !closed && (
         <p className="oh-note">
           <Info size={14} aria-hidden="true" />
           <span>
@@ -142,10 +145,12 @@ export function OpeningHoursSection({ on, hours, fetching, weekday, dated, confl
         ) : (
           <span />
         )}
-        <button type="button" className="oh-link rm" disabled={pending} onClick={() => void remove()}>
-          <X size={14} aria-hidden="true" />
-          {t("opening.remove")}
-        </button>
+        {!readOnly && (
+          <button type="button" className="oh-link rm" disabled={pending} onClick={() => void remove()}>
+            <X size={14} aria-hidden="true" />
+            {t("opening.remove")}
+          </button>
+        )}
       </div>
       {note === "error" && (
         <p className="oh-note" role="alert">

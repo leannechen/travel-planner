@@ -1,7 +1,7 @@
 import { emailSchema, type Sharing } from "@travel-planner/shared";
-import { Link as LinkIcon, Mail, X } from "lucide-react";
+import { Copy, Link as LinkIcon, Mail, X } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { ApiError, getSharing, inviteEditor, removeEditor, revokeInvitation } from "./api";
+import { ApiError, getSharing, inviteEditor, removeEditor, revokeInvitation, setShareLink } from "./api";
 import { useT } from "./preferences";
 
 type Props = {
@@ -13,9 +13,10 @@ type Props = {
 };
 
 const inviteLink = (token: string) => `${window.location.origin}/?invite=${encodeURIComponent(token)}`;
+const viewLink = (token: string) => `${window.location.origin}/t/${encodeURIComponent(token)}`;
 
-// Share (design 19): the Owner invites Editors by email and sees who can edit. The link-sharing
-// switch for Viewers comes with step 19. Changes are saved at once; there is no Save button.
+// Share (design 19): the Owner turns the read-only link for Viewers on or off, invites Editors by
+// email and sees who can edit. Changes are saved at once; there is no Save button.
 export function ShareDialog({ tripId, tripTitle, ownerEmail, onClose }: Props) {
   const t = useT();
   const dialog = useRef<HTMLDialogElement>(null);
@@ -70,6 +71,21 @@ export function ShareDialog({ tripId, tripTitle, ownerEmail, onClose }: Props) {
     if (done) setEmail((current) => (current === email ? "" : current));
   }
 
+  async function switchLink(enabled: boolean) {
+    setBusy(true);
+    await change(() => setShareLink(tripId, enabled), () => t("share.linkError"));
+    setBusy(false);
+  }
+
+  async function copyViewLink(token: string) {
+    try {
+      await navigator.clipboard.writeText(viewLink(token));
+      setCopied(token);
+    } catch {
+      // Without clipboard access the link can still be selected in its field.
+    }
+  }
+
   async function copy(token: string) {
     try {
       await navigator.clipboard.writeText(inviteLink(token));
@@ -88,6 +104,32 @@ export function ShareDialog({ tripId, tripTitle, ownerEmail, onClose }: Props) {
         </button>
       </div>
       <p className="settings-trip">{tripTitle}</p>
+      <div className="settings-field share-link">
+        {/* Not a label: only the switch itself reacts to a click. */}
+        <div className="map-toggle share-link-toggle">
+          <span id="share-link-label">{t("share.link")}</span>
+          <input type="checkbox" role="switch" aria-labelledby="share-link-label" disabled={busy || !sharing} checked={sharing?.link.enabled ?? false} onChange={(e) => void switchLink(e.target.checked)} />
+        </div>
+        <p className="hint">{sharing?.link.enabled ? t("share.linkOn") : t("share.linkOffHint")}</p>
+        <div className="share-link-row">
+          <span className="share-email">
+            <LinkIcon size={15} aria-hidden="true" />
+            <input
+              type="text"
+              readOnly
+              aria-label={t("share.link")}
+              disabled={!sharing?.link.enabled}
+              placeholder={t("share.linkPlaceholder")}
+              value={sharing?.link.enabled && sharing.link.token ? viewLink(sharing.link.token) : ""}
+              onFocus={(e) => e.target.select()}
+            />
+          </span>
+          <button type="button" className="btn pri" disabled={!sharing?.link.enabled} onClick={() => sharing?.link.token && void copyViewLink(sharing.link.token)}>
+            <Copy size={14} aria-hidden="true" />
+            {t("share.copyLinkButton")}
+          </button>
+        </div>
+      </div>
       <div className="settings-field">
         <label htmlFor="share-email">{t("share.editors")}</label>
         <form className="share-invite" noValidate onSubmit={(e) => void invite(e)}>

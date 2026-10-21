@@ -21,7 +21,7 @@ import {
   type Todo,
   type Trip,
 } from "@travel-planner/shared";
-import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, Lock, Map as MapIcon, Plus, Settings, Share2, Trash2 } from "lucide-react";
+import { CalendarDays, ChevronDown, Eye, ChevronLeft, ChevronRight, CircleHelp, Lock, Map as MapIcon, Plus, Settings, Share2, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { deleteDay, insertDay, reorderDays, restoreDay } from "./api";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -47,8 +47,8 @@ type Props = {
   trip: Trip;
   // Opens Trip settings (the start date).
   onOpenSettings: () => void;
-  // Opens the list of Trips, from the Trip title.
-  onOpenTripList: () => void;
+  // Opens the list of Trips, from the Trip title; without it the title is plain text.
+  onOpenTripList?: () => void;
   // Opens Share (the Owner's; left out for an Editor).
   onShare?: () => void;
   onDaysChange: (tripId: string, days: Day[], backlog?: Event[]) => void;
@@ -79,6 +79,9 @@ type Props = {
   banner?: ReactNode;
   // The session ended: the Trip stays on screen but nothing in it can be changed.
   readOnly?: boolean;
+  // A Viewer, who opened the Trip through its share link (PRD §8): everything is read-only, Events can
+  // still be opened, and there are no Archive, Todos, Notes, Share, settings or Day buttons.
+  viewer?: boolean;
 };
 
 export type Toasted = { id: number; message: string; undo?: () => void };
@@ -100,9 +103,10 @@ function dropTargetAt(root: HTMLElement, x: number, y: number, draggedId: string
   return undefined;
 }
 
-export function TripCard({ trip, onOpenSettings, onOpenTripList, onShare, onDaysChange, selectedEventId, draft, onSelectEvent: selectEventProp, onCreateAt: createAtProp, onAddToBacklog: addToBacklogProp, onMove: moveProp, onCreateLeg, onChangeLegMode, onDeleteLeg, onToast, notesOpen, onToggleNotes, onShowShortcuts, footer, onAddTodo, onToggleTodo, onDeleteTodo, account, collaborators, banner, readOnly = false }: Props) {
+export function TripCard({ trip, onOpenSettings, onOpenTripList, onShare, onDaysChange, selectedEventId, draft, onSelectEvent: selectEventProp, onCreateAt: createAtProp, onAddToBacklog: addToBacklogProp, onMove: moveProp, onCreateLeg, onChangeLegMode, onDeleteLeg, onToast, notesOpen, onToggleNotes, onShowShortcuts, footer, onAddTodo, onToggleTodo, onDeleteTodo, account, collaborators, banner, readOnly: readOnlyProp = false, viewer = false }: Props) {
   const t = useT();
   const { language } = usePreferences();
+  const readOnly = readOnlyProp || viewer;
   const root = useRef<HTMLElement>(null);
   const [error, setError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
@@ -110,7 +114,8 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onShare, onDays
   const locked = busy || readOnly;
   // What opens or changes something does nothing in a read-only Trip.
   const editing = <A extends unknown[]>(fn: (...args: A) => void) => (readOnly ? () => undefined : fn);
-  const onSelectEvent = editing(selectEventProp);
+  // A Viewer can open an Event to read it.
+  const onSelectEvent = viewer ? selectEventProp : editing(selectEventProp);
   const onCreateAt = editing(createAtProp);
   const onAddToBacklog = editing(addToBacklogProp);
   const onMove = editing(moveProp);
@@ -248,6 +253,7 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onShare, onDays
   const { hours: openingHours } = useOpeningHours(hoursPlaceIds(trip.days.flatMap(onAxis)));
 
   function insertButton(position: number) {
+    if (viewer) return null;
     return (
       <button
         type="button"
@@ -290,10 +296,14 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onShare, onDays
           <MapIcon size={18} />
         </span>
         <h2>
-          <button type="button" className="trip-title" aria-haspopup="dialog" title={t("tripList.switch")} onClick={onOpenTripList}>
-            {trip.title}
-            <ChevronDown size={16} aria-hidden="true" />
-          </button>
+          {onOpenTripList ? (
+            <button type="button" className="trip-title" aria-haspopup="dialog" title={t("tripList.switch")} onClick={onOpenTripList}>
+              {trip.title}
+              <ChevronDown size={16} aria-hidden="true" />
+            </button>
+          ) : (
+            <span className="trip-title plain">{trip.title}</span>
+          )}
         </h2>
         {!phone && (
           <span className="trip-dates">
@@ -301,10 +311,10 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onShare, onDays
             {t("trip.days", { count: trip.days.length })}
           </span>
         )}
-        <button type="button" className="ib" disabled={readOnly} title={t("trip.settings")} aria-label={t("trip.settings")} onClick={onOpenSettings}>
+        {!viewer && <button type="button" className="ib" disabled={readOnly} title={t("trip.settings")} aria-label={t("trip.settings")} onClick={onOpenSettings}>
           <Settings size={16} aria-hidden="true" />
-        </button>
-        {onShare && (
+        </button>}
+        {onShare && !viewer && (
           <button type="button" className="ib" disabled={readOnly} title={t("share.button")} aria-label={t("share.button")} onClick={onShare}>
             <Share2 size={16} aria-hidden="true" />
           </button>
@@ -320,19 +330,27 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onShare, onDays
           </button>
         </div>
         <span className="spacer" />
-        {readOnly && !phone && (
+        {readOnlyProp && !phone && (
           <span className="read-only-badge">
             <Lock size={12} aria-hidden="true" />
             {t("auth.readOnly")}
           </span>
         )}
-        <button type="button" className="btn" aria-pressed={notesOpen} disabled={readOnly} title={tip(t("notes.title"), "notes")} onClick={onToggleNotes}>
+        {viewer && (
+          <span className="read-only-badge viewer-badge">
+            <Eye size={12} aria-hidden="true" />
+            {t("viewer.badge")}
+          </span>
+        )}
+        {!viewer && (
+          <button type="button" className="btn" aria-pressed={notesOpen} disabled={readOnly} title={tip(t("notes.title"), "notes")} onClick={onToggleNotes}>
           {t("notes.title")} <span className="count">{trip.notes.length}</span>
           <kbd className="kbd" aria-hidden="true">
             {keyOf("notes")}
           </kbd>
         </button>
-        {collaborators}
+        )}
+        {!viewer && collaborators}
         <button type="button" className="ib" title={tip(t("shortcuts.title"), "help")} aria-label={t("shortcuts.title")} onClick={onShowShortcuts}>
           <CircleHelp size={16} aria-hidden="true" />
         </button>
@@ -425,6 +443,7 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onShare, onDays
               onAddToBacklog();
             }}
             readOnly={readOnly}
+            viewer={viewer}
             onMoveTo={(eventId, area: HoldingArea) => onMove(eventId, { holding: area })}
             footer={phone ? undefined : footer}
           />
@@ -459,6 +478,8 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onShare, onDays
                       </>
                     )}
                   </h3>
+                  {!viewer && (
+                    <>
                   <div>
                     <button
                       type="button"
@@ -501,6 +522,8 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onShare, onDays
                   >
                     <Plus size={16} aria-hidden="true" />
                   </button>
+                    </>
+                  )}
                 </section>,
                 <div key={`banners-${day.id}`} style={{ gridColumn: dayColumn, gridRow: 2 }}>
                   <LodgingBanners
@@ -532,7 +555,7 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onShare, onDays
             })}
             {!phone && <div style={{ gridColumn: 2 + lastPosition * 2, gridRow: 1 }}>{insertButton(lastPosition + 1)}</div>}
           </div>
-          {(!phone || drawer === "todos") && <TodosPanel id={phone ? `drawer-${trip.id}` : undefined} trip={trip} readOnly={readOnly} onSelectEvent={phone ? selectFromDrawer : onSelectEvent} onAdd={onAddTodo} onToggle={onToggleTodo} onDelete={onDeleteTodo} />}
+          {!viewer && (!phone || drawer === "todos") && <TodosPanel id={phone ? `drawer-${trip.id}` : undefined} trip={trip} readOnly={readOnly} onSelectEvent={phone ? selectFromDrawer : onSelectEvent} onAdd={onAddTodo} onToggle={onToggleTodo} onDelete={onDeleteTodo} />}
         </div>
       </DragDropProvider>
       )}
@@ -560,7 +583,7 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onShare, onDays
                 ["archive", t("area.archive"), trip.archive.length],
                 ["todos", t("todo.panel"), trip.todos.length],
               ] as const
-            ).map(([id, label, count]) => (
+            ).filter(([id]) => !viewer || id === "backlog").map(([id, label, count]) => (
               <button key={id} type="button" aria-expanded={drawer === id} aria-controls={`drawer-${trip.id}`} className={drawer === id ? "on" : undefined} onClick={() => setDrawer(drawer === id ? undefined : id)}>
                 <span>
                   {label} <span className="count">{count}</span>

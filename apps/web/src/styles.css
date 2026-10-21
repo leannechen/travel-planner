@@ -4020,3 +4020,93 @@ main.has-panel .topbar {
     box-shadow: 0 0 0 3px var(--pri);
   }
 }
+
+/* ---------- Viewer (step 19) ---------- */
+.share-link {
+  margin-bottom: 8px;
+}
+
+.share-link .share-link-toggle:first-of-type {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin: 0;
+  font-weight: 700;
+  cursor: default;
+}
+
+.share-link-row {
+  display: flex;
+  gap: 8px;
+}
+
+.share-link-row .share-email input:disabled {
+  cursor: default;
+}
+
+.trip-title.plain {
+  display: inline-flex;
+  align-items: center;
+  font: inherit;
+  font-weight: 700;
+}
+
+.viewer-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.viewer-note {
+  margin: 8px 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.viewer-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.viewer-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+}
+
+.viewer-body h2 {
+  margin: 0 0 4px;
+  font-size: 20px;
+}
+
+.viewer-when {
+  margin: 0 0 16px;
+  color: var(--muted);
+}
+
+.viewer-field {
+  margin-bottom: 14px;
+}
+
+.viewer-field > span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.viewer-field p {
+  margin: 0 0 4px;
+  overflow-wrap: anywhere;
+}
+
+.viewer-field .viewer-text {
+  white-space: pre-wrap;
+}

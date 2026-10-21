@@ -29,7 +29,7 @@ const MAX_RETRY_MS = 30_000;
 
 // Keeps a connection to the API for the open Trip until the returned function is called, reconnecting
 // after a break (the network, a deploy). It carries no data: only "something changed" and who is here.
-export function openLive(tripId: string, handlers: LiveHandlers): () => void {
+export function openLive(tripId: string, handlers: LiveHandlers, share?: string): () => void {
   let stopped = false;
   let socket: SocketLike | undefined;
   let retry = MIN_RETRY_MS;
@@ -42,11 +42,12 @@ export function openLive(tripId: string, handlers: LiveHandlers): () => void {
 
   async function connect() {
     if (stopped || !makeSocket) return;
-    let credentials: Pick<LiveHello, "token" | "guest">;
+    let credentials: Pick<LiveHello, "token" | "guest" | "share">;
     try {
-      const headers = (await authHooks()?.headers()) ?? {};
+      // A Viewer has no login to send: the share link is the credential.
+      const headers: Record<string, string> = share ? {} : ((await authHooks()?.headers()) ?? {});
       const bearer = /^Bearer\s+(.+)$/i.exec(headers.authorization ?? "")?.[1];
-      credentials = bearer ? { token: bearer } : headers["x-guest-id"] ? { guest: headers["x-guest-id"] } : {};
+      credentials = share ? { share } : bearer ? { token: bearer } : headers["x-guest-id"] ? { guest: headers["x-guest-id"] } : {};
     } catch (err) {
       if (err instanceof SessionEndedError) return; // The page says so itself.
       scheduleRetry(); // Perhaps offline: the token could not be refreshed.

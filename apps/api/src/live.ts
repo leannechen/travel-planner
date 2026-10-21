@@ -6,7 +6,7 @@ import { WebSocket, WebSocketServer } from "ws";
 import { resolveCaller, type TokenVerifier } from "./auth";
 import type { Db } from "./db/client";
 import { users } from "./db/schema";
-import { canEditTrip } from "./trips";
+import { canEditTrip, sharedTripId } from "./trips";
 
 export const LIVE_PATH = "/api/live";
 const HELLO_TIMEOUT_MS = 5000;
@@ -17,7 +17,7 @@ const CLOSE_NOT_LOGGED_IN = 4401;
 const CLOSE_NO_ACCESS = 4403;
 const CLOSE_BAD_HELLO = 4400;
 
-type Connection = { tripId: string; socket: WebSocket; userId: string; initial: string | null; alive: boolean };
+type Connection = { tripId: string; socket: WebSocket; userId: string; initial: string | null; viewer: boolean; alive: boolean };
 
 // Who has a Trip open right now, and a way to tell them it changed (ADR 0003: lightweight, last
 // write wins; the page asks for the Trip again, so nothing about the change travels here).
@@ -26,6 +26,8 @@ export type LiveHub = {
   publish(tripId: string, origin: string | null): void;
   // The user lost access to the Trip: their connections to it end.
   kick(tripId: string, userId: string): void;
+  // The share link was turned off: everyone reading through it is disconnected.
+  kickViewers(tripId: string): void;
   attach(server: Server): void;
   close(): void;
 };
@@ -40,29 +42,48 @@ export function createLiveHub(db: Db, verifier: TokenVerifier): LiveHub {
 
   const people = (room: Set<Connection>): LivePerson[] => {
     const seen = new Map<string, LivePerson>();
-    for (const c of room) if (!seen.has(c.userId)) seen.set(c.userId, { id: c.userId, initial: c.initial });
+    for (const c of room) if (!c.viewer && !seen.has(c.userId)) seen.set(c.userId, { id: c.userId, initial: c.initial });
     return [...seen.values()];
   };
 
   const announcePresence = (room: Set<Connection>) => {
     const message: LiveMessage = { type: "presence", people: people(room) };
-    for (const c of room) send(c.socket, message);
+    for (const c of room) if (!c.viewer) send(c.socket, message);
   };
 
   function leave(tripId: string, conn: Connection) {
     const room = rooms.get(tripId);
     if (!room?.delete(conn)) return;
     if (room.size === 0) rooms.delete(tripId);
-    else announcePresence(room);
+    else if (!conn.viewer) announcePresence(room);
   }
 
   async function join(socket: WebSocket, raw: unknown) {
     const hello = liveHelloSchema.safeParse(raw);
     if (!hello.success) return socket.close(CLOSE_BAD_HELLO, "Bad hello");
-    const { tripId, token, guest } = hello.data;
+    const { tripId, token, guest, share } = hello.data;
     // Known before the first wait: a connection that ends while it is being checked never joins.
     let gone = socket.readyState !== WebSocket.OPEN;
     socket.on("close", () => (gone = true));
+    // A Viewer: the Trip behind a share link that is on. Not a person who is "here".
+    if (share) {
+      if ((await sharedTripId(db, share)) !== tripId) return socket.close(CLOSE_NO_ACCESS, "This link is off");
+      if (gone) return;
+      const viewer: Connection = { tripId, socket, userId: "", initial: null, viewer: true, alive: true };
+      const room = rooms.get(tripId) ?? new Set<Connection>();
+      rooms.set(tripId, room);
+      room.add(viewer);
+      socket.on("pong", () => (viewer.alive = true));
+      socket.on("close", () => leave(tripId, viewer));
+      // The link may have been turned off while this was being checked (the kick found no connection).
+      if ((await sharedTripId(db, share)) !== tripId) {
+        socket.close(CLOSE_NO_ACCESS, "This link is off");
+        return leave(tripId, viewer);
+      }
+      // A Viewer is told nothing about who is here.
+      send(socket, { type: "ready" });
+      return;
+    }
     const caller = await resolveCaller(db, verifier, token, guest);
     if (!caller.ok) return socket.close(CLOSE_NOT_LOGGED_IN, caller.code);
     if (!(await canEditTrip(db, caller.userId, tripId))) return socket.close(CLOSE_NO_ACCESS, "No access to this Trip");
@@ -72,7 +93,7 @@ export function createLiveHub(db: Db, verifier: TokenVerifier): LiveHub {
       label = row?.email ?? null;
     }
     if (gone) return;
-    const conn: Connection = { tripId, socket, userId: caller.userId, initial: label ? label.charAt(0).toUpperCase() : null, alive: true };
+    const conn: Connection = { tripId, socket, userId: caller.userId, initial: label ? label.charAt(0).toUpperCase() : null, viewer: false, alive: true };
     const room = rooms.get(tripId) ?? new Set<Connection>();
     rooms.set(tripId, room);
     room.add(conn);
@@ -135,6 +156,9 @@ export function createLiveHub(db: Db, verifier: TokenVerifier): LiveHub {
       for (const c of [...(rooms.get(tripId) ?? [])]) if (c.userId === userId) c.socket.close(CLOSE_NO_ACCESS, "No access to this Trip");
     },
     // Call close() before the server's own close(): that waits for open connections.
+    kickViewers(tripId) {
+      for (const c of [...(rooms.get(tripId) ?? [])]) if (c.viewer) c.socket.close(CLOSE_NO_ACCESS, "This link is off");
+    },
     attach(server) {
       server.on("upgrade", (req, socket, head) => {
         const path = new URL(req.url ?? "/", "http://localhost").pathname;
@@ -142,6 +166,7 @@ export function createLiveHub(db: Db, verifier: TokenVerifier): LiveHub {
         wss.handleUpgrade(req, socket, head, (ws) => wss.emit("connection", ws, req));
       });
     },
+    // Call before the server's own close(): that waits for open connections.
     close() {
       clearInterval(heartbeat);
       for (const room of rooms.values()) for (const c of room) c.socket.terminate();

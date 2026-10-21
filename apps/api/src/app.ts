@@ -9,6 +9,7 @@ import {
   updateTripInputSchema,
   deletedEventSchema,
   restoreNoteInputSchema,
+  setShareLinkInputSchema,
   holdingAreaSchema,
   inviteEditorInputSchema,
   MAX_PLACE_IDS,
@@ -28,7 +29,7 @@ import express from "express";
 import { z, ZodError } from "zod";
 import type { Db } from "./db/client";
 import { users } from "./db/schema";
-import { acceptInvitation, getSharing, identityAdminFromEnv, IdentityAdminError, inviteEditor, logInvitationMailer, previewInvitation, removeEditor, revokeInvitation, type IdentityAdmin, type InvitationMailer } from "./sharing";
+import { acceptInvitation, getSharing, identityAdminFromEnv, IdentityAdminError, inviteEditor, logInvitationMailer, previewInvitation, removeEditor, revokeInvitation, setShareLink, type IdentityAdmin, type InvitationMailer } from "./sharing";
 import { authenticate, GUEST_HEADER, mergeGuest, verifierFromEnv, type TokenVerifier } from "./auth";
 import { createLiveHub } from "./live";
 import { createLeg, deleteLeg, isProviderError, listLegs, setLegMode, syncLegs } from "./legs";
@@ -45,6 +46,8 @@ import {
   deleteNote,
   deleteTodo,
   findEventPlace,
+  getSharedTrip,
+  sharedPlaceIds,
   insertDay,
   listTrips,
   ownPlaceIds,
@@ -119,13 +122,39 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
   });
 
   // Everything below is for an account or a guest session.
+  // What a Viewer opens (PRD §8): no login, only the Trip behind a share link that is on.
+  const shareParamsSchema = z.object({ token: z.string().min(1).max(200) });
+  app.get("/api/shared/:token", async (req, res) => {
+    const { token } = shareParamsSchema.parse(req.params);
+    const trip = await getSharedTrip(db, token);
+    if (trip === "off") {
+      res.status(404).json({ error: "This link is turned off", code: "link_off" });
+    } else if (!trip) {
+      res.status(404).json({ error: "This link does not lead to a Trip", code: "link_not_found" });
+    } else {
+      res.json(trip);
+    }
+  });
+
+  app.get("/api/shared/:token/places", async (req, res) => {
+    const { token } = shareParamsSchema.parse(req.params);
+    const { ids } = idsQuerySchema.parse(req.query);
+    res.json({ places: await getPlaces(db, provider, await sharedPlaceIds(db, token, ids)) });
+  });
+
+  app.get("/api/shared/:token/opening-hours", async (req, res) => {
+    const { token } = shareParamsSchema.parse(req.params);
+    const { ids } = idsQuerySchema.parse(req.query);
+    res.json({ openingHours: Object.fromEntries(await getOpeningHours(db, provider, await sharedPlaceIds(db, token, ids))) });
+  });
+
   app.use("/api", authenticate(db, verifier));
 
   // Anyone with the Trip open is told when a request changed it (a Trip is changed by what happens
   // under its address). Sharing is not part of the Trip's content.
   app.use("/api/trips/:tripId", (req, res, next) => {
     const { tripId } = req.params;
-    const changes = req.method !== "GET" && !/^\/(invitations|editors|sharing)(\/|$)/.test(req.path) && z.uuid().safeParse(tripId).success;
+    const changes = req.method !== "GET" && !/^\/(invitations|editors|sharing|link)(\/|$)/.test(req.path) && z.uuid().safeParse(tripId).success;
     if (changes) {
       res.on("finish", () => {
         if (res.statusCode < 400) live.publish(String(tripId), req.header(CLIENT_ID_HEADER) ?? null);
@@ -234,6 +263,7 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
     else res.status(401).json({ error: "Log in first", code: "no_session" });
   };
   app.use("/api/trips/:tripId/sharing", accountOnly);
+  app.use("/api/trips/:tripId/link", accountOnly);
   app.use("/api/trips/:tripId/invitations", accountOnly);
   app.use("/api/trips/:tripId/editors", accountOnly);
   app.get("/api/trips/:tripId/sharing", async (req, res) => {
@@ -244,6 +274,19 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
       return;
     }
     res.json(sharing);
+  });
+
+  app.put("/api/trips/:tripId/link", async (req, res) => {
+    const { tripId } = tripParamsSchema.parse(req.params);
+    const { enabled } = setShareLinkInputSchema.parse(req.body);
+    const link = await setShareLink(db, res.locals.userId, tripId, enabled);
+    if (!link) {
+      res.status(404).json({ error: "Trip not found" });
+      return;
+    }
+    // Viewers already reading the Trip are cut off.
+    if (!enabled) live.kickViewers(tripId);
+    res.json(link);
   });
 
   app.post("/api/trips/:tripId/invitations", async (req, res) => {

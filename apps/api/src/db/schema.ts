@@ -27,6 +27,10 @@ export const trips = pgTable("trips", {
   travelMode: travelMode().notNull().default("transit"),
   // The first Day's calendar date ("YYYY-MM-DD"), or null.
   startDate: date({ mode: "string" }),
+  // The secret in the Trip's read-only link (PRD §8). Made when the link is first turned on and kept
+  // when it is turned off, so the old link can say it is off.
+  shareToken: text().unique(),
+  shareEnabled: boolean().notNull().default(false),
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });
 

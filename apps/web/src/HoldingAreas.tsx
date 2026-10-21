@@ -72,11 +72,13 @@ type Props = {
   id?: string;
   // The session ended: nothing can be added.
   readOnly?: boolean;
+  // A Viewer: no Archive and no way to add.
+  viewer?: boolean;
 };
 
 // The Backlog (Events still being considered) and the Archive (Events given up on), side by side
 // with the Days. Both are collapsible and both accept dragged Events.
-export function HoldingAreas({ backlog, archive, selectedEventId, dropTarget, onSelectEvent, onAddToBacklog, onMoveTo, footer, only, id, readOnly }: Props) {
+export function HoldingAreas({ backlog, archive, selectedEventId, dropTarget, onSelectEvent, onAddToBacklog, onMoveTo, footer, only, id, readOnly, viewer }: Props) {
   const t = useT();
   const area = (name: HoldingArea) => (dropTarget === name ? "holding-area drop-target" : "holding-area");
   return (
@@ -87,6 +89,7 @@ export function HoldingAreas({ backlog, archive, selectedEventId, dropTarget, on
           <h3>
             {t("area.backlog")} <span className="count">{backlog.length}</span>
           </h3>
+          {!viewer && (
           <button
             type="button"
             className="holding-add"
@@ -101,6 +104,7 @@ export function HoldingAreas({ backlog, archive, selectedEventId, dropTarget, on
           >
             <Plus size={14} aria-hidden="true" />
           </button>
+          )}
         </summary>
         {backlog.length === 0 ? (
           <p className="holding-empty">{t("area.backlogEmpty")}</p>
@@ -120,7 +124,7 @@ export function HoldingAreas({ backlog, archive, selectedEventId, dropTarget, on
         )}
       </details>
       )}
-      {only !== "backlog" && (
+      {only !== "backlog" && !viewer && (
       <details className={area("archive")} data-drop="archive" open={only === "archive" || undefined}>
         <summary tabIndex={only ? -1 : undefined} onClick={only ? (e) => e.preventDefault() : undefined}>
           <h3>

@@ -167,6 +167,69 @@ export async function listTrips(db: Db, userId: string): Promise<Trip[]> {
   }));
 }
 
+// The Trip as someone with its share link sees it: Days, Backlog and Legs, without Todos, Notes or
+// the Archive (PRD §8). "off" when the Owner turned the link off; undefined when no Trip has it.
+export async function getSharedTrip(db: Db, token: string): Promise<Trip | "off" | undefined> {
+  const row = await db.query.trips.findFirst({
+    where: eq(trips.shareToken, token),
+    columns: { id: true, title: true, travelMode: true, startDate: true, shareEnabled: true },
+    with: {
+      days: {
+        orderBy: asc(days.position),
+        columns: { id: true, position: true },
+        with: { events: { orderBy: [asc(events.startMinute), ...arrivalOrder], columns: eventColumns } },
+      },
+      events: { where: eq(events.holding, "backlog"), orderBy: arrivalOrder, columns: eventColumns },
+      legs: {
+        orderBy: asc(legs.id),
+        columns: { id: true, dayId: true, fromEventId: true, toEventId: true, mode: true, durationMinutes: true, distanceMeters: true },
+      },
+    },
+  });
+  if (!row) return undefined;
+  if (!row.shareEnabled) return "off";
+  return {
+    id: row.id,
+    title: row.title,
+    travelMode: row.travelMode,
+    startDate: row.startDate,
+    role: "viewer",
+    days: row.days,
+    legs: row.legs,
+    backlog: row.events,
+    archive: [],
+    todos: [],
+    notes: [],
+  };
+}
+
+// The Trip behind a share link that is on (for the Viewer's live connection and place lookups).
+export async function sharedTripId(db: Db, token: string): Promise<string | undefined> {
+  const [row] = await db.select({ id: trips.id }).from(trips).where(and(eq(trips.shareToken, token), eq(trips.shareEnabled, true)));
+  return row?.id;
+}
+
+// Which of these places the shared Trip's visible Events (and the destinations of its Transport events) use,
+// so the link is not a way to read the paid provider through our cache.
+export async function sharedPlaceIds(db: Db, token: string, ids: string[]): Promise<string[]> {
+  if (ids.length === 0) return [];
+  const rows = await db
+    .select({ placeId: events.placeId, destinationId: events.destinationId })
+    .from(events)
+    .innerJoin(trips, eq(events.tripId, trips.id))
+    .where(
+      and(
+        eq(trips.shareToken, token),
+        eq(trips.shareEnabled, true),
+        // What a Viewer sees: Events on a Day or in the Backlog, never the Archive.
+        or(isNotNull(events.dayId), eq(events.holding, "backlog")),
+        or(inArray(events.placeId, ids), inArray(events.destinationId, ids)),
+      ),
+    );
+  const used = new Set(rows.flatMap((r) => [r.placeId, r.destinationId]));
+  return ids.filter((id) => used.has(id));
+}
+
 export async function createTrip(db: Db, userId: string, input: CreateTripInput): Promise<Trip> {
   return db.transaction(async (tx) => {
     const [trip] = await tx

@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
-import { maskEmail, type AcceptedInvitation, type Invitation, type InvitationPreview, type Sharing } from "@travel-planner/shared";
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { maskEmail, type AcceptedInvitation, type Invitation, type InvitationPreview, type ShareLink, type Sharing } from "@travel-planner/shared";
+import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import type { Db } from "./db/client";
 import { tripInvitations, tripMembers, trips, users } from "./db/schema";
 
@@ -78,6 +78,22 @@ export function identityAdminFromEnv(env: NodeJS.ProcessEnv = process.env): Iden
 
 const newToken = () => randomBytes(24).toString("base64url");
 
+// The share link's secret: short enough to read out, long enough to be unguessable (72 bits).
+const newLinkToken = () => randomBytes(9).toString("base64url");
+
+// Turns the Trip's read-only link on or off. The secret is made the first time and kept, so turning
+// the link on again gives the same address. undefined: not the Owner's Trip.
+export async function setShareLink(db: Db, userId: string, tripId: string, enabled: boolean): Promise<ShareLink | undefined> {
+  const trip = await ownedTrip(db, userId, tripId);
+  if (!trip) return undefined;
+  const [row] = await db
+    .update(trips)
+    .set({ shareEnabled: enabled, shareToken: sql`coalesce(${trips.shareToken}, ${newLinkToken()})` })
+    .where(eq(trips.id, tripId))
+    .returning({ enabled: trips.shareEnabled, token: trips.shareToken });
+  return row;
+}
+
 async function ownedTrip(db: Db, userId: string, tripId: string) {
   const [trip] = await db
     .select({ id: trips.id, title: trips.title })
@@ -117,6 +133,7 @@ export async function inviteEditor(
 // Who can edit the Trip and which invitations are still waiting; undefined when it is not the Owner's.
 export async function getSharing(db: Db, userId: string, tripId: string): Promise<Sharing | undefined> {
   if (!(await ownedTrip(db, userId, tripId))) return undefined;
+  const [link] = await db.select({ enabled: trips.shareEnabled, token: trips.shareToken }).from(trips).where(eq(trips.id, tripId));
   const editors = await db
     .select({ userId: tripMembers.userId, email: users.email })
     .from(tripMembers)
@@ -128,7 +145,7 @@ export async function getSharing(db: Db, userId: string, tripId: string): Promis
     .from(tripInvitations)
     .where(eq(tripInvitations.tripId, tripId))
     .orderBy(asc(tripInvitations.createdAt), asc(tripInvitations.id));
-  return { editors, invitations: waiting.filter((i) => !i.acceptedBy).map((i) => ({ id: i.id, email: i.email, token: i.token })) };
+  return { editors, invitations: waiting.filter((i) => !i.acceptedBy).map((i) => ({ id: i.id, email: i.email, token: i.token })), link: link! };
 }
 
 export async function removeEditor(db: Db, userId: string, tripId: string, editorId: string): Promise<true | undefined> {

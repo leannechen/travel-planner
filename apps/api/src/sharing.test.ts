@@ -52,7 +52,7 @@ describe("inviting", () => {
     expect(first.invitation).toMatchObject({ email: "mei@example.com" });
     expect(second.invitation!.token).toBe(first.invitation!.token);
     const sharing = sharingSchema.parse(await (await call("GET", `/api/trips/${trip.id}/sharing`, OWNER)).json());
-    expect(sharing).toEqual({ editors: [], invitations: [first.invitation] });
+    expect(sharing).toEqual({ editors: [], invitations: [first.invitation], link: { enabled: false, token: null } });
     expect(app.mails[0]).toEqual({
       to: "mei@example.com",
       inviterEmail: "lena@example.com",
@@ -276,5 +276,90 @@ describe("Auth0 management API", () => {
   it("reports a refusal as its own error", async () => {
     const fetchFn = (async () => new Response("{}", { status: 403 })) as unknown as typeof fetch;
     await expect(auth0IdentityAdmin(settings, fetchFn).resendVerification("auth0|abc")).rejects.toBeInstanceOf(IdentityAdminError);
+  });
+});
+
+describe("the share link", () => {
+  const setLink = (tripId: string, enabled: boolean, token: string | undefined = OWNER) => call("PUT", `/api/trips/${tripId}/link`, token, { enabled });
+  const viewer = (path: string) => call("GET", path, undefined);
+
+  async function tripWithContent() {
+    const trip = await ownerTrip();
+    const day = trip.days[0]!;
+    const body = { title: "Kiyomizu-dera", placeId: "fake:fushimi-inari", phone: "+81 75-551-1234", startMinute: 600 };
+    expect((await call("POST", `/api/trips/${trip.id}/days/${day.id}/events`, OWNER, body)).status).toBe(201);
+    expect((await call("POST", `/api/trips/${trip.id}/backlog/events`, OWNER, { title: "Nara deer park" })).status).toBe(201);
+    expect((await call("POST", `/api/trips/${trip.id}/archive/events`, OWNER, { title: "Given up", placeId: "fake:kinkaku-ji" })).status).toBe(201);
+    expect((await call("POST", `/api/trips/${trip.id}/todos`, OWNER, { text: "Buy ICOCA" })).status).toBe(201);
+    expect((await call("POST", `/api/trips/${trip.id}/notes`, OWNER, { body: "Private" })).status).toBe(201);
+    return trip;
+  }
+
+  it("is off at first, and turning it on gives a link that keeps its address when turned off and on again", async () => {
+    const trip = await ownerTrip();
+    const before = sharingSchema.parse(await (await call("GET", `/api/trips/${trip.id}/sharing`, OWNER)).json());
+    expect(before.link).toEqual({ enabled: false, token: null });
+
+    const on = (await (await setLink(trip.id, true)).json()) as { enabled: boolean; token: string };
+    expect(on.enabled).toBe(true);
+    expect(on.token).toMatch(/^[\w-]{12}$/);
+    const off = (await (await setLink(trip.id, false)).json()) as { enabled: boolean; token: string };
+    expect(off).toEqual({ enabled: false, token: on.token });
+    expect(await (await setLink(trip.id, true)).json()).toEqual(on);
+  });
+
+  it("shows anyone the Days, Events and Backlog but no Todos, Notes or Archive, with contact fields", async () => {
+    const trip = await tripWithContent();
+    const { token } = (await (await setLink(trip.id, true)).json()) as { token: string };
+
+    const res = await viewer(`/api/shared/${token}`);
+
+    expect(res.status).toBe(200);
+    const shared = tripSchema.parse(await res.json());
+    expect(shared).toMatchObject({ id: trip.id, title: "Kyoto & Osaka", role: "viewer", todos: [], notes: [], archive: [] });
+    expect(shared.days[0]!.events[0]).toMatchObject({ title: "Kiyomizu-dera", phone: "+81 75-551-1234" });
+    expect(shared.backlog.map((e) => e.title)).toEqual(["Nara deer park"]);
+  });
+
+  it("says the link is off, or that it leads nowhere", async () => {
+    const trip = await ownerTrip();
+    const { token } = (await (await setLink(trip.id, true)).json()) as { token: string };
+    await setLink(trip.id, false);
+
+    const off = await viewer(`/api/shared/${token}`);
+    expect(off.status).toBe(404);
+    expect(await off.json()).toMatchObject({ code: "link_off" });
+    const unknown = await viewer("/api/shared/not-a-link");
+    expect(unknown.status).toBe(404);
+    expect(await unknown.json()).toMatchObject({ code: "link_not_found" });
+  });
+
+  it("hands out only the places the shared Trip uses, and not at all when the link is off", async () => {
+    const trip = await tripWithContent();
+    const { token } = (await (await setLink(trip.id, true)).json()) as { token: string };
+    const ids = "fake:fushimi-inari,fake:kinkaku-ji";
+
+    const places = (await (await viewer(`/api/shared/${token}/places?ids=${ids}`)).json()) as { places: { id: string }[] };
+    const hours = (await (await viewer(`/api/shared/${token}/opening-hours?ids=${ids}`)).json()) as { openingHours: Record<string, unknown> };
+
+    // kinkaku-ji is used only by the archived Event, which a Viewer must not learn about.
+    expect(places.places.map((p) => p.id)).toEqual(["fake:fushimi-inari"]);
+    expect(Object.keys(hours.openingHours)).toEqual(["fake:fushimi-inari"]);
+    await setLink(trip.id, false);
+    expect(((await (await viewer(`/api/shared/${token}/places?ids=${ids}`)).json()) as { places: unknown[] }).places).toEqual([]);
+  });
+
+  it("is the Owner's to change, not an Editor's or a stranger's", async () => {
+    const trip = await ownerTrip();
+    await joined(trip.id);
+
+    expect((await setLink(trip.id, true, MEI)).status).toBe(404);
+    expect((await call("PUT", `/api/trips/${trip.id}/link`, undefined, { enabled: true })).status).toBe(401);
+    expect((await call("GET", `/api/trips/${trip.id}/sharing`, MEI)).status).toBe(404);
+  });
+
+  it("rejects a body that is not a switch", async () => {
+    const trip = await ownerTrip();
+    expect((await call("PUT", `/api/trips/${trip.id}/link`, OWNER, { enabled: "yes" })).status).toBe(400);
   });
 });

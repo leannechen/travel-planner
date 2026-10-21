@@ -5,6 +5,7 @@ import {
   invitationPreviewSchema,
   invitationSchema,
   sharingSchema,
+  shareLinkSchema,
   dayDeletionSchema,
   deletedEventSchema,
   eventSchema,
@@ -100,6 +101,13 @@ async function request<T>(
   return schema.parse(await res.json());
 }
 
+// A read that needs no login (what a Viewer opens): no credentials are sent, and none are waited for.
+async function requestPublic<T>(path: string, schema: z.ZodType<T>): Promise<T> {
+  const res = await fetch(path);
+  if (!res.ok) throw await failure(res);
+  return schema.parse(await res.json());
+}
+
 // For the calls the server answers with 204 and no body.
 async function requestNothing(path: string, method: Method): Promise<void> {
   const res = await send(path, { method });
@@ -108,17 +116,29 @@ async function requestNothing(path: string, method: Method): Promise<void> {
 
 const placesSchema = z.object({ places: z.array(placeSchema) });
 
+// The Trip a Viewer is looking at (PRD §8): while it is set, place lookups go through the share link,
+// which needs no login. Set by the shared Trip page.
+let sharedToken: string | undefined;
+export const setSharedLink = (token: string | undefined) => {
+  sharedToken = token;
+};
+
+const sharedUrl = (path: string) => `/api/shared/${encodeURIComponent(sharedToken!)}${path}`;
+
 export const searchPlaces = (query: string) =>
   request(`/api/places/search?q=${encodeURIComponent(query)}`, placesSchema).then((r) => r.places);
 
 export const getPlaces = (ids: string[]) =>
-  request(`/api/places?ids=${encodeURIComponent(ids.join(","))}`, placesSchema).then((r) => r.places);
+  (sharedToken ? requestPublic(sharedUrl(`/places?ids=${encodeURIComponent(ids.join(","))}`), placesSchema) : request(`/api/places?ids=${encodeURIComponent(ids.join(","))}`, placesSchema)).then((r) => r.places);
 
 // Opening hours by place id; a place without hours is left out.
-export const getOpeningHours = (ids: string[]) =>
-  request(`/api/places/opening-hours?ids=${encodeURIComponent(ids.join(","))}`, z.object({ openingHours: z.record(z.string(), openingHoursSchema) })).then(
+export const getOpeningHours = (ids: string[]) => {
+  const schema = z.object({ openingHours: z.record(z.string(), openingHoursSchema) });
+  const query = `ids=${encodeURIComponent(ids.join(","))}`;
+  return (sharedToken ? requestPublic(sharedUrl(`/opening-hours?${query}`), schema) : request(`/api/places/opening-hours?${query}`, schema)).then(
     (r) => new Map(Object.entries(r.openingHours)),
   );
+};
 
 export const listTrips = () => request("/api/trips", z.array(tripSchema));
 
@@ -224,3 +244,9 @@ export async function acceptInvitation(token: string): Promise<AcceptResult> {
 }
 
 export const resendVerification = () => requestNothing("/api/me/resend-verification", "POST");
+
+// The Trip behind a share link (a Viewer's view); the error code is "link_off" or "link_not_found".
+export const getSharedTrip = (token: string) => requestPublic(`/api/shared/${encodeURIComponent(token)}`, tripSchema);
+
+// Turns the Trip's read-only link on or off (the Owner's).
+export const setShareLink = (tripId: string, enabled: boolean) => request(`/api/trips/${tripId}/link`, shareLinkSchema, { enabled }, "PUT");

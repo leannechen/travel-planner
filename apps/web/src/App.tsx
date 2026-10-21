@@ -55,6 +55,7 @@ import { useAuth } from "./AuthProvider";
 import { Collaborators } from "./Collaborators";
 import { ChangedEventsContext } from "./liveContext";
 import { openLive } from "./live";
+import { SharedTripPage, sharedTokenOf } from "./SharedTripPage";
 import { LOGGED_OUT_PARAM } from "./authClient";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { InvitePage } from "./InvitePage";
@@ -156,6 +157,8 @@ export function App() {
     );
   }
   if (auth.status === "loading" && isLoginCallback()) return null;
+  const shared = sharedTokenOf(window.location.pathname);
+  if (shared) return <SharedTripPage token={shared} />;
   if (invite) {
     return (
       <InvitePage

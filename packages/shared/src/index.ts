@@ -146,7 +146,8 @@ export const tripSchema = z.object({
   // The first Day's calendar date, or null: Days are then just Day 1, Day 2... (PRD §3.1).
   startDate: startDateSchema.nullable(),
   // What the user may do with it: the Owner also shares and deletes; an Editor edits (PRD §8).
-  role: z.enum(["owner", "editor"]),
+  // "viewer": the Trip opened through its share link (read-only; no Todos, Notes or Archive).
+  role: z.enum(["owner", "editor", "viewer"]),
 });
 
 export const createTripInputSchema = z.object({ title, travelMode: travelModeSchema.optional(), startDate: startDateSchema.nullable().optional() });
@@ -261,7 +262,10 @@ export const inviteEditorInputSchema = z.object({ email: emailSchema });
 export type InviteEditorInput = z.infer<typeof inviteEditorInputSchema>;
 export const invitationSchema = z.object({ id: z.uuid(), email: z.string(), token: z.string() });
 export const editorSchema = z.object({ userId: z.uuid(), email: z.string().nullable() });
-export const sharingSchema = z.object({ editors: z.array(editorSchema), invitations: z.array(invitationSchema) });
+export const shareLinkSchema = z.object({ enabled: z.boolean(), token: z.string().nullable() });
+export const sharingSchema = z.object({ editors: z.array(editorSchema), invitations: z.array(invitationSchema), link: shareLinkSchema });
+export const setShareLinkInputSchema = z.object({ enabled: z.boolean() });
+export type ShareLink = z.infer<typeof shareLinkSchema>;
 export type Invitation = z.infer<typeof invitationSchema>;
 export type Sharing = z.infer<typeof sharingSchema>;
 // An address with the middle of its name hidden ("l*****w@gmail.com"), for pages that anyone holding
@@ -314,6 +318,8 @@ export const liveHelloSchema = z.object({
   // The access token of an account, or else the anonymous session's id.
   token: z.string().min(1).max(8192).optional(),
   guest: z.uuid().optional(),
+  // Or the secret of the Trip's share link: a Viewer, who needs no login and only hears about changes.
+  share: z.string().min(1).max(200).optional(),
 });
 export type LiveHello = z.infer<typeof liveHelloSchema>;
 // Only the first letter of the name goes to the others (null for a guest): collaborators do not see each other's email.

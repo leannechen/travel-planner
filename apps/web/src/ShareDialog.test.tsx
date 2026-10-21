@@ -2,11 +2,11 @@
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiError, getSharing, inviteEditor, removeEditor, revokeInvitation } from "./api";
+import { ApiError, getSharing, inviteEditor, removeEditor, revokeInvitation, setShareLink } from "./api";
 import { PreferencesProvider } from "./preferences";
 import { ShareDialog } from "./ShareDialog";
 
-vi.mock("./api", async (importOriginal) => ({ ...(await importOriginal<typeof import("./api")>()), getSharing: vi.fn(), inviteEditor: vi.fn(), removeEditor: vi.fn(), revokeInvitation: vi.fn() }));
+vi.mock("./api", async (importOriginal) => ({ ...(await importOriginal<typeof import("./api")>()), getSharing: vi.fn(), inviteEditor: vi.fn(), removeEditor: vi.fn(), revokeInvitation: vi.fn(), setShareLink: vi.fn() }));
 
 const mei = { userId: "11111111-1111-4111-8111-111111111111", email: "mei@example.com" };
 const ken = { id: "22222222-2222-4222-8222-222222222222", email: "ken@example.com", token: "ken-token" };
@@ -15,7 +15,7 @@ beforeEach(() => {
   HTMLDialogElement.prototype.showModal = function () {
     this.setAttribute("open", "");
   };
-  vi.mocked(getSharing).mockResolvedValue({ editors: [mei], invitations: [ken] });
+  vi.mocked(getSharing).mockResolvedValue({ editors: [mei], invitations: [ken], link: { enabled: false, token: null } });
 });
 afterEach(() => {
   cleanup();
@@ -96,5 +96,54 @@ describe("ShareDialog", () => {
 
     expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/?invite=ken-token`);
     vi.unstubAllGlobals();
+  });
+});
+
+describe("ShareDialog link sharing", () => {
+  it("turns the read-only link on and shows it with a Copy link button", async () => {
+    vi.mocked(getSharing).mockResolvedValueOnce({ editors: [], invitations: [], link: { enabled: false, token: "k7Qx2mAbCdEf" } });
+    vi.mocked(setShareLink).mockResolvedValue({ enabled: true, token: "k7Qx2mAbCdEf" });
+    vi.mocked(getSharing).mockResolvedValueOnce({ editors: [], invitations: [], link: { enabled: true, token: "k7Qx2mAbCdEf" } });
+    open();
+    const toggle = await screen.findByRole("switch", { name: "Link sharing" });
+    expect((toggle as HTMLInputElement).checked).toBe(false);
+    expect((screen.getByRole("button", { name: "Copy link" }) as HTMLButtonElement).disabled).toBe(true);
+
+    await userEvent.click(toggle);
+
+    expect(setShareLink).toHaveBeenCalledWith("trip-1", true);
+    await waitFor(() => expect((screen.getByRole("switch", { name: "Link sharing" }) as HTMLInputElement).checked).toBe(true));
+    expect((screen.getByRole("textbox", { name: "Link sharing" }) as HTMLInputElement).value).toBe(`${window.location.origin}/t/k7Qx2mAbCdEf`);
+    expect((screen.getByRole("button", { name: "Copy link" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("reacts only to the switch itself, not to its text", async () => {
+    vi.mocked(getSharing).mockResolvedValue({ editors: [], invitations: [], link: { enabled: false, token: null } });
+    open();
+    await screen.findByRole("switch", { name: "Link sharing" });
+
+    await userEvent.click(screen.getByText("Link sharing"));
+
+    expect(setShareLink).not.toHaveBeenCalled();
+  });
+
+  it("says what turning the link off does, and turns it off", async () => {
+    vi.mocked(getSharing).mockResolvedValueOnce({ editors: [], invitations: [], link: { enabled: true, token: "k7Qx2mAbCdEf" } });
+    vi.mocked(getSharing).mockResolvedValueOnce({ editors: [], invitations: [], link: { enabled: false, token: "k7Qx2mAbCdEf" } });
+    vi.mocked(setShareLink).mockResolvedValue({ enabled: false, token: "k7Qx2mAbCdEf" });
+    open();
+    await userEvent.click(await screen.findByRole("switch", { name: "Link sharing" }));
+
+    expect(setShareLink).toHaveBeenCalledWith("trip-1", false);
+    expect(await screen.findByText(/People who open the old link see a notice/)).toBeTruthy();
+  });
+
+  it("shows an error when the link could not be changed", async () => {
+    vi.mocked(getSharing).mockResolvedValue({ editors: [], invitations: [], link: { enabled: false, token: null } });
+    vi.mocked(setShareLink).mockRejectedValue(new Error("boom"));
+    open();
+    await userEvent.click(await screen.findByRole("switch", { name: "Link sharing" }));
+
+    expect(await screen.findByText("The link could not be changed.")).toBeTruthy();
   });
 });

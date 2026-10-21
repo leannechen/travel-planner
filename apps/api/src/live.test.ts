@@ -29,7 +29,7 @@ function call(method: string, path: string, token: string, body?: unknown, clien
 }
 
 // A page's connection: what it was told, and how it ended.
-function connect(tripId: string, credentials: { token?: string; guest?: string }, clientId = "page-1") {
+function connect(tripId: string, credentials: { token?: string; guest?: string; share?: string }, clientId = "page-1") {
   const socket = new WebSocket(`${app.baseUrl.replace("http", "ws")}/api/live`);
   open.push(socket);
   const messages: LiveMessage[] = [];
@@ -128,6 +128,34 @@ describe("live collaboration", () => {
     expect((await call("DELETE", `/api/trips/${trip.id}/editors/${sharing.editors[0]!.userId}`, OWNER)).status).toBe(204);
 
     expect(await editor.closed).toBe(4403);
+  });
+
+  it("lets a Viewer hear about changes without being listed, and cuts them off when the link goes off", async () => {
+    const trip = await ownerTrip();
+    const { token } = (await (await call("PUT", `/api/trips/${trip.id}/link`, OWNER, { enabled: true })).json()) as { token: string };
+    const owner = connect(trip.id, { token: OWNER });
+    await owner.until((m) => presenceOf(m)?.join() === "L");
+    const viewer = connect(trip.id, { share: token }, "viewer-page");
+    await viewer.until((m) => m.type === "ready");
+
+    await call("POST", `/api/trips/${trip.id}/todos`, OWNER, { text: "Buy ICOCA" }, "lena-page");
+    await viewer.until((m) => m.type === "changed");
+    // Nothing about who is here (user ids) reaches a Viewer.
+    expect(viewer.messages.filter((m) => m.type === "presence")).toEqual([]);
+    expect(owner.messages.filter((m) => presenceOf(m)?.length !== 1 && m.type === "presence")).toEqual([]);
+
+    await call("PUT", `/api/trips/${trip.id}/link`, OWNER, { enabled: false });
+    expect(await viewer.closed).toBe(4403);
+    expect(await connect(trip.id, { share: token }).closed).toBe(4403);
+    expect(owner.messages.filter((m) => m.type === "changed")).toHaveLength(1);
+  });
+
+  it("refuses a share link of another Trip", async () => {
+    const trip = await ownerTrip();
+    const other = await ownerTrip();
+    const { token } = (await (await call("PUT", `/api/trips/${other.id}/link`, OWNER, { enabled: true })).json()) as { token: string };
+
+    expect(await connect(trip.id, { share: token }).closed).toBe(4403);
   });
 
   it("says nothing about reads, failed changes or sharing", async () => {

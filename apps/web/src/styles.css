@@ -3953,3 +3953,70 @@ main.has-panel .topbar {
 .share-people .pending .share-who {
   color: var(--muted);
 }
+
+/* ---------- Live collaboration (step 21) ---------- */
+.collaborators {
+  display: flex;
+  flex: none;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.collaborator {
+  position: relative;
+  display: inline-flex;
+}
+
+.collaborator + .collaborator {
+  margin-left: -8px;
+}
+
+.collaborator .avatar.small {
+  border: 2px solid var(--card);
+}
+
+.collaborator.more {
+  align-items: center;
+  margin-left: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.online-dot {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--card);
+  border-radius: 50%;
+  background: var(--ok);
+}
+
+/* An Event someone else just changed: a ring that fades out. */
+.event-card.changed,
+.holding-card.changed {
+  animation: changed-by-other 4s ease-out;
+}
+
+@keyframes changed-by-other {
+  0%,
+  60% {
+    box-shadow: 0 0 0 3px var(--pri), 0 0 0 8px var(--pri-tint);
+  }
+
+  100% {
+    box-shadow: 0 0 0 3px transparent, 0 0 0 8px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .event-card.changed,
+  .holding-card.changed {
+    animation: none;
+    box-shadow: 0 0 0 3px var(--pri);
+  }
+}

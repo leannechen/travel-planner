@@ -3,6 +3,7 @@ import type { AddressInfo } from "node:net";
 import { sql } from "drizzle-orm";
 import { vi } from "vitest";
 import { createApp } from "../src/app";
+import { listenLive } from "../src/live";
 import { fakeTokenVerifier, GUEST_HEADER, type TokenVerifier } from "../src/auth";
 import { fakeRouteProvider, type RouteProvider } from "../src/routes";
 import { fakePlaceProvider, type PlaceProvider } from "../src/places";
@@ -22,8 +23,11 @@ export async function startTestApp(places: PlaceProvider = fakePlaceProvider(), 
   const identityAdmin: IdentityAdmin = { resendVerification: async (sub) => void resends.push(sub) };
 
   let server!: Server;
+  let live!: { close(): void };
   await new Promise<void>((resolve) => {
-    server = createApp(db, { places, routes, auth, mailer, identityAdmin, appOrigin: "http://app.test" }).listen(0, () => resolve());
+    const app = createApp(db, { places, routes, auth, mailer, identityAdmin, appOrigin: "http://app.test" });
+    live = app.locals.live;
+    server = listenLive(app, 0, () => resolve());
   });
   const baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 
@@ -51,6 +55,7 @@ export async function startTestApp(places: PlaceProvider = fakePlaceProvider(), 
     },
     async stop() {
       vi.stubGlobal("fetch", realFetch);
+      live.close();
       await new Promise<void>((resolve, reject) =>
         server.close((err) => (err ? reject(err) : resolve())),
       );

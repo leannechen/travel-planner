@@ -1,5 +1,6 @@
 import {
   acceptedInvitationSchema,
+  CLIENT_ID_HEADER,
   daySchema,
   invitationPreviewSchema,
   invitationSchema,
@@ -36,10 +37,31 @@ import { SessionEndedError } from "./authClient";
 
 type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
+// This page's own id: the API passes it on with a change, so the page is not told about its own edits.
+export const clientId = crypto.randomUUID();
+
+// How many changes are on their way and how many have finished, so a Trip loaded after someone
+// else's change can tell whether it may have missed one of this page's own.
+const writes = { pending: 0, finished: 0 };
+export const writeActivity = () => ({ ...writes });
+
 async function send(path: string, init: RequestInit = {}): Promise<Response> {
+  const writing = init.method !== undefined && init.method !== "GET";
+  if (writing) writes.pending++;
+  try {
+    return await sendNow(path, init);
+  } finally {
+    if (writing) {
+      writes.pending--;
+      writes.finished++;
+    }
+  }
+}
+
+async function sendNow(path: string, init: RequestInit): Promise<Response> {
   const hooks = authHooks();
   const auth = hooks ? await hooks.headers() : {};
-  const res = await fetch(path, { ...init, headers: { ...(init.headers as Record<string, string> | undefined), ...auth } });
+  const res = await fetch(path, { ...init, headers: { ...(init.headers as Record<string, string> | undefined), ...auth, [CLIENT_ID_HEADER]: clientId } });
   if (res.status === 401) {
     // A token the API no longer accepts is the end of the session, not a failed request.
     const detail = (await res.clone().json().catch(() => undefined)) as { code?: string } | undefined;

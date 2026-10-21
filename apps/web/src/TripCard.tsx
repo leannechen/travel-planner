@@ -74,6 +74,8 @@ type Props = {
   onDeleteTodo: (todo: Todo) => void;
   // The account spot at the end of the top bar, and what sits under the top bar (login messages).
   account?: ReactNode;
+  // Who else has the Trip open, before the account spot.
+  collaborators?: ReactNode;
   banner?: ReactNode;
   // The session ended: the Trip stays on screen but nothing in it can be changed.
   readOnly?: boolean;
@@ -98,7 +100,7 @@ function dropTargetAt(root: HTMLElement, x: number, y: number, draggedId: string
   return undefined;
 }
 
-export function TripCard({ trip, onOpenSettings, onOpenTripList, onShare, onDaysChange, selectedEventId, draft, onSelectEvent: selectEventProp, onCreateAt: createAtProp, onAddToBacklog: addToBacklogProp, onMove: moveProp, onCreateLeg, onChangeLegMode, onDeleteLeg, onToast, notesOpen, onToggleNotes, onShowShortcuts, footer, onAddTodo, onToggleTodo, onDeleteTodo, account, banner, readOnly = false }: Props) {
+export function TripCard({ trip, onOpenSettings, onOpenTripList, onShare, onDaysChange, selectedEventId, draft, onSelectEvent: selectEventProp, onCreateAt: createAtProp, onAddToBacklog: addToBacklogProp, onMove: moveProp, onCreateLeg, onChangeLegMode, onDeleteLeg, onToast, notesOpen, onToggleNotes, onShowShortcuts, footer, onAddTodo, onToggleTodo, onDeleteTodo, account, collaborators, banner, readOnly = false }: Props) {
   const t = useT();
   const { language } = usePreferences();
   const root = useRef<HTMLElement>(null);
@@ -330,6 +332,7 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onShare, onDays
             {keyOf("notes")}
           </kbd>
         </button>
+        {collaborators}
         <button type="button" className="ib" title={tip(t("shortcuts.title"), "help")} aria-label={t("shortcuts.title")} onClick={onShowShortcuts}>
           <CircleHelp size={16} aria-hidden="true" />
         </button>

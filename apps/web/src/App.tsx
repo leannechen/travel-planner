@@ -22,7 +22,7 @@ import {
   type Todo,
   type TodoDeletionSummary,
 } from "@travel-planner/shared";
-import type { CreateEventInput, CreateLegInput, Day, Event, EventFields, Leg, TravelMode, Trip, UpdateEventInput } from "@travel-planner/shared";
+import type { CreateEventInput, CreateLegInput, Day, Event, EventFields, Leg, LivePerson, TravelMode, Trip, UpdateEventInput } from "@travel-planner/shared";
 import { Map as MapIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -48,9 +48,13 @@ import {
   updateLegMode,
   updateNote,
   updateTodo,
+  writeActivity,
 } from "./api";
 import { AccountMenu, ExpiredBanner, GuestBanner, LoginErrorStrip } from "./AccountMenu";
 import { useAuth } from "./AuthProvider";
+import { Collaborators } from "./Collaborators";
+import { ChangedEventsContext } from "./liveContext";
+import { openLive } from "./live";
 import { LOGGED_OUT_PARAM } from "./authClient";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { InvitePage } from "./InvitePage";
@@ -117,6 +121,8 @@ type Removal = {
 
 // The Landing page after logging out, else the workspace. (The full Landing page is step 22.)
 const INVITE_PARAM = "invite";
+// How long an Event changed by someone else stays lit.
+const CHANGE_HIGHLIGHT_MS = 4000;
 
 function leaveInvitation() {
   const url = new URL(window.location.href);
@@ -820,6 +826,62 @@ function Workspace({ joinedMessage }: { joinedMessage?: string }) {
 
   const currentTrip = trips && !chooser ? chooseTrip(trips, wantedTripId) : undefined;
   const currentTripId = currentTrip?.id;
+
+  // Live collaboration (ADR 0003): when someone else changes the open Trip, load it again, and light
+  // up the Events that differ. Last write wins, so what is loaded simply replaces what was shown.
+  const [people, setPeople] = useState<LivePerson[]>([]);
+  const [changedIds, setChangedIds] = useState<ReadonlySet<string>>(new Set());
+  const refreshes = useRef(0);
+  async function refreshTrip(tripId: string) {
+    const mine = ++refreshes.current;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      // A change of this page's own that was on its way while the Trip was loaded may be missing
+      // from it, and would be shown undone; try again once those have finished.
+      const before = writeActivity();
+      let fresh: Trip | undefined;
+      try {
+        fresh = (await listTrips()).find((trip) => trip.id === tripId);
+      } catch {
+        return; // The next change or reconnect loads it again.
+      }
+      if (mine !== refreshes.current) return;
+      const after = writeActivity();
+      if (before.pending > 0 || after.pending > 0 || before.finished !== after.finished) {
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        if (mine !== refreshes.current) return;
+        continue;
+      }
+      const old = tripsRef.current?.find((trip) => trip.id === tripId);
+      // What the server says now is what a failed move goes back to, and an older Legs answer is stale.
+      legRequests.current++;
+      if (fresh) for (const e of allEvents(fresh)) confirmed.current.set(e.id, e);
+      const seen = new Map(old ? allEvents(old).map((e) => [e.id, JSON.stringify(e)]) : []);
+      const changed = fresh ? allEvents(fresh).filter((e) => seen.get(e.id) !== JSON.stringify(e)).map((e) => e.id) : [];
+      setTrips((current) => current && (fresh ? current.map((trip) => (trip.id === tripId ? fresh : trip)) : current.filter((trip) => trip.id !== tripId)));
+      if (changed.length > 0 && old) {
+        setChangedIds((current) => new Set([...current, ...changed]));
+        setTimeout(() => setChangedIds((current) => new Set([...current].filter((id) => !changed.includes(id)))), CHANGE_HIGHLIGHT_MS);
+      }
+      return;
+    }
+    // This page kept saving: try again once it is quiet, rather than leave the other person's change unseen.
+    if (mine === refreshes.current) setTimeout(() => mine === refreshes.current && void refreshTripRef.current(tripId), 1000);
+  }
+  const refreshTripRef = useRef(refreshTrip);
+  refreshTripRef.current = refreshTrip;
+  const liveSession = expired ? undefined : auth.status;
+  useEffect(() => {
+    setPeople([]);
+    if (!currentTripId || !liveSession || liveSession === "loading") return;
+    const tripId = currentTripId;
+    return openLive(tripId, {
+      // The first "ready" follows the Trip just loaded; later ones come after a reconnect.
+      onReady: () => void refreshTripRef.current(tripId),
+      onChanged: () => void refreshTripRef.current(tripId),
+      onPresence: setPeople,
+      onDenied: () => void refreshTripRef.current(tripId),
+    });
+  }, [currentTripId, liveSession]);
   const loaded = trips !== undefined;
   useEffect(() => {
     // Once the Trips are loaded, the URL and this browser follow the Trip shown.
@@ -855,10 +917,12 @@ function Workspace({ joinedMessage }: { joinedMessage?: string }) {
       {error && !expired && <p role="alert">{error}</p>}
       {saveError && !expired && <p role="alert">{saveError}</p>}
       {trip && (
+        <ChangedEventsContext.Provider value={changedIds}>
         <TripCard
           key={trip.id}
           trip={trip}
           account={account}
+          collaborators={<Collaborators people={people.filter((person) => person.id !== meId)} />}
           banner={banners}
           readOnly={expired}
           onOpenSettings={() => setSettingsTripId(trip.id)}
@@ -896,6 +960,7 @@ function Workspace({ joinedMessage }: { joinedMessage?: string }) {
             })
           }
         />
+        </ChangedEventsContext.Provider>
       )}
       {trips?.length === 0 && <p>{t("app.noTrips")}</p>}
       {chooser && trips && trips.length > 0 && (

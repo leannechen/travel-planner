@@ -301,3 +301,29 @@ export type UpdateNoteInput = z.infer<typeof updateNoteInputSchema>;
 // in the list is kept.
 export const restoreNoteInputSchema = z.object({ note: noteSchema.extend({ body: noteBody }) });
 export type RestoreNoteInput = z.infer<typeof restoreNoteInputSchema>;
+
+// Live collaboration (ADR 0003): the browser opens one WebSocket per open Trip and says who it is
+// in its first message; the server then tells it when someone else changed the Trip and who is here.
+// Room for the longest access token the hello accepts, plus the rest of the message.
+export const MAX_LIVE_MESSAGE_BYTES = 16 * 1024;
+export const liveHelloSchema = z.object({
+  type: z.literal("hello"),
+  tripId: z.uuid(),
+  // This page's own id: changes it made are not announced back to it.
+  clientId: z.string().min(1).max(64),
+  // The access token of an account, or else the anonymous session's id.
+  token: z.string().min(1).max(8192).optional(),
+  guest: z.uuid().optional(),
+});
+export type LiveHello = z.infer<typeof liveHelloSchema>;
+// Only the first letter of the name goes to the others (null for a guest): collaborators do not see each other's email.
+export const livePersonSchema = z.object({ id: z.string(), initial: z.string().nullable() });
+export type LivePerson = z.infer<typeof livePersonSchema>;
+export const liveMessageSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("ready") }),
+  // The Trip changed; `origin` is the clientId of the page that did it.
+  z.object({ type: z.literal("changed"), origin: z.string().nullable() }),
+  z.object({ type: z.literal("presence"), people: z.array(livePersonSchema) }),
+]);
+export type LiveMessage = z.infer<typeof liveMessageSchema>;
+export const CLIENT_ID_HEADER = "x-client-id";

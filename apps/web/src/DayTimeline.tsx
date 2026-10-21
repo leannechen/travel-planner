@@ -25,7 +25,8 @@ import type { Params } from "./i18n";
 import type { MessageKey } from "./messages";
 import { endGesture, gestureJustEnded } from "./gesture";
 import { Plus, TriangleAlert } from "lucide-react";
-import { useEffect, useMemo, useState, type MouseEvent, type PointerEvent } from "react";
+import { ChangedEventsContext } from "./liveContext";
+import { useContext, useEffect, useMemo, useState, type MouseEvent, type PointerEvent } from "react";
 
 export const PX_PER_HOUR = 64;
 export const SNAP_PX = (PX_PER_HOUR * SNAP_MINUTES) / 60;
@@ -310,7 +311,8 @@ function EventCard({
     : preview?.startMinute !== undefined
       ? `${preview.dayPosition ? `${t("day.title", { n: preview.dayPosition })} · ` : ""}${formatMinute(preview.startMinute)} – ${formatEnd(preview.startMinute + times.durationMinutes)}`
       : `${formatMinute(times.startMinute)} – ${formatEnd(realEnd)}`;
-  const classes = ["event-card", `kind-${event.kind}`, selected && "selected", openingConflict && "warn", isDragging && "dragging"].filter(Boolean).join(" ");
+  const changedByOther = useContext(ChangedEventsContext).has(event.id);
+  const classes = ["event-card", `kind-${event.kind}`, selected && "selected", openingConflict && "warn", isDragging && "dragging", changedByOther && "changed"].filter(Boolean).join(" ");
 
   return (
     <li

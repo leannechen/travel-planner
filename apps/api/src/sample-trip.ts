@@ -1,9 +1,9 @@
-import { adjacentPairs, legEndpoints, type Event, type TravelMode } from "@travel-planner/shared";
-import { and, asc, eq } from "drizzle-orm";
+import type { Event, SeedEventInput, TravelMode, TripSeedInput } from "@travel-planner/shared";
+import { and, eq } from "drizzle-orm";
 import type { Db } from "./db/client";
-import { days, events, todos, trips } from "./db/schema";
-import { createLeg, isProviderError, type LegDeps } from "./legs";
-import { getPlaces } from "./places";
+import { trips } from "./db/schema";
+import { isProviderError, type LegDeps } from "./legs";
+import { writeTripSeed } from "./trip-seed";
 
 // The sample Trip (PRD §1): four days in Kyoto and Osaka, as in design 01. Opening it gives the user
 // an editable copy of this fixture; nothing about it is stored until then.
@@ -142,6 +142,37 @@ async function resolvePlaces(deps: LegDeps): Promise<Map<PlaceKey, string>> {
 const existingCopy = async (db: Db, userId: string) =>
   (await db.select({ id: trips.id }).from(trips).where(and(eq(trips.ownerId, userId), eq(trips.sampleOf, SAMPLE_KEY))))[0]?.id;
 
+// The fixture as a Trip seed, with the provider's ids of its places.
+function sampleSeed(ids: Map<PlaceKey, string>, now: Date): TripSeedInput {
+  const placeOf = (key: PlaceKey | undefined) => (key ? (ids.get(key) ?? null) : null);
+  const todosOf = (key: string | undefined) => EVENT_TODOS.filter((t) => key && t.event === key).map((t) => ({ text: t.text }));
+  const event = (e: SampleEvent, scheduled: boolean): SeedEventInput => ({
+    kind: e.kind ?? "attraction",
+    title: e.title,
+    transportLabel: e.label ?? null,
+    nights: e.nights ?? null,
+    // Check-in at 15:00 and check-out at 11:00, display only.
+    checkInMinute: e.kind === "lodging" ? at(15) : null,
+    checkOutMinute: e.kind === "lodging" ? at(11) : null,
+    placeId: placeOf(e.place),
+    destinationId: placeOf(e.destination),
+    openingHoursOn: Boolean(e.hours && placeOf(e.place)),
+    startMinute: e.start,
+    durationMinutes: e.minutes,
+    todos: todosOf(e.key),
+    // A Leg between every two adjacent Events of a Day that both have a place.
+    legToNext: scheduled ? (e.legMode ?? "transit") : null,
+  });
+  return {
+    title: SAMPLE_TITLE,
+    startDate: sampleStartDate(now),
+    days: DAYS.map((list) => list.map((e) => event(e, true))),
+    backlog: BACKLOG.map((e) => event(e, false)),
+    archive: ARCHIVE.map((e) => event(e, false)),
+    todos: TRIP_TODOS,
+  };
+}
+
 // The user's copy of the sample Trip: the one they already have, else a new one made from the
 // fixture. Two requests at once make one copy (the unique index on the owner and the sample).
 export async function openSampleTrip(
@@ -153,89 +184,8 @@ export async function openSampleTrip(
   const existing = await existingCopy(db, userId);
   if (existing) return { tripId: existing, created: false };
 
-  const ids = await resolvePlaces(deps);
-  // Fetched now so the places are in the cache before anything asks for them.
-  await getPlaces(db, deps.places, [...new Set(ids.values())]).catch((err: unknown) => {
-    if (!isProviderError(err)) throw err;
-  });
-  const placeOf = (key: PlaceKey | undefined) => (key ? (ids.get(key) ?? null) : null);
-
-  const tripId = await db.transaction(async (tx) => {
-    const [trip] = await tx
-      .insert(trips)
-      .values({ ownerId: userId, title: SAMPLE_TITLE, startDate: sampleStartDate(now), sampleOf: SAMPLE_KEY })
-      .onConflictDoNothing()
-      .returning({ id: trips.id });
-    if (!trip) return undefined;
-
-    const dayRows = await tx
-      .insert(days)
-      .values(DAYS.map((_, i) => ({ tripId: trip.id, position: i + 1 })))
-      .returning({ id: days.id, position: days.position });
-    const dayId = (position: number) => dayRows.find((d) => d.position === position)!.id;
-
-    const eventIds = new Map<string, string>();
-    const add = async (e: SampleEvent, where: { dayId: string } | { holding: "backlog" | "archive" }) => {
-      const [row] = await tx
-        .insert(events)
-        .values({
-          tripId: trip.id,
-          ...where,
-          kind: e.kind ?? "attraction",
-          title: e.title,
-          transportLabel: e.label ?? null,
-          nights: e.nights ?? null,
-          // Check-in at 15:00 and check-out at 11:00, display only.
-          checkInMinute: e.kind === "lodging" ? at(15) : null,
-          checkOutMinute: e.kind === "lodging" ? at(11) : null,
-          placeId: placeOf(e.place),
-          destinationId: placeOf(e.destination),
-          openingHoursOn: Boolean(e.hours && placeOf(e.place)),
-          startMinute: e.start,
-          durationMinutes: e.minutes,
-        })
-        .returning({ id: events.id });
-      if (e.key) eventIds.set(e.key, row!.id);
-    };
-    for (const [i, list] of DAYS.entries()) for (const e of list) await add(e, { dayId: dayId(i + 1) });
-    for (const e of BACKLOG) await add(e, { holding: "backlog" });
-    for (const e of ARCHIVE) await add(e, { holding: "archive" });
-
-    await tx.insert(todos).values([
-      ...TRIP_TODOS.map((t) => ({ tripId: trip.id, text: t.text, done: t.done ?? false, createdBy: userId })),
-      ...EVENT_TODOS.map((t) => ({ tripId: trip.id, eventId: eventIds.get(t.event)!, text: t.text, createdBy: userId })),
-    ]);
-    return trip.id;
-  });
+  const tripId = await writeTripSeed(db, deps, userId, sampleSeed(await resolvePlaces(deps), now), { sampleOf: SAMPLE_KEY });
   // Another request made the copy first.
   if (!tripId) return { tripId: (await existingCopy(db, userId))!, created: false };
-
-  await addLegs(db, deps, tripId);
   return { tripId, created: true };
-}
-
-// A Leg between every two adjacent Events of a Day that both have a place. A provider that cannot
-// be reached leaves the Leg out; the user can add it later.
-async function addLegs(db: Db, deps: LegDeps, tripId: string) {
-  const modeOf = new Map(DAYS.flat().map((e) => [e.title, e.legMode ?? "transit"] as const));
-  const rows = await db
-    .select()
-    .from(events)
-    .where(eq(events.tripId, tripId))
-    .orderBy(asc(events.startMinute));
-  const byDay = new Map<string, typeof rows>();
-  for (const e of rows) {
-    if (e.dayId && e.kind !== "lodging") byDay.set(e.dayId, [...(byDay.get(e.dayId) ?? []), e]);
-  }
-  for (const list of byDay.values()) {
-    for (const [from, to] of adjacentPairs(list)) {
-      const { fromPlaceId, toPlaceId } = legEndpoints(from, to);
-      if (!fromPlaceId || !toPlaceId) continue;
-      try {
-        await createLeg(db, deps, tripId, { fromEventId: from.id, toEventId: to.id, mode: modeOf.get(from.title) ?? "transit" });
-      } catch (err) {
-        if (!isProviderError(err)) throw err;
-      }
-    }
-  }
 }

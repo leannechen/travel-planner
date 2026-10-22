@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { legSchema, travelModeSchema } from "./legs";
+import { lodgingFits } from "./lodging-range";
 import { startDateSchema } from "./trip-dates";
 
 export const healthResponseSchema = z.object({
@@ -287,6 +288,57 @@ export const updateTodoInputSchema = z
   });
 export type CreateTodoInput = z.infer<typeof createTodoInputSchema>;
 export type UpdateTodoInput = z.infer<typeof updateTodoInputSchema>;
+
+// A new Trip's content without ids (ADR 0008): the sample Trip, an AI-generated Trip and an imported
+// backup are each made as a seed and written to the database the same way. Days are in their order,
+// places are provider ids.
+const seedTodoSchema = z.object({ text: todoText, done: z.boolean().default(false) });
+export const seedEventSchema = createEventInputSchema.extend({
+  openingHoursOn: z.boolean().default(false),
+  todos: z.array(seedTodoSchema).default([]),
+  // The mode of a Leg from this Event to the next one of its Day, or null for no Leg. A Leg is made
+  // only when the two are adjacent on the timeline (Lodging is a banner, so it is skipped) and both
+  // have a place.
+  legToNext: travelModeSchema.nullable().default(null),
+});
+// Bounds on what one seed may hold, so an imported file cannot make an unusable Trip.
+export const MAX_SEED_DAYS = 100;
+export const MAX_SEED_EVENTS = 1000;
+export const MAX_SEED_TODOS = 1000;
+export const tripSeedSchema = z
+  .object({
+    title,
+    travelMode: travelModeSchema.default("transit"),
+    startDate: startDateSchema.nullable().default(null),
+    days: z.array(z.array(seedEventSchema)).min(1).max(MAX_SEED_DAYS),
+    backlog: z.array(seedEventSchema).default([]),
+    archive: z.array(seedEventSchema).default([]),
+    // Trip Todos; an Event's Todos are on the Event.
+    todos: z.array(seedTodoSchema).default([]),
+  })
+  .superRefine((seed, ctx) => {
+    const all = [...seed.days.flat(), ...seed.backlog, ...seed.archive];
+    if (all.length > MAX_SEED_EVENTS) ctx.addIssue({ code: "custom", message: `At most ${MAX_SEED_EVENTS} Events` });
+    if (seed.todos.length + all.reduce((n, e) => n + e.todos.length, 0) > MAX_SEED_TODOS) {
+      ctx.addIssue({ code: "custom", message: `At most ${MAX_SEED_TODOS} Todos` });
+    }
+    // The same rules as for an Event saved on its own: a Lodging has nights, and a scheduled one
+    // ends within the Trip (PRD §3.2); an archived Event has no Todos (PRD §5).
+    if (all.some((e) => e.kind === "lodging" && e.nights === null)) ctx.addIssue({ code: "custom", message: "A Lodging needs nights" });
+    seed.days.forEach((list, i) => {
+      for (const e of list) {
+        if (e.kind === "lodging" && e.nights !== null && !lodgingFits({ checkInPosition: i + 1, nights: e.nights }, seed.days.length)) {
+          ctx.addIssue({ code: "custom", message: `"${e.title}" stays past the last Day`, path: ["days", i] });
+        }
+      }
+    });
+    if (seed.archive.some((e) => e.todos.length > 0)) ctx.addIssue({ code: "custom", message: "An archived Event has no Todos", path: ["archive"] });
+  });
+// What a seed is written from (defaults may be left out) and what it is after parsing.
+export type TripSeedInput = z.input<typeof tripSeedSchema>;
+export type TripSeed = z.infer<typeof tripSeedSchema>;
+export type SeedEventInput = z.input<typeof seedEventSchema>;
+export type SeedEvent = z.infer<typeof seedEventSchema>;
 
 // A deleted Event with its Todos as they were; also what restoring it (undo) sends back.
 export const deletedEventSchema = z.object({ event: eventSchema, todos: z.array(todoSchema) });

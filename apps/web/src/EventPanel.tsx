@@ -182,6 +182,7 @@ export function EventPanel({
     destinationId: null,
     openingHoursOn: false,
     imageId: null,
+    placePhotoHidden: false,
     ...newEvent!,
   };
   const original: EventFields = {
@@ -199,6 +200,7 @@ export function EventPanel({
     bookingUrl: initial.bookingUrl ?? "",
     placeId: initial.placeId ?? "",
     destinationId: initial.destinationId ?? "",
+    placePhotoHidden: initial.placePhotoHidden,
     ...timeFields(initial.startMinute, initial.durationMinutes),
   };
   const [fields, setFields] = useState<EventFields>(restored ?? original);
@@ -747,11 +749,18 @@ export function EventPanel({
           <EventImageSection
             event={event}
             kind={fields.kind}
+            placeId={fields.placeId}
+            placePhotoHidden={fields.placePhotoHidden}
             pending={pendingImage}
             uploading={uploading}
             readOnly={expired}
             onPick={(file) => setPendingImage({ kind: "set", file, url: URL.createObjectURL(file) })}
-            onRemove={() => setPendingImage(event?.imageId ? { kind: "remove" } : undefined)}
+            // Remove means no image at all: the place's photo is taken off too (design 26).
+            onRemove={() => {
+              setPendingImage(event?.imageId ? { kind: "remove" } : undefined);
+              change({ placePhotoHidden: true });
+            }}
+            onUsePlacePhoto={() => change({ placePhotoHidden: false })}
           />
         )}
         </div>

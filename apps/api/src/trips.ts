@@ -61,6 +61,7 @@ function toEvent(row: Pick<typeof events.$inferSelect, keyof Event>): Event {
     destinationId: row.destinationId,
     openingHoursOn: row.openingHoursOn,
     imageId: row.imageId,
+    placePhotoHidden: row.placePhotoHidden,
   };
 }
 
@@ -95,6 +96,7 @@ const eventColumns = {
   destinationId: true,
   openingHoursOn: true,
   imageId: true,
+  placePhotoHidden: true,
 } as const;
 
 const arrivalOrder = [asc(events.createdAt), asc(events.id)];
@@ -121,6 +123,7 @@ const eventColumnsSelect = {
   destinationId: events.destinationId,
   openingHoursOn: events.openingHoursOn,
   imageId: events.imageId,
+  placePhotoHidden: events.placePhotoHidden,
 };
 
 export async function listTrips(db: Db, userId: string): Promise<Trip[]> {
@@ -385,7 +388,7 @@ export async function updateEvent(
 // The kind and place of an Event of this user's Trip, for the opening hours request.
 export async function findEventPlace(db: Db, userId: string, tripId: string, eventId: string) {
   const [row] = await db
-    .select({ kind: events.kind, placeId: events.placeId })
+    .select({ kind: events.kind, placeId: events.placeId, imageId: events.imageId, placePhotoHidden: events.placePhotoHidden })
     .from(events)
     .innerJoin(trips, eq(trips.id, events.tripId))
     .where(and(eq(events.id, eventId), eq(events.tripId, tripId), editableBy(userId)));
@@ -498,6 +501,17 @@ export async function findSharedEventImage(db: Db, token: string, eventId: strin
         or(isNotNull(events.dayId), eq(events.holding, "backlog")),
       ),
     );
+  return row;
+}
+
+// The place of an Event a Viewer sees (on a Day or in the Backlog, never the Archive) of a Trip whose
+// link is on, for its place photo (step 41).
+export async function findSharedEventPlace(db: Db, token: string, eventId: string) {
+  const [row] = await db
+    .select({ placeId: events.placeId, imageId: events.imageId, placePhotoHidden: events.placePhotoHidden })
+    .from(events)
+    .innerJoin(trips, eq(trips.id, events.tripId))
+    .where(and(eq(events.id, eventId), eq(trips.shareToken, token), eq(trips.shareEnabled, true), or(isNotNull(events.dayId), eq(events.holding, "backlog"))));
   return row;
 }
 

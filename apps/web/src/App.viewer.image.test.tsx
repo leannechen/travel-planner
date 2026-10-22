@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
-import { cleanup, screen, within } from "@testing-library/react";
+import { cleanup, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
-import { getEventImage, getSharedTrip } from "./api";
+import { getEventImage, getPlacePhoto, getSharedTrip } from "./api";
 import { createFakeAuth } from "./fakeAuth";
 import { forgetGuestId } from "./guest";
 import { setLiveSocketFactory } from "./live";
@@ -13,6 +13,7 @@ vi.mock("./api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("./api")>()),
   getSharedTrip: vi.fn(),
   getEventImage: vi.fn(async () => new Blob(["x"], { type: "image/png" })),
+  getPlacePhoto: vi.fn(async () => ({ photoUri: "https://photos.example/fushimi.jpg", authors: [{ name: "Ann", uri: "https://maps.google.com/contrib/1" }], mapsUri: "https://maps.example/p" })),
   listTrips: vi.fn(async () => []),
   getMe: vi.fn(async () => ({ id: "me", guest: false })),
   listLegs: vi.fn(async () => []),
@@ -87,6 +88,29 @@ describe("an Event image seen by a Viewer", () => {
 
     await user.keyboard("{Escape}");
     expect(screen.queryByRole("complementary", { name: "Event" })).toBeNull();
+  });
+
+  it("shows the place photo with its credit for an Event with a place and no upload, unless it was taken off", async () => {
+    const withPlace = makeEvent({ title: "Fushimi Inari", dayId: null, holding: null, startMinute: 900, durationMinutes: 120, placeId: "ChIJfushimi" });
+    const hidden = makeEvent({ title: "Kinkaku-ji", dayId: null, holding: null, startMinute: 1100, durationMinutes: 120, placeId: "ChIJkinkaku", placePhotoHidden: true });
+    const brief = makeEvent({ title: "Quick stop", dayId: null, holding: null, startMinute: 1300, durationMinutes: 30, placeId: "ChIJquick" });
+    vi.mocked(getSharedTrip).mockResolvedValue(makeTrip({ title: "Kyoto", role: "viewer", days: [makeDay(1, [withPlace, hidden, brief])] }));
+    const user = userEvent.setup();
+    open();
+
+    const card = (await screen.findByText("Fushimi Inari")).closest("li")!;
+    await waitFor(() => expect(card.querySelector("img.event-thumb")?.getAttribute("src")).toBe("https://photos.example/fushimi.jpg"));
+    // Asked for once: not for the Event whose photo was taken off, nor for a card too short to show it.
+    expect(getPlacePhoto).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("Quick stop").closest("li")!.querySelector(".event-thumb")).toBeNull();
+    expect(getPlacePhoto).toHaveBeenCalledWith(expect.anything(), withPlace.id);
+    expect(screen.getByText("Kinkaku-ji").closest("li")!.querySelector("img.event-thumb")).toBeNull();
+
+    await user.click(screen.getByText("Fushimi Inari"));
+    const details = await screen.findByRole("complementary", { name: "Event" });
+    expect(await within(details).findByText("Place photo · Google")).toBeTruthy();
+    expect(within(details).getByRole("link", { name: "Ann" }).getAttribute("href")).toBe("https://maps.google.com/contrib/1");
+    expect(within(details).getByRole("link", { name: "View on Google Maps" })).toBeTruthy();
   });
 
   it("shows no picture for an Event without an image", async () => {

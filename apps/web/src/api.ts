@@ -13,6 +13,7 @@ import {
   meSchema,
   noteSchema,
   openingHoursSchema,
+  placePhotoSchema,
   placeSchema,
   todoSchema,
   startDateSchema,
@@ -26,6 +27,7 @@ import {
   type HoldingArea,
   type RestoreDayInput,
   type Note,
+  type PlacePhoto,
   type TravelMode,
   type UpdateEventInput,
   type UpdateNoteInput,
@@ -199,6 +201,15 @@ export async function getEventImage(tripId: string, eventId: string): Promise<Bl
   const res = sharedToken ? await fetch(sharedUrl(`/events/${eventId}/image`)) : await send(`/api/trips/${tripId}/events/${eventId}/image`);
   if (!res.ok) throw await failure(res);
   return res.blob();
+}
+
+// The Google photo of an Event's place, or null when there is none to show (no location, or the place
+// has no photo). A Viewer reads it through the share link. The address in it is short-lived.
+export async function getPlacePhoto(tripId: string, eventId: string): Promise<PlacePhoto | null> {
+  const res = sharedToken ? await fetch(sharedUrl(`/events/${eventId}/place-photo`)) : await send(`/api/trips/${tripId}/events/${eventId}/place-photo`);
+  if (res.status === 404 && (await res.clone().json().catch(() => undefined))?.code === "no_place_photo") return null;
+  if (!res.ok) throw await failure(res);
+  return placePhotoSchema.parse(await res.json());
 }
 
 export const getMe = () => request("/api/me", meSchema);

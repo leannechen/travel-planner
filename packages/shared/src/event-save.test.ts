@@ -23,6 +23,7 @@ const saved: Event = {
   destinationId: null,
   openingHoursOn: false,
   imageId: null,
+  placePhotoHidden: false,
 };
 const noExtras = {
   transportLabel: null,
@@ -36,6 +37,7 @@ const noExtras = {
   bookingUrl: null,
   placeId: null,
   destinationId: null,
+  placePhotoHidden: false,
 };
 const fields = {
   title: "Lunch",
@@ -55,6 +57,7 @@ const fields = {
   bookingUrl: "",
   placeId: "",
   destinationId: "",
+  placePhotoHidden: false,
 };
 
 describe("planEventSave for a new Event", () => {
@@ -176,6 +179,7 @@ describe("planEventSave for Lodging", () => {
         bookingUrl: null,
         placeId: null,
         destinationId: null,
+        placePhotoHidden: false,
       },
     });
   });
@@ -315,6 +319,13 @@ describe("planEventSave places", () => {
       kind: "update",
       patch: { placeId: null, destinationId: null },
     });
+  });
+
+  it("sends the choice to hide or show the place photo only when it changed, and creates with it", () => {
+    expect(planEventSave({ ...fields, placePhotoHidden: true }, saved)).toEqual({ kind: "update", patch: { placePhotoHidden: true } });
+    expect(planEventSave({ ...fields, placePhotoHidden: false }, { ...saved, placePhotoHidden: true })).toEqual({ kind: "update", patch: { placePhotoHidden: false } });
+    expect(planEventSave({ ...fields, placePhotoHidden: true }, { ...saved, placePhotoHidden: true })).toEqual({ kind: "nothing" });
+    expect(planEventSave({ ...fields, placePhotoHidden: true }, undefined)).toMatchObject({ kind: "create", input: { placePhotoHidden: true } });
   });
 
   it("changes nothing when the places are the same", () => {

@@ -102,7 +102,23 @@ export const eventSchema = z.object({
   // The id of the Event's uploaded image, or null. The file is read at `.../image`; a new image gets a
   // new id, so a changed id is what tells a page its copy is old.
   imageId: z.uuid().nullable(),
+  // True once the user took the image off: the place's Google photo is then not shown either, until
+  // "Use place photo" clears it (step 41). An upload does not change it; a new place keeps it.
+  placePhotoHidden: z.boolean(),
 });
+
+// A place's Google photo as the server hands it out (step 41): a short-lived address to show the
+// picture from, the authors to credit, and the place's page on Google Maps. Never stored.
+const photoAuthorSchema = z.object({ name: z.string(), uri: z.string().nullable() });
+export const placePhotoSchema = z.object({
+  photoUri: z.string(),
+  authors: z.array(photoAuthorSchema),
+  mapsUri: z.string().nullable(),
+});
+// What the server keeps of a place's photo: the provider's reference and the authors, never the picture.
+export const placePhotoRefSchema = z.object({ name: z.string(), authors: z.array(photoAuthorSchema) });
+export type PlacePhotoRef = z.infer<typeof placePhotoRefSchema>;
+export type PlacePhoto = z.infer<typeof placePhotoSchema>;
 
 // What an uploaded Event image may be (step 39): JPEG, PNG or WebP, at most this many bytes as sent.
 export const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
@@ -176,6 +192,7 @@ export const createEventInputSchema = z.object({
   bookingUrl: detailSchemas.bookingUrl.default(null),
   placeId: placeIdSchema.nullable().default(null),
   destinationId: placeIdSchema.nullable().default(null),
+  placePhotoHidden: z.boolean().default(false),
   startMinute: startMinute.default(DEFAULT_START_MINUTE),
   durationMinutes: durationMinutes.default(DEFAULT_DURATION_MINUTES),
 });
@@ -204,6 +221,7 @@ export const updateEventInputSchema = z
     bookingUrl: detailSchemas.bookingUrl.optional(),
     placeId: placeIdSchema.nullable().optional(),
     destinationId: placeIdSchema.nullable().optional(),
+    placePhotoHidden: z.boolean().optional(),
     // Moves the Event onto a Day, or into a holding area; not both.
     dayId: z.uuid().optional(),
     area: holdingAreaSchema.optional(),

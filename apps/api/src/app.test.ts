@@ -1633,6 +1633,8 @@ describe("places when the provider fails", () => {
       search: () => Promise.reject(new PlaceProviderError("Place search failed (503)")),
       get: () => Promise.reject(new PlaceProviderError("Place lookup failed (503)")),
       getOpeningHours: () => Promise.reject(new PlaceProviderError("Place opening hours failed (503)")),
+      getPhoto: () => Promise.reject(new PlaceProviderError("Place photo failed (503)")),
+      getPhotoUri: () => Promise.reject(new PlaceProviderError("Place photo failed (503)")),
     });
     try {
       await failing.reset();

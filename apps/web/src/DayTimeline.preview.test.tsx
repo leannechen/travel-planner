@@ -24,7 +24,7 @@ function show(dropPreview?: DropPreview) {
       onOpenLeg={vi.fn()}
     />,
   );
-  return (title: string) => screen.getByText(title).closest("button")!.querySelector(":scope > span")!.textContent;
+  return (title: string) => screen.getByText(title).closest("button")!.querySelector(".event-text > span")!.textContent;
 }
 
 describe("a dragged card", () => {

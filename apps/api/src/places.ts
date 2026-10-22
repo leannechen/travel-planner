@@ -1,4 +1,4 @@
-import { daily, openingHoursSchema, placeSchema, WEEK_MINUTES, type OpeningHours, type Place } from "@travel-planner/shared";
+import { daily, openingHoursSchema, placePhotoRefSchema, placeSchema, WEEK_MINUTES, type OpeningHours, type Place, type PlacePhoto, type PlacePhotoRef } from "@travel-planner/shared";
 import { eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "./db/client";
@@ -12,6 +12,11 @@ export type PlaceProvider = {
   // The usual weekly opening hours, or undefined when the provider has none for the place (or does
   // not know it). Asked for only when the user turns opening hours on (PRD §3.5).
   getOpeningHours(id: string): Promise<OpeningHours | undefined>;
+  // The reference to the place's first photo, or undefined when it has none (or is not known).
+  getPhoto(id: string): Promise<PlacePhotoRef | undefined>;
+  // A short-lived address to show that photo from, or undefined when the reference no longer works.
+  // The picture is shown from there and never stored (PRD §3.2).
+  getPhotoUri(ref: PlacePhotoRef): Promise<string | undefined>;
 };
 
 // The provider could not be reached, timed out, or gave an answer that makes no sense.
@@ -73,8 +78,31 @@ const FAKE_HOURS: Record<string, OpeningHours> = {
   "fake:todai-ji": { ...daily(h(8), h(17)), status: "closed-temporarily" },
 };
 
+// Places without a photo among the fake ones, so that case can be tried.
+const FAKE_WITHOUT_PHOTO = new Set(["fake:granvia-kyoto", "fake:beppu-port"]);
+
+// A plain picture drawn from the place's name, so a photo can be shown without a key.
+function fakePhotoUri(name: string): string {
+  const hue = [...name].reduce((sum, c) => (sum * 31 + c.charCodeAt(0)) % 360, 7);
+  const label = name.replace(/[<>&"']/g, "");
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">` +
+    `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(${hue} 60% 62%)"/><stop offset="1" stop-color="hsl(${(hue + 50) % 360} 55% 38%)"/></linearGradient></defs>` +
+    `<rect width="1200" height="800" fill="url(#g)"/>` +
+    `<text x="600" y="420" font-family="sans-serif" font-size="64" fill="white" text-anchor="middle">${label}</text></svg>`;
+  return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
+}
+
 export function fakePlaceProvider(): PlaceProvider {
   return {
+    async getPhoto(id) {
+      const place = FAKE_PLACES.find((p) => p.id === id);
+      if (!place || FAKE_WITHOUT_PHOTO.has(id)) return undefined;
+      return { name: `fake:${place.name}`, authors: [{ name: "A fake photographer", uri: null }] };
+    },
+    async getPhotoUri(ref) {
+      return ref.name.startsWith("fake:") ? fakePhotoUri(ref.name.slice("fake:".length)) : undefined;
+    },
     async search(query) {
       const q = query.trim().toLowerCase();
       return FAKE_PLACES.filter((p) => `${p.name} ${p.address}`.toLowerCase().includes(q)).slice(0, MAX_SEARCH_RESULTS);
@@ -141,6 +169,23 @@ function fromGoogleHours(raw: unknown): OpeningHours | undefined {
   return result;
 }
 
+const googlePhotosSchema = z.object({
+  photos: z
+    .array(z.object({ name: z.string(), authorAttributions: z.array(z.object({ displayName: z.string().optional(), uri: z.string().optional() })).optional() }))
+    .optional(),
+});
+
+// Google gives addresses without a scheme ("//maps.google.com/..."); only https ones are passed on.
+function httpsAddress(raw: string | undefined): string | null {
+  const url = raw?.startsWith("//") ? `https:${raw}` : raw;
+  return url?.startsWith("https://") ? url : null;
+}
+
+// A photo's resource name as Google writes it; it goes into a request address, so nothing else is let in.
+const PHOTO_NAME = /^places\/[\w-]+\/photos\/[\w-]+$/;
+// The widest picture asked for: enough for the large view, and the same one is used for the thumbnail.
+const PHOTO_WIDTH_PX = 1200;
+
 const REQUEST_TIMEOUT_MS = 5000;
 
 const FIELDS = "id,displayName,formattedAddress,location,utcOffsetMinutes";
@@ -182,6 +227,29 @@ export function googlePlaceProvider(apiKey: string, fetchFn: typeof fetch = fetc
         headers: { "X-Goog-Api-Key": apiKey, "X-Goog-FieldMask": HOURS_FIELDS },
       });
       return body === undefined ? undefined : fromGoogleHours(body);
+    },
+    async getPhoto(id) {
+      const { body } = await call("photo", `${base}/places/${encodeURIComponent(id)}`, {
+        headers: { "X-Goog-Api-Key": apiKey, "X-Goog-FieldMask": "id,photos" },
+      });
+      if (body === undefined) return undefined;
+      const parsed = googlePhotosSchema.safeParse(body);
+      if (!parsed.success) throw new PlaceProviderError("Place photo failed (unexpected answer)");
+      const first = parsed.data.photos?.[0];
+      if (!first || !PHOTO_NAME.test(first.name)) return undefined;
+      const authors = (first.authorAttributions ?? []).flatMap((a) => (a.displayName ? [{ name: a.displayName, uri: httpsAddress(a.uri) }] : []));
+      return { name: first.name, authors: authors.slice(0, 5) };
+    },
+    async getPhotoUri(ref) {
+      if (!PHOTO_NAME.test(ref.name)) return undefined;
+      const { body } = await call("photo", `${base}/${ref.name}/media?maxWidthPx=${PHOTO_WIDTH_PX}&skipHttpRedirect=true`, {
+        headers: { "X-Goog-Api-Key": apiKey },
+      });
+      if (body === undefined) return undefined;
+      const parsed = z.object({ photoUri: z.string() }).safeParse(body);
+      const uri = parsed.success ? httpsAddress(parsed.data.photoUri) : null;
+      if (!uri) throw new PlaceProviderError("Place photo failed (unexpected answer)");
+      return uri;
     },
   };
 }
@@ -287,4 +355,44 @@ export async function fetchOpeningHours(db: Db, provider: PlaceProvider, id: str
   const hours = await provider.getOpeningHours(id);
   await db.update(places).set({ openingHours: hours ?? null, hoursFetchedAt: now }).where(eq(places.id, id));
   return hours;
+}
+
+// The place's page on Google Maps (the terms ask that a place shown with its photo can be reached
+// there); a fake place has none.
+const mapsUriOf = (id: string) =>
+  id.startsWith("fake:") ? null : `https://www.google.com/maps/search/?api=1&query=Google&query_place_id=${encodeURIComponent(id)}`;
+
+// The place's photo to show, read through the place cache like its hours: the provider's reference is
+// kept for PLACE_CACHE_DAYS (a place without a photo is remembered as such), the picture's address is
+// asked for each time and never kept. A reference that no longer works is looked up again once.
+// `undefined` means there is nothing to show; a provider that cannot be reached is an error.
+export async function getPlacePhoto(db: Db, provider: PlaceProvider, id: string, now = new Date()): Promise<PlacePhoto | undefined> {
+  const [place] = await getPlaces(db, provider, [id], now);
+  if (!place) return undefined;
+  const [row] = await db.select({ photo: places.photo, photoFetchedAt: places.photoFetchedAt }).from(places).where(eq(places.id, id));
+  const oldest = now.getTime() - PLACE_CACHE_DAYS * 24 * 60 * 60 * 1000;
+
+  let ref: PlacePhotoRef | undefined;
+  let cached = false;
+  if (row?.photoFetchedAt && row.photoFetchedAt.getTime() > oldest) {
+    if (!row.photo) return undefined;
+    const parsed = placePhotoRefSchema.safeParse(row.photo);
+    if (parsed.success) {
+      ref = parsed.data;
+      cached = true;
+    }
+  }
+  const lookUp = async () => {
+    const found = await provider.getPhoto(id);
+    await db.update(places).set({ photo: found ?? null, photoFetchedAt: now }).where(eq(places.id, id));
+    return found;
+  };
+  ref ??= await lookUp();
+  if (!ref) return undefined;
+  let photoUri = await provider.getPhotoUri(ref);
+  if (!photoUri && cached) {
+    ref = await lookUp();
+    photoUri = ref && (await provider.getPhotoUri(ref));
+  }
+  return ref && photoUri ? { photoUri, authors: ref.authors, mapsUri: mapsUriOf(id) } : undefined;
 }

@@ -4,6 +4,7 @@ import { sql } from "drizzle-orm";
 import { vi } from "vitest";
 import { createApp } from "../src/app";
 import { listenLive } from "../src/live";
+import { memoryImageStore } from "../src/images";
 import { fakeTokenVerifier, GUEST_HEADER, type TokenVerifier } from "../src/auth";
 import { fakeRouteProvider, type RouteProvider } from "../src/routes";
 import { fakePlaceProvider, type PlaceProvider } from "../src/places";
@@ -22,10 +23,13 @@ export async function startTestApp(places: PlaceProvider = fakePlaceProvider(), 
   const mailer: InvitationMailer = { send: async (mail) => void mails.push(mail) };
   const identityAdmin: IdentityAdmin = { resendVerification: async (sub) => void resends.push(sub) };
 
+  // The files that were stored, in memory.
+  const images = memoryImageStore();
+
   let server!: Server;
   let live!: { close(): void };
   await new Promise<void>((resolve) => {
-    const app = createApp(db, { places, routes, auth, mailer, identityAdmin, appOrigin: "http://app.test" });
+    const app = createApp(db, { places, routes, auth, mailer, identityAdmin, appOrigin: "http://app.test", images });
     live = app.locals.live;
     server = listenLive(app, 0, () => resolve());
   });
@@ -46,11 +50,13 @@ export async function startTestApp(places: PlaceProvider = fakePlaceProvider(), 
   return {
     baseUrl,
     db,
+    images,
     mails,
     resends,
     async reset() {
       mails.length = 0;
       resends.length = 0;
+      images.clear();
       await db.execute(sql`truncate table events, days, trips, users, places, route_estimates cascade`);
     },
     async stop() {

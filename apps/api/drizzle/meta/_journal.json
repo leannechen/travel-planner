@@ -131,15 +131,22 @@
     {
       "idx": 18,
       "version": "7",
-      "when": 1792641198566,
-      "tag": "0018_sample_trip",
+      "when": 1792639166901,
+      "tag": "0018_event_images",
       "breakpoints": true
     },
     {
       "idx": 19,
       "version": "7",
-      "when": 1792650826911,
-      "tag": "0019_departure_time",
+      "when": 1792650942883,
+      "tag": "0019_place_photos",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1792652688401,
+      "tag": "0020_sample_trip_departure_time",
       "breakpoints": true
     }
   ]

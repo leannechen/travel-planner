@@ -5,3 +5,5 @@ node_modules/
 dist/
 .env
 .claude/worktrees
+# Uploaded Event images in development
+apps/api/uploads/

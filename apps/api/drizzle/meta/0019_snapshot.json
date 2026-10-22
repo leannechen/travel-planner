@@ -1,6 +1,6 @@
 {
-  "id": "43fb768f-e199-469a-9a9c-c9a0968d811b",
-  "prevId": "02189d6a-0a74-4832-be6b-b88449c40e9d",
+  "id": "4968bd7f-8920-409e-9464-9f012fca6fac",
+  "prevId": "16432112-610b-4a78-a563-8c2fb9b65926",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -52,6 +52,98 @@
           "columns": [
             "tripId",
             "position"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.event_images": {
+      "name": "event_images",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "eventId": {
+          "name": "eventId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "storageKey": {
+          "name": "storageKey",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "contentType": {
+          "name": "contentType",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "byteSize": {
+          "name": "byteSize",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdBy": {
+          "name": "createdBy",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "event_images_eventId_events_id_fk": {
+          "name": "event_images_eventId_events_id_fk",
+          "tableFrom": "event_images",
+          "tableTo": "events",
+          "columnsFrom": [
+            "eventId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "event_images_createdBy_users_id_fk": {
+          "name": "event_images_createdBy_users_id_fk",
+          "tableFrom": "event_images",
+          "tableTo": "users",
+          "columnsFrom": [
+            "createdBy"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "event_images_eventId_unique": {
+          "name": "event_images_eventId_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "eventId"
           ]
         }
       },
@@ -177,6 +269,19 @@
           "notNull": true,
           "default": false
         },
+        "placePhotoHidden": {
+          "name": "placePhotoHidden",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "imageId": {
+          "name": "imageId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "startMinute": {
           "name": "startMinute",
           "type": "integer",
@@ -225,6 +330,19 @@
             "id"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "events_imageId_event_images_id_fk": {
+          "name": "events_imageId_event_images_id_fk",
+          "tableFrom": "events",
+          "tableTo": "event_images",
+          "columnsFrom": [
+            "imageId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -499,12 +617,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "utcOffsetMinutes": {
-          "name": "utcOffsetMinutes",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
         "fetchedAt": {
           "name": "fetchedAt",
           "type": "timestamp with time zone",
@@ -520,6 +632,18 @@
         },
         "hoursFetchedAt": {
           "name": "hoursFetchedAt",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "photo": {
+          "name": "photo",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "photoFetchedAt": {
+          "name": "photoFetchedAt",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
@@ -556,13 +680,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "departureHour": {
-          "name": "departureHour",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": -1
-        },
         "durationMinutes": {
           "name": "durationMinutes",
           "type": "integer",
@@ -586,13 +703,12 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {
-        "route_estimates_fromPlaceId_toPlaceId_mode_departureHour_pk": {
-          "name": "route_estimates_fromPlaceId_toPlaceId_mode_departureHour_pk",
+        "route_estimates_fromPlaceId_toPlaceId_mode_pk": {
+          "name": "route_estimates_fromPlaceId_toPlaceId_mode_pk",
           "columns": [
             "fromPlaceId",
             "toPlaceId",
-            "mode",
-            "departureHour"
+            "mode"
           ]
         }
       },
@@ -929,12 +1045,6 @@
           "notNull": true,
           "default": false
         },
-        "sampleOf": {
-          "name": "sampleOf",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "createdAt": {
           "name": "createdAt",
           "type": "timestamp with time zone",
@@ -966,14 +1076,6 @@
           "nullsNotDistinct": false,
           "columns": [
             "shareToken"
-          ]
-        },
-        "trips_owner_sample_unique": {
-          "name": "trips_owner_sample_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "ownerId",
-            "sampleOf"
           ]
         }
       },

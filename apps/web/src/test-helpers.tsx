@@ -62,6 +62,8 @@ export function makeEvent(overrides: Partial<Event> = {}): Event {
     placeId: null,
     destinationId: null,
     openingHoursOn: false,
+    imageId: null,
+    placePhotoHidden: false,
     ...overrides,
   };
 }

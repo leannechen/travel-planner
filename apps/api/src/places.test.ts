@@ -18,11 +18,13 @@ const DAY = 24 * 60 * 60 * 1000;
 // A provider that counts its lookups, over the fake places.
 function counting() {
   const inner = fakePlaceProvider();
-  const calls = { search: 0, get: 0, hours: 0 };
+  const calls = { search: 0, get: 0, hours: 0, photo: 0, photoUri: 0 };
   const provider: PlaceProvider = {
     search: (q) => (calls.search++, inner.search(q)),
     get: (id) => (calls.get++, inner.get(id)),
     getOpeningHours: (id) => (calls.hours++, inner.getOpeningHours(id)),
+    getPhoto: (id) => (calls.photo++, inner.getPhoto(id)),
+    getPhotoUri: (ref) => (calls.photoUri++, inner.getPhotoUri(ref)),
   };
   return { provider, calls };
 }
@@ -73,6 +75,8 @@ describe("getPlaces", () => {
     const provider: PlaceProvider = {
       search: inner.search,
       getOpeningHours: inner.getOpeningHours,
+      getPhoto: inner.getPhoto,
+      getPhotoUri: inner.getPhotoUri,
       get: (id) => (id === "fake:broken" ? Promise.reject(new PlaceProviderError("down")) : inner.get(id)),
     };
     await expect(getPlaces(app.db, provider, ["fake:nara-park", "fake:broken"])).rejects.toThrow("down");
@@ -82,7 +86,7 @@ describe("getPlaces", () => {
 
   it("caches a search whose results repeat an id", async () => {
     const nara = (await fakePlaceProvider().get("fake:nara-park"))!;
-    const provider: PlaceProvider = { search: async () => [nara, nara], get: async () => nara, getOpeningHours: async () => undefined };
+    const provider: PlaceProvider = { search: async () => [nara, nara], get: async () => nara, getOpeningHours: async () => undefined, getPhoto: async () => undefined, getPhotoUri: async () => undefined };
     expect(await searchPlaces(app.db, provider, "nara")).toHaveLength(2);
     expect(await app.db.select().from(places)).toHaveLength(1);
   });

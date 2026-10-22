@@ -18,6 +18,7 @@ import {
   type Leg,
 } from "@travel-planner/shared";
 import type { DropPreview } from "./dropPreview";
+import { EventThumb } from "./eventImage";
 import { KindIcon } from "./kinds";
 import { formatDuration, MODE_ICONS, modeKey } from "./legFormat";
 import { useT } from "./preferences";
@@ -29,6 +30,8 @@ import { ChangedEventsContext } from "./liveContext";
 import { useContext, useEffect, useMemo, useState, type MouseEvent, type PointerEvent } from "react";
 
 export const PX_PER_HOUR = 64;
+// The shortest card (in pixels) that shows its Event's picture.
+const THUMB_MIN_HEIGHT = 88;
 export const SNAP_PX = (PX_PER_HOUR * SNAP_MINUTES) / 60;
 
 export type Range = { startMinute: number; endMinute: number };
@@ -311,6 +314,7 @@ function EventCard({
     : preview?.startMinute !== undefined
       ? `${preview.dayPosition ? `${t("day.title", { n: preview.dayPosition })} · ` : ""}${formatMinute(preview.startMinute)} – ${formatEnd(preview.startMinute + times.durationMinutes)}`
       : `${formatMinute(times.startMinute)} – ${formatEnd(realEnd)}`;
+  const tall = drawnHeight >= THUMB_MIN_HEIGHT;
   const changedByOther = useContext(ChangedEventsContext).has(event.id);
   const classes = ["event-card", `kind-${event.kind}`, selected && "selected", openingConflict && "warn", isDragging && "dragging", changedByOther && "changed"].filter(Boolean).join(" ");
 
@@ -326,18 +330,22 @@ function EventCard({
         width: `${100 / columnCount}%`,
       }}
     >
-      <button type="button" ref={handleRef} onClick={onSelect}>
-        <strong>
-          <KindIcon kind={event.kind} transportLabel={event.transportLabel} />
-          <span className="event-title">{event.title}</span>
-        </strong>
-        <span>{shownTime}</span>
-        {openingConflict && (
-          <span className="event-warning">
-            <TriangleAlert size={12} aria-hidden="true" />
-            {t("opening.conflict")}
-          </span>
-        )}
+      <button type="button" ref={handleRef} onClick={onSelect} className={tall ? "has-media" : undefined}>
+        {/* Only a card tall enough has room for the picture, or the kind's icon in its place, next to the text (design 26). */}
+        {tall && <EventThumb event={event} />}
+        <div className="event-text">
+          <strong>
+            <KindIcon kind={event.kind} transportLabel={event.transportLabel} />
+            <span className="event-title">{event.title}</span>
+          </strong>
+          <span>{shownTime}</span>
+          {openingConflict && (
+            <span className="event-warning">
+              <TriangleAlert size={12} aria-hidden="true" />
+              {t("opening.conflict")}
+            </span>
+          )}
+        </div>
       </button>
       {(selected || resizing) && (
         <>

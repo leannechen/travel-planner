@@ -12,6 +12,7 @@ import {
   setShareLinkInputSchema,
   holdingAreaSchema,
   inviteEditorInputSchema,
+  MAX_IMAGE_BYTES,
   MAX_PLACE_IDS,
   MAX_PLACE_QUERY_LENGTH,
   placeIdSchema,
@@ -34,7 +35,8 @@ import { authenticate, GUEST_HEADER, mergeGuest, verifierFromEnv, type TokenVeri
 import { createLiveHub } from "./live";
 import { createLeg, deleteLeg, isProviderError, listLegs, setLegMode, syncLegs } from "./legs";
 import { openSampleTrip } from "./sample-trip";
-import { fetchOpeningHours, getOpeningHours, getPlaces, PlaceProviderError, placeProviderFromEnv, searchPlaces, type PlaceProvider } from "./places";
+import { fetchOpeningHours, getOpeningHours, getPlacePhoto, getPlaces, PlaceProviderError, placeProviderFromEnv, searchPlaces, type PlaceProvider } from "./places";
+import { imageStoreFromEnv, prepareImage, type ImageStore } from "./images";
 import { routeProviderFromEnv, type RouteProvider } from "./routes";
 import {
   addEvent,
@@ -46,7 +48,12 @@ import {
   deleteEvent,
   deleteNote,
   deleteTodo,
+  findEventImage,
   findEventPlace,
+  findSharedEventImage,
+  findSharedEventPlace,
+  removeEventImage,
+  setEventImage,
   getSharedTrip,
   sharedPlaceIds,
   insertDay,
@@ -86,7 +93,8 @@ const idsQuerySchema = z.object({
     .pipe(z.array(placeIdSchema).max(MAX_PLACE_IDS)),
 });
 
-export function createApp(db: Db, options: { places?: PlaceProvider; routes?: RouteProvider; auth?: TokenVerifier; mailer?: InvitationMailer; identityAdmin?: IdentityAdmin; appOrigin?: string } = {}) {
+export function createApp(db: Db, options: { places?: PlaceProvider; routes?: RouteProvider; auth?: TokenVerifier; mailer?: InvitationMailer; identityAdmin?: IdentityAdmin; appOrigin?: string; images?: ImageStore } = {}) {
+  const images = options.images ?? imageStoreFromEnv();
   const mailer = options.mailer ?? logInvitationMailer();
   const identityAdmin = options.identityAdmin ?? identityAdminFromEnv();
   const appOrigin = options.appOrigin ?? process.env.APP_ORIGIN ?? "http://localhost:5173";
@@ -122,6 +130,18 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
     res.json(preview);
   });
 
+  // Sends a stored image, or 404. The browser keeps it only while the server says it is still the
+  // same one (the ETag), so a replaced or removed image, or a link turned off, is never shown stale.
+  const sendImage = async (res: express.Response, found: { key: string; contentType: string } | undefined) => {
+    const bytes = found && (await images.get(found.key));
+    if (!found || !bytes) {
+      res.status(404).json({ error: "Image not found" });
+      return;
+    }
+    res.set({ "Content-Type": found.contentType, "X-Content-Type-Options": "nosniff", "Cache-Control": "private, no-cache" });
+    res.send(bytes);
+  };
+
   // Everything below is for an account or a guest session.
   // What a Viewer opens (PRD §8): no login, only the Trip behind a share link that is on.
   const shareParamsSchema = z.object({ token: z.string().min(1).max(200) });
@@ -147,6 +167,32 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
     const { token } = shareParamsSchema.parse(req.params);
     const { ids } = idsQuerySchema.parse(req.query);
     res.json({ openingHours: Object.fromEntries(await getOpeningHours(db, provider, await sharedPlaceIds(db, token, ids))) });
+  });
+
+  app.get("/api/shared/:token/events/:eventId/image", async (req, res) => {
+    const { token } = shareParamsSchema.parse(req.params);
+    const { eventId } = z.object({ eventId: z.uuid() }).parse(req.params);
+    await sendImage(res, await findSharedEventImage(db, token, eventId));
+  });
+
+  // Answers with the place's Google photo, or 404 when there is nothing to show. Only the Event's own
+  // place is asked about, so the key cannot be used to look up any place. The address is short-lived.
+  // The photo is the default only: an upload comes first and taking the image off hides it, so neither
+  // is looked up (which would also cost a Google request for nothing).
+  const sendPlacePhoto = async (res: express.Response, found: { placeId: string | null; imageId: string | null; placePhotoHidden: boolean } | undefined) => {
+    const photo = found?.placeId && !found.imageId && !found.placePhotoHidden ? await getPlacePhoto(db, provider, found.placeId) : undefined;
+    if (!photo) {
+      res.status(404).json({ error: "No place photo", code: "no_place_photo" });
+      return;
+    }
+    res.set("Cache-Control", "private, no-store");
+    res.json(photo);
+  };
+
+  app.get("/api/shared/:token/events/:eventId/place-photo", async (req, res) => {
+    const { token } = shareParamsSchema.parse(req.params);
+    const { eventId } = z.object({ eventId: z.uuid() }).parse(req.params);
+    await sendPlacePhoto(res, await findSharedEventPlace(db, token, eventId));
   });
 
   app.use("/api", authenticate(db, verifier));
@@ -446,13 +492,61 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
     res.json(event);
   });
 
+  app.get("/api/trips/:tripId/events/:eventId/place-photo", async (req, res) => {
+    const { tripId, eventId } = eventIdParamsSchema.parse(req.params);
+    const found = await findEventPlace(db, res.locals.userId, tripId, eventId);
+    if (!found) {
+      res.status(404).json({ error: "Event not found" });
+      return;
+    }
+    await sendPlacePhoto(res, found);
+  });
+
+  app.get("/api/trips/:tripId/events/:eventId/image", async (req, res) => {
+    const { tripId, eventId } = eventIdParamsSchema.parse(req.params);
+    await sendImage(res, await findEventImage(db, res.locals.userId, tripId, eventId));
+  });
+
+  // The body is the file itself, whatever type the sender says: what it really is is checked.
+  app.put("/api/trips/:tripId/events/:eventId/image", express.raw({ type: () => true, limit: MAX_IMAGE_BYTES }), async (req, res) => {
+    const { tripId, eventId } = eventIdParamsSchema.parse(req.params);
+    if (!(await findEventPlace(db, res.locals.userId, tripId, eventId))) {
+      res.status(404).json({ error: "Event not found" });
+      return;
+    }
+    const image = Buffer.isBuffer(req.body) && req.body.length > 0 ? await prepareImage(req.body) : undefined;
+    if (!image) {
+      res.status(415).json({ error: "Choose a JPEG, PNG or WebP picture", code: "image_type" });
+      return;
+    }
+    const event = await setEventImage(db, images, res.locals.userId, tripId, eventId, image);
+    if (!event) {
+      res.status(404).json({ error: "Event not found" });
+      return;
+    }
+    res.json(event);
+  });
+
+  app.delete("/api/trips/:tripId/events/:eventId/image", async (req, res) => {
+    const { tripId, eventId } = eventIdParamsSchema.parse(req.params);
+    const event = await removeEventImage(db, images, res.locals.userId, tripId, eventId);
+    if (!event) {
+      res.status(404).json({ error: "Event not found" });
+      return;
+    }
+    res.json(event);
+  });
+
   app.delete("/api/trips/:tripId/events/:eventId", async (req, res) => {
     const { tripId, eventId } = eventIdParamsSchema.parse(req.params);
-    const result = await deleteEvent(db, res.locals.userId, tripId, eventId);
+    const gone: { imageKey?: string } = {};
+    const result = await deleteEvent(db, res.locals.userId, tripId, eventId, gone);
     if (!result) {
       res.status(404).json({ error: "Event not found" });
       return;
     }
+    // The file goes with the Event; undo brings the Event back without it.
+    if (gone.imageKey) await images.delete(gone.imageKey);
     await syncTripLegs(tripId);
     res.json(result);
   });
@@ -679,9 +773,13 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
     res.status(201).json(result);
   });
 
-  app.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+  app.use((err: unknown, req: express.Request, res: express.Response, next: express.NextFunction) => {
     if (err instanceof ZodError) {
       res.status(400).json({ error: "Invalid request", issues: err.issues });
+      return;
+    }
+    if ((err as { type?: string }).type === "entity.too.large" && req.path.endsWith("/image")) {
+      res.status(413).json({ error: `The picture is larger than ${MAX_IMAGE_BYTES / 1024 / 1024} MB`, code: "image_too_large" });
       return;
     }
     // The place provider could not be reached or refused the request.

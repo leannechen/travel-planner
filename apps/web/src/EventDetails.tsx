@@ -1,6 +1,7 @@
 import { formatMinute, isWebUrl, showsContact, showsOpeningHours, weekdayOf, type Day, type Event } from "@travel-planner/shared";
 import { X } from "lucide-react";
 import { useEffect } from "react";
+import { EnlargeableImage, PhotoCredit, useEventPicture } from "./eventImage";
 import { KindIcon, kindKey } from "./kinds";
 import { eventConflicts, useOpeningHours } from "./openingHours";
 import { OpeningHoursSection } from "./OpeningHoursSection";
@@ -48,6 +49,7 @@ export function EventDetails({ event, days, startDate, onClose }: Props) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
+  const picture = useEventPicture(event);
   const { hours, loading } = useOpeningHours(event.openingHoursOn && event.placeId ? [event.placeId] : []);
   const day = event.dayId ? days.find((d) => d.id === event.dayId) : undefined;
   const dated = day && startDate ? dayLabel(startDate, day.position) : undefined;
@@ -88,6 +90,24 @@ export function EventDetails({ event, days, startDate, onClose }: Props) {
         <div className="panel-body viewer-body">
           <h2>{event.title}</h2>
           <p className="viewer-when">{when}</p>
+          {picture && (
+            <div className="viewer-image">
+              <div className="image-block">
+                <EnlargeableImage
+                  src={picture.src}
+                  alt={event.title}
+                  label={t("image.enlarge")}
+                  credit={picture.place && <PhotoCredit photo={picture.place} />}
+                />
+                {picture.place && <span className="image-tag">{t("image.placeTag")}</span>}
+              </div>
+              {picture.place && (
+                <p className="hint">
+                  <PhotoCredit photo={picture.place} />
+                </p>
+              )}
+            </div>
+          )}
           {event.kind === "transport" ? (
             <>
               <PlaceLine label={t("place.from")} id={event.placeId ?? ""} />

@@ -6,6 +6,7 @@ import { ApiError, getSharedTrip, listTrips, setSharedLink } from "./api";
 import { useAuth } from "./AuthProvider";
 import { tripListAddress, tripPath } from "./currentTrip";
 import { EventDetails } from "./EventDetails";
+import { TripIdContext } from "./eventImage";
 import { openLive } from "./live";
 import { ChangedEventsContext } from "./liveContext";
 import { useIsPhone } from "./phone";
@@ -131,6 +132,7 @@ export function SharedTripPage({ token }: { token: string }) {
 
   return (
     <main className={selected ? "has-panel" : undefined}>
+      <TripIdContext.Provider value={trip.id}>
       <ChangedEventsContext.Provider value={NO_EVENTS}>
         <TripCard
           key={trip.id}
@@ -163,6 +165,7 @@ export function SharedTripPage({ token }: { token: string }) {
         />
       </ChangedEventsContext.Provider>
       {selected && <EventDetails key={selected.id} event={selected} days={trip.days} startDate={tripStartDate(trip)} onClose={closeDetails} />}
+      </TripIdContext.Provider>
       {sheetOpen && <ShortcutSheet onClose={() => setSheetOpen(false)} />}
     </main>
   );

@@ -87,7 +87,7 @@ export function createLiveHub(db: Db, verifier: TokenVerifier): LiveHub {
     const caller = await resolveCaller(db, verifier, token, guest);
     if (!caller.ok) return socket.close(CLOSE_NOT_LOGGED_IN, caller.code);
     if (!(await canEditTrip(db, caller.userId, tripId))) return socket.close(CLOSE_NO_ACCESS, "No access to this Trip");
-    let label = caller.email ?? null;
+    let label = caller.emailVerified === true ? (caller.email ?? null) : null;
     if (caller.accountId && !label) {
       const [row] = await db.select({ email: users.email }).from(users).where(eq(users.id, caller.userId));
       label = row?.email ?? null;
@@ -161,7 +161,8 @@ export function createLiveHub(db: Db, verifier: TokenVerifier): LiveHub {
     },
     attach(server) {
       server.on("upgrade", (req, socket, head) => {
-        const path = new URL(req.url ?? "/", "http://localhost").pathname;
+        // Not new URL(): it throws on targets like "//a:99999/", and a throw here ends the process.
+        const path = (req.url ?? "").split("?")[0];
         if (path !== LIVE_PATH) return socket.destroy();
         wss.handleUpgrade(req, socket, head, (ws) => wss.emit("connection", ws, req));
       });

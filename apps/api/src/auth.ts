@@ -146,6 +146,7 @@ export function verifierFromEnv(env: NodeJS.ProcessEnv = process.env): TokenVeri
 
 // The user row of an account, created on its first request.
 // The email address is kept up to date from the token, so the Share dialog can name people.
+// Pass it only once verified: it is shown to others as who this person is.
 export async function findOrCreateAccount(db: Db, sub: string, email?: string): Promise<string> {
   const [found] = await db.select({ id: users.id, email: users.email }).from(users).where(eq(users.auth0Sub, sub));
   if (found) {
@@ -192,7 +193,7 @@ export async function resolveCaller(db: Db, verifier: TokenVerifier, token: stri
       if (!(err instanceof TokenRejected)) throw err;
       return { ok: false, status: 401, error: "Your session is not valid", code: "invalid_token" };
     }
-    const userId = await findOrCreateAccount(db, identity.sub, identity.email);
+    const userId = await findOrCreateAccount(db, identity.sub, identity.emailVerified === true ? identity.email : undefined);
     return { ok: true, userId, accountId: userId, sub: identity.sub, email: identity.email, emailVerified: identity.emailVerified };
   }
   const guest = guestTokenSchema.safeParse(guestId);

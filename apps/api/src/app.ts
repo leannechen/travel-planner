@@ -292,7 +292,7 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
   app.post("/api/trips/:tripId/invitations", async (req, res) => {
     const { tripId } = tripParamsSchema.parse(req.params);
     const { email } = inviteEditorInputSchema.parse(req.body);
-    const result = await inviteEditor(db, res.locals.userId, tripId, email);
+    const result = await inviteEditor(db, res.locals.userId, tripId, email, res.locals.email);
     if (!result) {
       res.status(404).json({ error: "Trip not found" });
     } else if (result === "owner") {

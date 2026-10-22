@@ -2,7 +2,7 @@ import { eventSchema, invitationSchema, sharingSchema, tripSchema } from "@trave
 import { z } from "zod";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { startTestApp } from "../test/test-app";
-import { auth0IdentityAdmin, IdentityAdminError } from "./sharing";
+import { auth0IdentityAdmin, IdentityAdminError, logInvitationMailer } from "./sharing";
 
 let app: Awaited<ReturnType<typeof startTestApp>>;
 
@@ -73,6 +73,13 @@ describe("inviting", () => {
     expect(await res.json()).toMatchObject({ code: "own_address" });
   });
 
+  it("does not let an Owner whose email is not verified yet invite themselves", async () => {
+    const unverified = "fake-unverified:lena@example.com";
+    const trip = tripSchema.parse(await (await call("POST", "/api/trips", unverified, { title: "Kyoto" })).json());
+    const res = await call("POST", `/api/trips/${trip.id}/invitations`, unverified, { email: "lena@example.com" });
+    expect(res.status).toBe(409);
+  });
+
   it("is for the Owner only", async () => {
     const trip = await ownerTrip();
     await joined(trip.id);
@@ -99,6 +106,15 @@ describe("inviting", () => {
   });
 });
 
+describe("the invitation log", () => {
+  it("keeps a Trip title with line breaks on one line", async () => {
+    const lines: string[] = [];
+    await logInvitationMailer((line) => lines.push(line)).send({ to: "mei@example.com", inviterEmail: null, tripTitle: 'x"\nInvitation to edit "Team"', link: "http://app.test/?invite=abc" });
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).not.toContain("\n");
+  });
+});
+
 describe("guests", () => {
   it("cannot share a Trip", async () => {
     const guest = { "x-guest-id": crypto.randomUUID(), "content-type": "application/json" };
@@ -119,6 +135,17 @@ describe("the invitation page", () => {
 
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ tripTitle: "Kyoto & Osaka", invitedEmail: "m*i@example.com", inviterEmail: "lena@example.com" });
+  });
+
+  it("names the inviter only once their email is verified", async () => {
+    const trip = tripSchema.parse(await (await call("POST", "/api/trips", "fake-unverified:lena@example.com", { title: "Kyoto" })).json());
+    const res = await call("POST", `/api/trips/${trip.id}/invitations`, "fake-unverified:lena@example.com", { email: "mei@example.com" });
+    const { token } = invitationSchema.parse(await res.json());
+    const preview = async () => ((await (await call("GET", `/api/invitations/${token}`, undefined)).json()) as { inviterEmail: string | null }).inviterEmail;
+
+    expect(await preview()).toBeNull();
+    await call("GET", "/api/me", OWNER);
+    expect(await preview()).toBe("lena@example.com");
   });
 
   it("is gone once the invitation was accepted", async () => {

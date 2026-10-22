@@ -34,7 +34,7 @@ import { acceptInvitation, getSharing, identityAdminFromEnv, IdentityAdminError,
 import { authenticate, GUEST_HEADER, mergeGuest, verifierFromEnv, type TokenVerifier } from "./auth";
 import { createLiveHub } from "./live";
 import { createLeg, deleteLeg, isProviderError, listLegs, setLegMode, syncLegs } from "./legs";
-import { fetchOpeningHours, getOpeningHours, getPlaces, PlaceProviderError, placeProviderFromEnv, searchPlaces, type PlaceProvider } from "./places";
+import { fetchOpeningHours, getOpeningHours, getPlacePhoto, getPlaces, PlaceProviderError, placeProviderFromEnv, searchPlaces, type PlaceProvider } from "./places";
 import { imageStoreFromEnv, prepareImage, type ImageStore } from "./images";
 import { routeProviderFromEnv, type RouteProvider } from "./routes";
 import {
@@ -50,6 +50,7 @@ import {
   findEventImage,
   findEventPlace,
   findSharedEventImage,
+  findSharedEventPlace,
   removeEventImage,
   setEventImage,
   getSharedTrip,
@@ -171,6 +172,26 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
     const { token } = shareParamsSchema.parse(req.params);
     const { eventId } = z.object({ eventId: z.uuid() }).parse(req.params);
     await sendImage(res, await findSharedEventImage(db, token, eventId));
+  });
+
+  // Answers with the place's Google photo, or 404 when there is nothing to show. Only the Event's own
+  // place is asked about, so the key cannot be used to look up any place. The address is short-lived.
+  // The photo is the default only: an upload comes first and taking the image off hides it, so neither
+  // is looked up (which would also cost a Google request for nothing).
+  const sendPlacePhoto = async (res: express.Response, found: { placeId: string | null; imageId: string | null; placePhotoHidden: boolean } | undefined) => {
+    const photo = found?.placeId && !found.imageId && !found.placePhotoHidden ? await getPlacePhoto(db, provider, found.placeId) : undefined;
+    if (!photo) {
+      res.status(404).json({ error: "No place photo", code: "no_place_photo" });
+      return;
+    }
+    res.set("Cache-Control", "private, no-store");
+    res.json(photo);
+  };
+
+  app.get("/api/shared/:token/events/:eventId/place-photo", async (req, res) => {
+    const { token } = shareParamsSchema.parse(req.params);
+    const { eventId } = z.object({ eventId: z.uuid() }).parse(req.params);
+    await sendPlacePhoto(res, await findSharedEventPlace(db, token, eventId));
   });
 
   app.use("/api", authenticate(db, verifier));
@@ -461,6 +482,16 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
       return;
     }
     res.json(event);
+  });
+
+  app.get("/api/trips/:tripId/events/:eventId/place-photo", async (req, res) => {
+    const { tripId, eventId } = eventIdParamsSchema.parse(req.params);
+    const found = await findEventPlace(db, res.locals.userId, tripId, eventId);
+    if (!found) {
+      res.status(404).json({ error: "Event not found" });
+      return;
+    }
+    await sendPlacePhoto(res, found);
   });
 
   app.get("/api/trips/:tripId/events/:eventId/image", async (req, res) => {

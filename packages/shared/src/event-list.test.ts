@@ -20,6 +20,7 @@ const ev = (id: string, dayId: string, start: number, title = id): Event => ({
   destinationId: null,
   openingHoursOn: false,
   imageId: null,
+  placePhotoHidden: false,
   transportLabel: null,
   title,
   startMinute: start,

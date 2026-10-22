@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { MAX_IMAGE_BYTES, type Event } from "@travel-planner/shared";
 import { createRef, type MutableRefObject } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { getPlacePhoto } from "./api";
 import { TripIdContext } from "./eventImage";
 import { EventPanel, type PanelApi } from "./EventPanel";
 import { makeDay, makeEvent, renderApp, setPhone } from "./test-helpers";
@@ -12,6 +13,7 @@ vi.mock("./api", () => ({
   searchPlaces: vi.fn(async () => []),
   getPlaces: vi.fn(async () => []),
   getEventImage: vi.fn(async () => new Blob(["x"], { type: "image/png" })),
+  getPlacePhoto: vi.fn(),
 }));
 vi.mock("./MarkdownEditor", () => ({
   MarkdownEditor: ({ label }: { label: string }) => <textarea aria-label={label} />,
@@ -233,5 +235,108 @@ describe("large view of the image", () => {
     screen.getByRole("button", { name: "Show the image larger" }).focus();
     await user.keyboard("{Enter}");
     expect(screen.getByRole("dialog")).toBeTruthy();
+  });
+});
+
+describe("place photo in the Image section (design 26)", () => {
+  const PHOTO = { photoUri: "https://photos.example/fushimi.jpg", authors: [{ name: "Ann", uri: "https://maps.google.com/contrib/1" }], mapsUri: "https://maps.example/p" };
+  const withPlace = (overrides: Partial<Event> = {}) => makeEvent({ dayId: days[0]!.id, holding: null, placeId: "ChIJfushimi", ...overrides });
+
+  beforeEach(() => {
+    vi.mocked(getPlacePhoto).mockReset();
+    vi.mocked(getPlacePhoto).mockResolvedValue(PHOTO);
+  });
+
+  it("shows the place photo with its label and credit when the Event has a place and no upload", async () => {
+    setup(withPlace());
+    expect(await screen.findByText("Place photo · Google")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Ann" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "View on Google Maps" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Replace" })).toBeTruthy();
+    expect(screen.queryByText("Your image")).toBeNull();
+  });
+
+  it("shows no place photo for an Event without a place, or one that has an upload", async () => {
+    setup(makeEvent({ dayId: days[0]!.id, holding: null }));
+    expect(screen.getByRole("button", { name: "Add image" })).toBeTruthy();
+    cleanup();
+    setup(withPlace({ imageId: "00000000-0000-4000-8000-0000000000bb" }));
+    expect(await screen.findByText("Your image")).toBeTruthy();
+    expect(getPlacePhoto).not.toHaveBeenCalled();
+  });
+
+  it("Remove takes the place photo off too, and Use place photo brings it back, both on Save", async () => {
+    const user = userEvent.setup();
+    const event = withPlace();
+    const props = setup(event);
+    await screen.findByText("Place photo · Google");
+
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+    expect(screen.queryByText("Place photo · Google")).toBeNull();
+    expect(screen.getByRole("button", { name: "Use place photo" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Add image" })).toBeTruthy();
+    expect(props.apiRef.current!.isDirty()).toBe(true);
+    // Nothing is sent before Save, and there is no upload to delete.
+    expect(props.onUpdate).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Use place photo" }));
+    expect(await screen.findByText("Place photo · Google")).toBeTruthy();
+    expect(props.apiRef.current!.isDirty()).toBe(false);
+
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+    await save(user);
+    await waitFor(() => expect(props.onUpdate).toHaveBeenCalledWith(event.id, { placePhotoHidden: true }));
+    expect(props.onChangeImage).not.toHaveBeenCalled();
+  });
+
+  it("offers nothing while the place photo is still being asked for", async () => {
+    let answer: (photo: typeof PHOTO) => void = () => undefined;
+    vi.mocked(getPlacePhoto).mockReturnValue(new Promise((resolve) => (answer = resolve)));
+    setup(withPlace());
+    expect((screen.getByRole("button", { name: "Add image" }) as HTMLButtonElement).disabled).toBe(true);
+    answer(PHOTO);
+    expect(await screen.findByText("Place photo · Google")).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Replace" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("explains the empty state after Remove, and Use place photo shows the photo of the saved place at once", async () => {
+    const user = userEvent.setup();
+    const event = withPlace({ placePhotoHidden: true });
+    setup(event);
+    expect(screen.getByText("No image. Use place photo brings the Google photo back.")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Use place photo" }));
+    // The same place as saved: its photo is shown at once.
+    expect(await screen.findByText("Place photo · Google")).toBeTruthy();
+  });
+
+  it("says the photo comes back, not only that the image goes, after removing a saved upload of an Event with a place", async () => {
+    const user = userEvent.setup();
+    setup(withPlace({ imageId: "00000000-0000-4000-8000-0000000000bb" }));
+    await screen.findByText("Your image");
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+    expect(screen.getByText("No image. Use place photo brings the Google photo back.")).toBeTruthy();
+  });
+
+  it("opens the large view with the credit", async () => {
+    const user = userEvent.setup();
+    setup(withPlace());
+    await user.click(await screen.findByRole("button", { name: "Show the image larger" }));
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByRole("link", { name: "Ann" })).toBeTruthy();
+    expect(within(dialog).getByRole("link", { name: "View on Google Maps" })).toBeTruthy();
+  });
+
+  it("uploads over a place photo and does not bring it back when the upload is removed", async () => {
+    const user = userEvent.setup();
+    const props = setup(withPlace());
+    await screen.findByText("Place photo · Google");
+    await user.upload(screen.getByTestId("image-input"), png());
+    expect(screen.getByText("Your image")).toBeTruthy();
+    expect(screen.queryByText("Place photo · Google")).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+    expect(screen.queryByText("Place photo · Google")).toBeNull();
+    expect(screen.getByRole("button", { name: "Use place photo" })).toBeTruthy();
+    expect(props.onChangeImage).not.toHaveBeenCalled();
   });
 });

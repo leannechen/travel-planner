@@ -4214,6 +4214,33 @@ main.has-panel .topbar {
   pointer-events: none;
 }
 
+/* The credit for a place photo (Google's terms): the authors and a link to the place on Google Maps. */
+.photo-credit {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.photo-credit a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.lightbox-credit {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  max-width: calc(100% - 32px);
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(10, 16, 30, 0.7);
+  transform: translateX(-50%);
+  cursor: default;
+}
+
+.lightbox-credit .photo-credit {
+  color: #fff;
+}
+
 .image-actions {
   display: flex;
   gap: 8px;

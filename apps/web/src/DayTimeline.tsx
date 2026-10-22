@@ -18,7 +18,7 @@ import {
   type Leg,
 } from "@travel-planner/shared";
 import type { DropPreview } from "./dropPreview";
-import { EventImage } from "./eventImage";
+import { EventThumb } from "./eventImage";
 import { KindIcon } from "./kinds";
 import { formatDuration, MODE_ICONS, modeKey } from "./legFormat";
 import { useT } from "./preferences";
@@ -332,14 +332,7 @@ function EventCard({
     >
       <button type="button" ref={handleRef} onClick={onSelect} className={tall ? "has-media" : undefined}>
         {/* Only a card tall enough has room for the picture, or the kind's icon in its place, next to the text (design 26). */}
-        {tall &&
-          (event.imageId ? (
-            <EventImage event={event} decorative className="event-thumb" />
-          ) : (
-            <span className="event-thumb event-thumb-tile" aria-hidden="true">
-              <KindIcon kind={event.kind} transportLabel={event.transportLabel} size={24} />
-            </span>
-          ))}
+        {tall && <EventThumb event={event} />}
         <div className="event-text">
           <strong>
             <KindIcon kind={event.kind} transportLabel={event.transportLabel} />

@@ -28,6 +28,7 @@ const pendingSchema = z.object({
     bookingUrl: z.string(),
     placeId: z.string(),
     destinationId: z.string(),
+    placePhotoHidden: z.boolean().default(false),
   }),
 });
 

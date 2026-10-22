@@ -23,6 +23,7 @@ const ev = (id: string, dayId: string, kind: Event["kind"] = "attraction", night
   destinationId: null,
   openingHoursOn: false,
   imageId: null,
+  placePhotoHidden: false,
 });
 const day = (id: string, position: number, events: Event[]): Day => ({ id, position, events });
 

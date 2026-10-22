@@ -17,22 +17,29 @@ export const users = pgTable("users", {
 
 export const travelMode = pgEnum("travel_mode", ["drive", "transit", "walk"]);
 
-export const trips = pgTable("trips", {
-  id: uuid().primaryKey().defaultRandom(),
-  ownerId: uuid()
-    .notNull()
-    .references(() => users.id),
-  title: text().notNull(),
-  // The mode a new Leg of the Trip starts with.
-  travelMode: travelMode().notNull().default("transit"),
-  // The first Day's calendar date ("YYYY-MM-DD"), or null.
-  startDate: date({ mode: "string" }),
-  // The secret in the Trip's read-only link (PRD §8). Made when the link is first turned on and kept
-  // when it is turned off, so the old link can say it is off.
-  shareToken: text().unique(),
-  shareEnabled: boolean().notNull().default(false),
-  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
-});
+export const trips = pgTable(
+  "trips",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    ownerId: uuid()
+      .notNull()
+      .references(() => users.id),
+    title: text().notNull(),
+    // The mode a new Leg of the Trip starts with.
+    travelMode: travelMode().notNull().default("transit"),
+    // The first Day's calendar date ("YYYY-MM-DD"), or null.
+    startDate: date({ mode: "string" }),
+    // The secret in the Trip's read-only link (PRD §8). Made when the link is first turned on and kept
+    // when it is turned off, so the old link can say it is off.
+    shareToken: text().unique(),
+    shareEnabled: boolean().notNull().default(false),
+    // Which sample Trip this is a copy of (PRD §1), or null for an ordinary Trip. A user has at most
+    // one copy of each sample, so opening the sample again opens that copy.
+    sampleOf: text(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("trips_owner_sample_unique").on(t.ownerId, t.sampleOf)],
+);
 
 // An Editor of a Trip other than its Owner (PRD §8). The Owner is `trips.ownerId`, not a row here.
 export const tripMembers = pgTable(
@@ -144,6 +151,7 @@ export const places = pgTable("places", {
   address: text().notNull(),
   lat: doublePrecision().notNull(),
   lng: doublePrecision().notNull(),
+  utcOffsetMinutes: integer(),
   fetchedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   // Usual opening hours, fetched on request and cached like the rest of the place. `hoursFetchedAt`
   // set with null hours means the provider has none, which is not asked again before it is old.
@@ -159,12 +167,14 @@ export const routeEstimates = pgTable(
     fromPlaceId: text().notNull(),
     toPlaceId: text().notNull(),
     mode: travelMode().notNull(),
+    // The local hour of departure (0 to 23) for transit, whose time depends on the time of day; -1 for the other modes.
+    departureHour: integer().notNull().default(-1),
     // Null when the provider found no route, so that is not asked again either.
     durationMinutes: integer(),
     distanceMeters: integer(),
     fetchedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [primaryKey({ columns: [t.fromPlaceId, t.toPlaceId, t.mode] })],
+  (t) => [primaryKey({ columns: [t.fromPlaceId, t.toPlaceId, t.mode, t.departureHour] })],
 );
 
 // A Leg: the movement between two adjacent Events of a Day (PRD §3.3). It goes when either Event

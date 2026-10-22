@@ -27,6 +27,8 @@ export const placeSchema = z.object({
   address: z.string(),
   lat: z.number(),
   lng: z.number(),
+  // Local time at the place, minutes ahead of UTC; used to turn a Day's clock time into a departure time.
+  utcOffsetMinutes: z.number().int().optional(),
 });
 export type Place = z.infer<typeof placeSchema>;
 export const MAX_PLACE_QUERY_LENGTH = 200;
@@ -154,6 +156,9 @@ export const createTripInputSchema = z.object({ title, travelMode: travelModeSch
 // Trip settings: so far only the start date (null clears it).
 export const updateTripInputSchema = z.object({ startDate: startDateSchema.nullable() });
 export type UpdateTripInput = z.infer<typeof updateTripInputSchema>;
+// The answer to opening the sample Trip (PRD §1): the user's copy, and whether this request made it.
+export const sampleTripResponseSchema = z.object({ tripId: z.uuid(), created: z.boolean() });
+export type SampleTripResponse = z.infer<typeof sampleTripResponseSchema>;
 export const createEventInputSchema = z.object({
   title,
   kind: kindSchema.default("attraction"),

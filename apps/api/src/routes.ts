@@ -11,9 +11,13 @@ export const ROUTE_CACHE_DAYS = 30;
 
 export type RouteEstimate = { durationMinutes: number; distanceMeters: number };
 
+// When the traveller leaves, for the modes whose time depends on it (public transport runs on a
+// timetable). `localHour` is the hour at the origin, which the cache is split by.
+export type Departure = { at: Date; localHour: number };
+
 // Where travel times come from. `undefined` means there is no route between the two places.
 export type RouteProvider = {
-  estimate(from: Place, to: Place, mode: TravelMode): Promise<RouteEstimate | undefined>;
+  estimate(from: Place, to: Place, mode: TravelMode, departure?: Departure): Promise<RouteEstimate | undefined>;
 };
 
 // The provider could not be reached, timed out, or gave an answer that makes no sense.
@@ -57,7 +61,7 @@ const googleRouteSchema = z.object({
 // Google Routes API (computeRoutes). Only the duration and the distance are asked for.
 export function googleRouteProvider(apiKey: string, fetchFn: typeof fetch = fetch): RouteProvider {
   return {
-    async estimate(from, to, mode) {
+    async estimate(from, to, mode, departure) {
       const point = (p: Place) => ({ location: { latLng: { latitude: p.lat, longitude: p.lng } } });
       let body: unknown;
       try {
@@ -68,7 +72,13 @@ export function googleRouteProvider(apiKey: string, fetchFn: typeof fetch = fetc
             "X-Goog-Api-Key": apiKey,
             "X-Goog-FieldMask": "routes.duration,routes.distanceMeters",
           },
-          body: JSON.stringify({ origin: point(from), destination: point(to), travelMode: GOOGLE_MODES[mode] }),
+          body: JSON.stringify({
+            origin: point(from),
+            destination: point(to),
+            travelMode: GOOGLE_MODES[mode],
+            // Only transit is timetable-bound; without a time Google uses "now".
+            ...(mode === "transit" && departure && { departureTime: departure.at.toISOString() }),
+          }),
           signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
         });
         if (!res.ok) throw new RouteProviderError(`Route lookup failed (${res.status})`);
@@ -103,9 +113,17 @@ export async function routeBetween(
   from: Place,
   to: Place,
   mode: TravelMode,
+  departure?: Departure,
   now = new Date(),
 ): Promise<RouteEstimate | undefined> {
-  const key = and(eq(routeEstimates.fromPlaceId, from.id), eq(routeEstimates.toPlaceId, to.id), eq(routeEstimates.mode, mode));
+  // Transit is cached per hour of departure; the other modes do not depend on it.
+  const departureHour = mode === "transit" && departure ? departure.localHour : -1;
+  const key = and(
+    eq(routeEstimates.fromPlaceId, from.id),
+    eq(routeEstimates.toPlaceId, to.id),
+    eq(routeEstimates.mode, mode),
+    eq(routeEstimates.departureHour, departureHour),
+  );
   const [row] = await db.select().from(routeEstimates).where(key);
   const oldest = now.getTime() - ROUTE_CACHE_DAYS * 24 * 60 * 60 * 1000;
   if (row && row.fetchedAt.getTime() > oldest) {
@@ -113,13 +131,13 @@ export async function routeBetween(
       ? undefined
       : { durationMinutes: row.durationMinutes, distanceMeters: row.distanceMeters };
   }
-  const found = await provider.estimate(from, to, mode);
-  const values = { fromPlaceId: from.id, toPlaceId: to.id, mode, durationMinutes: found?.durationMinutes ?? null, distanceMeters: found?.distanceMeters ?? null, fetchedAt: now };
+  const found = await provider.estimate(from, to, mode, departure);
+  const values = { fromPlaceId: from.id, toPlaceId: to.id, mode, departureHour, durationMinutes: found?.durationMinutes ?? null, distanceMeters: found?.distanceMeters ?? null, fetchedAt: now };
   await db
     .insert(routeEstimates)
     .values(values)
     .onConflictDoUpdate({
-      target: [routeEstimates.fromPlaceId, routeEstimates.toPlaceId, routeEstimates.mode],
+      target: [routeEstimates.fromPlaceId, routeEstimates.toPlaceId, routeEstimates.mode, routeEstimates.departureHour],
       set: { durationMinutes: values.durationMinutes, distanceMeters: values.distanceMeters, fetchedAt: now },
     });
   return found;

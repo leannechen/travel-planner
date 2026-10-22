@@ -8,9 +8,9 @@ import {
 } from "@travel-planner/shared";
 import { and, eq, inArray, isNotNull, ne, sql } from "drizzle-orm";
 import type { Db } from "./db/client";
-import { events, legs, trips } from "./db/schema";
+import { days, events, legs, trips } from "./db/schema";
 import { getPlaces, PlaceProviderError, type PlaceProvider } from "./places";
-import { routeBetween, RouteProviderError, type RouteProvider } from "./routes";
+import { routeBetween, RouteProviderError, type Departure, type RouteProvider } from "./routes";
 
 export type LegDeps = { places: PlaceProvider; routes: RouteProvider };
 
@@ -52,6 +52,28 @@ function dayEvents(db: Executor, tripId: string) {
 
 type DayEvent = Awaited<ReturnType<typeof dayEvents>>[number];
 
+const MINUTE_MS = 60_000;
+const WEEK_MS = 7 * 24 * 60 * MINUTE_MS;
+
+// When the traveller leaves the Event `from`: the end of it, on its Day, by the clock of the place
+// (a Day is a calendar date and an Event a time on it, ADR 0001). None when the Trip has no start
+// date or the place has no time zone. A time already past moves to the same weekday and hour of a
+// later week, because the route provider only plans departures from now on.
+async function departureOf(db: Db, from: DayEvent, place: Place, now = new Date()): Promise<Departure | undefined> {
+  if (!from.dayId || place.utcOffsetMinutes === undefined) return undefined;
+  const [day] = await db
+    .select({ position: days.position, startDate: trips.startDate })
+    .from(days)
+    .innerJoin(trips, eq(trips.id, days.tripId))
+    .where(eq(days.id, from.dayId));
+  if (!day?.startDate) return undefined;
+  const endMinute = from.startMinute + from.durationMinutes;
+  const local = Date.parse(`${day.startDate}T00:00:00Z`) + (day.position - 1) * 24 * 60 * MINUTE_MS + endMinute * MINUTE_MS;
+  let at = local - place.utcOffsetMinutes * MINUTE_MS;
+  if (at <= now.getTime()) at += Math.ceil((now.getTime() - at + MINUTE_MS) / WEEK_MS) * WEEK_MS;
+  return { at: new Date(at), localHour: Math.floor((((endMinute % 1440) + 1440) % 1440) / 60) };
+}
+
 // Travel time between two places by `mode`. Missing places or no route mean it cannot be
 // calculated. A provider that cannot be reached throws.
 async function calculate(
@@ -60,6 +82,7 @@ async function calculate(
   mode: TravelMode,
   fromPlaceId: string | null,
   toPlaceId: string | null,
+  leaving?: DayEvent,
 ): Promise<Calculated> {
   if (!fromPlaceId || !toPlaceId) return CANNOT_CALCULATE;
   const found = await getPlaces(db, deps.places, [fromPlaceId, toPlaceId]);
@@ -67,7 +90,8 @@ async function calculate(
   const from = byId.get(fromPlaceId);
   const to = byId.get(toPlaceId);
   if (!from || !to) return CANNOT_CALCULATE;
-  return (await routeBetween(db, deps.routes, from, to, mode)) ?? CANNOT_CALCULATE;
+  const departure = leaving && mode === "transit" ? await departureOf(db, leaving, from) : undefined;
+  return (await routeBetween(db, deps.routes, from, to, mode, departure)) ?? CANNOT_CALCULATE;
 }
 
 // Whether the error is the provider being unavailable (as opposed to a bug).
@@ -111,7 +135,7 @@ export async function createLeg(db: Db, deps: LegDeps, tripId: string, input: Cr
     .where(and(eq(legs.fromEventId, input.fromEventId), eq(legs.toEventId, input.toEventId)));
   if (already) return "exists";
   // The slow part (the provider can take seconds) is done before the lock is taken.
-  const result = await calculate(db, deps, input.mode, fromPlaceId, toPlaceId);
+  const result = await calculate(db, deps, input.mode, fromPlaceId, toPlaceId, pair[0]);
   return db.transaction(async (tx) => {
     await lockTrip(tx, tripId);
     const current = await findPair(tx, tripId, input);
@@ -146,7 +170,7 @@ export async function setLegMode(db: Db, deps: LegDeps, tripId: string, legId: s
   const to = onDays.find((e) => e.id === row.toEventId);
   if (!from || !to) return undefined;
   const { fromPlaceId, toPlaceId } = legEndpoints(from, to);
-  const result = await calculate(db, deps, mode, fromPlaceId, toPlaceId);
+  const result = await calculate(db, deps, mode, fromPlaceId, toPlaceId, from);
   const [updated] = await db.update(legs).set({ mode, ...result, fromPlaceId, toPlaceId }).where(eq(legs.id, legId)).returning();
   return updated && toLeg(updated);
 }
@@ -176,13 +200,13 @@ export async function syncLegs(db: Db, deps: LegDeps, tripId: string): Promise<v
     const byId = new Map(all.map((e) => [e.id, e]));
     return stored
       .filter((l) => adjacent.has(pairKey(l.fromEventId, l.toEventId)))
-      .map((leg) => ({ leg, ...legEndpoints(byId.get(leg.fromEventId)!, byId.get(leg.toEventId)!) }));
+      .map((leg) => ({ leg, from: byId.get(leg.fromEventId)!, ...legEndpoints(byId.get(leg.fromEventId)!, byId.get(leg.toEventId)!) }));
   });
 
-  for (const { leg, fromPlaceId, toPlaceId } of kept) {
+  for (const { leg, from, fromPlaceId, toPlaceId } of kept) {
     if (fromPlaceId === leg.fromPlaceId && toPlaceId === leg.toPlaceId) continue;
     try {
-      const result = await calculate(db, deps, leg.mode, fromPlaceId, toPlaceId);
+      const result = await calculate(db, deps, leg.mode, fromPlaceId, toPlaceId, from);
       await db.update(legs).set({ ...result, fromPlaceId, toPlaceId }).where(eq(legs.id, leg.id));
     } catch (err) {
       if (!isProviderError(err)) throw err;

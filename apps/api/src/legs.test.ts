@@ -2,17 +2,19 @@ import { eventSchema, legSchema, tripSchema, type Leg, type TravelMode } from "@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { startTestApp } from "../test/test-app";
 import { fakePlaceProvider } from "./places";
-import { fakeRouteProvider, googleRouteProvider, ROUTE_CACHE_DAYS, RouteProviderError, type RouteProvider } from "./routes";
+import { fakeRouteProvider, googleRouteProvider, ROUTE_CACHE_DAYS, RouteProviderError, type Departure, type RouteProvider } from "./routes";
 
 // A route provider that counts its lookups and can be made to fail.
 const inner = fakeRouteProvider();
 const calls = { estimate: 0 };
+const departures: (Departure | undefined)[] = [];
 let failing = false;
 // While set, lookups wait for it: a slow provider.
 let gate: Promise<void> | undefined;
 const routes: RouteProvider = {
-  async estimate(from, to, mode) {
+  async estimate(from, to, mode, departure) {
     calls.estimate++;
+    departures.push(departure);
     await gate;
     if (failing) throw new RouteProviderError("down");
     return inner.estimate(from, to, mode);
@@ -26,6 +28,7 @@ beforeAll(async () => {
 beforeEach(async () => {
   await app.reset();
   calls.estimate = 0;
+  departures.length = 0;
   failing = false;
   gate = undefined;
 });
@@ -367,6 +370,17 @@ describe("Google route provider", () => {
     });
   });
 
+  it("sends the departure time for transit only", async () => {
+    const fetchFn = answer({ routes: [{ duration: "60s" }] });
+    const provider = googleRouteProvider("KEY", fetchFn as unknown as typeof fetch);
+    const departure = { at: new Date("2026-10-27T01:00:00Z"), localHour: 10 };
+    await provider.estimate(from, to, "transit", departure);
+    await provider.estimate(from, to, "walk", departure);
+    const bodies = fetchFn.mock.calls.map((c) => JSON.parse((c as unknown as [string, RequestInit])[1].body as string));
+    expect(bodies[0].departureTime).toBe("2026-10-27T01:00:00.000Z");
+    expect(bodies[1]).not.toHaveProperty("departureTime");
+  });
+
   it("sends the other modes by their Google names", async () => {
     const fetchFn = answer({ routes: [{ duration: "60s" }] });
     const provider = googleRouteProvider("KEY", fetchFn as unknown as typeof fetch);
@@ -401,10 +415,10 @@ describe("the route cache", () => {
     const places = fakePlaceProvider();
     const [fushimi, kinkaku] = await Promise.all([FUSHIMI, KINKAKU].map((id) => places.get(id)));
     const now = new Date("2026-01-01T00:00:00Z");
-    await routeBetween(app.db, routes, fushimi!, kinkaku!, "walk", now);
-    await routeBetween(app.db, routes, fushimi!, kinkaku!, "walk", new Date(now.getTime() + (ROUTE_CACHE_DAYS - 1) * 86400000));
+    await routeBetween(app.db, routes, fushimi!, kinkaku!, "walk", undefined, now);
+    await routeBetween(app.db, routes, fushimi!, kinkaku!, "walk", undefined, new Date(now.getTime() + (ROUTE_CACHE_DAYS - 1) * 86400000));
     expect(calls.estimate).toBe(1);
-    await routeBetween(app.db, routes, fushimi!, kinkaku!, "walk", new Date(now.getTime() + (ROUTE_CACHE_DAYS + 1) * 86400000));
+    await routeBetween(app.db, routes, fushimi!, kinkaku!, "walk", undefined, new Date(now.getTime() + (ROUTE_CACHE_DAYS + 1) * 86400000));
     expect(calls.estimate).toBe(2);
   });
 
@@ -416,5 +430,56 @@ describe("the route cache", () => {
     expect(await routeBetween(app.db, none, fushimi!, kinkaku!, "transit")).toBeUndefined();
     expect(await routeBetween(app.db, none, fushimi!, kinkaku!, "transit")).toBeUndefined();
     expect(none.estimate).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps transit apart by the hour of departure, and the other modes together", async () => {
+    const { routeBetween } = await import("./routes");
+    const places = fakePlaceProvider();
+    const [fushimi, kinkaku] = await Promise.all([FUSHIMI, KINKAKU].map((id) => places.get(id)));
+    const at = (hour: number) => ({ at: new Date(2099, 0, 1, hour), localHour: hour });
+    await routeBetween(app.db, routes, fushimi!, kinkaku!, "transit", at(10));
+    await routeBetween(app.db, routes, fushimi!, kinkaku!, "transit", at(10));
+    expect(calls.estimate).toBe(1);
+    await routeBetween(app.db, routes, fushimi!, kinkaku!, "transit", at(22));
+    expect(calls.estimate).toBe(2);
+    await routeBetween(app.db, routes, fushimi!, kinkaku!, "walk", at(10));
+    await routeBetween(app.db, routes, fushimi!, kinkaku!, "walk", at(22));
+    expect(calls.estimate).toBe(3);
+  });
+});
+
+describe("a Leg's departure time", () => {
+  // Event A ends at 10:00 on the Trip's first Day; Fushimi is in Japan (UTC+9).
+  async function legOn(startDate: string | null, mode: TravelMode) {
+    const { tripId, dayId } = await newTrip();
+    if (startDate) await send("PATCH", `/api/trips/${tripId}`, { startDate });
+    const a = await addEvent(tripId, dayId, { title: "A", startMinute: 540, durationMinutes: 60, placeId: FUSHIMI });
+    const b = await addEvent(tripId, dayId, { title: "B", startMinute: 720, placeId: KINKAKU });
+    const res = await send("POST", `/api/trips/${tripId}/legs`, { fromEventId: a.id, toEventId: b.id, mode });
+    expect(res.status).toBe(201);
+  }
+
+  it("is the end of the first Event, by the clock of its place", async () => {
+    await legOn("2099-10-27", "transit");
+    expect(departures).toEqual([{ at: new Date("2099-10-27T01:00:00Z"), localHour: 10 }]);
+  });
+
+  it("moves a past date to the same weekday and hour of a later week", async () => {
+    await legOn("2020-01-07", "transit");
+    const [departure] = departures;
+    const weeks = (departure!.at.getTime() - Date.parse("2020-01-07T01:00:00Z")) / 604_800_000;
+    expect(departure!.at.getTime()).toBeGreaterThan(Date.now());
+    expect(Number.isInteger(weeks)).toBe(true);
+    expect(departure!.localHour).toBe(10);
+  });
+
+  it("is left out when the Trip has no start date", async () => {
+    await legOn(null, "transit");
+    expect(departures).toEqual([undefined]);
+  });
+
+  it("is not asked for by the modes that do not depend on it", async () => {
+    await legOn("2099-10-27", "drive");
+    expect(departures).toEqual([undefined]);
   });
 });

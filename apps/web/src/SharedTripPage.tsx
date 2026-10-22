@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AccountMenu } from "./AccountMenu";
 import { ApiError, getSharedTrip, listTrips, setSharedLink } from "./api";
 import { useAuth } from "./AuthProvider";
+import { tripListAddress, tripPath } from "./currentTrip";
 import { EventDetails } from "./EventDetails";
 import { openLive } from "./live";
 import { ChangedEventsContext } from "./liveContext";
@@ -73,7 +74,7 @@ export function SharedTripPage({ token }: { token: string }) {
     if (!loggedIn || !tripId) return;
     let current = true;
     listTrips().then(
-      (trips) => current && trips.some((trip) => trip.id === tripId) && window.location.replace(`/?trip=${encodeURIComponent(tripId)}`),
+      (trips) => current && trips.some((trip) => trip.id === tripId) && window.location.replace(tripPath(tripId)),
       noop,
     );
     return () => {
@@ -88,7 +89,7 @@ export function SharedTripPage({ token }: { token: string }) {
 
   const account =
     auth.status === "user" ? (
-      <AccountMenu onOpenTripList={() => window.location.assign("/")} onRelogin={noop} />
+      <AccountMenu onOpenTripList={() => window.location.assign(tripListAddress)} onRelogin={noop} />
     ) : auth.status === "loading" ? (
       <span className="account-spot loading" role="status" aria-label={t("account.loading")} aria-busy="true" />
     ) : (

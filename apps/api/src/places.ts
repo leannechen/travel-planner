@@ -21,6 +21,8 @@ export class PlaceProviderError extends Error {}
 export const PLACE_CACHE_DAYS = 30;
 const MAX_SEARCH_RESULTS = 8;
 
+const JAPAN_UTC_OFFSET = 9 * 60;
+
 // A few places in Kyoto, Osaka and Nara for development and tests, so no key is needed.
 const FAKE_PLACES: Place[] = [
   ["fushimi-inari", "Fushimi Inari Taisha", "68 Fukakusa Yabunouchicho, Fushimi Ward, Kyoto", 34.9671, 135.7727],
@@ -35,7 +37,18 @@ const FAKE_PLACES: Place[] = [
   ["nara-park", "Nara Park", "Zoshicho, Nara", 34.685, 135.8430],
   ["todai-ji", "Todai-ji", "406-1 Zoshicho, Nara", 34.6890, 135.8398],
   ["beppu-port", "Beppu International Tourist Port", "Beppu, Oita", 33.2892, 131.5001],
-].map(([id, name, address, lat, lng]) => ({ id: `fake:${id}`, name, address, lat, lng }) as Place);
+  // The places of the sample Trip (sample-trip.ts).
+  ["tokyo-station", "Tokyo Station", "1 Chome Marunouchi, Chiyoda City, Tokyo", 35.6812, 139.7671],
+  ["kiyomizu-dera", "Kiyomizu-dera", "294 Kiyomizu, Higashiyama Ward, Kyoto", 34.9949, 135.785],
+  ["pontocho", "Pontocho", "Pontocho, Nakagyo Ward, Kyoto", 35.0052, 135.7708],
+  ["tenryu-ji", "Tenryu-ji", "68 Susukinobabacho, Sagatenryuji, Ukyo Ward, Kyoto", 35.0157, 135.6738],
+  ["philosophers-path", "Philosopher's Path", "Sakyo Ward, Kyoto", 35.0271, 135.7948],
+  ["osaka-station", "Osaka Station", "3 Chome Umeda, Kita Ward, Osaka", 34.7025, 135.4959],
+  ["cross-hotel-osaka", "Cross Hotel Osaka", "2 Chome Shinsaibashisuji, Chuo Ward, Osaka", 34.6728, 135.5013],
+  ["usj", "Universal Studios Japan", "2 Chome Sakurajima, Konohana Ward, Osaka", 34.6654, 135.4323],
+  ["kansai-airport", "Kansai International Airport", "1 Senshukukokita, Izumisano, Osaka", 34.4347, 135.244],
+  ["nanzen-ji", "Nanzen-ji", "86 Nanzenji Fukuchicho, Sakyo Ward, Kyoto", 35.0114, 135.7939],
+].map(([id, name, address, lat, lng]) => ({ id: `fake:${id}`, name, address, lat, lng, utcOffsetMinutes: JAPAN_UTC_OFFSET }) as Place);
 
 const h = (hours: number, minutes = 0) => hours * 60 + minutes;
 
@@ -44,6 +57,7 @@ const h = (hours: number, minutes = 0) => hours * 60 + minutes;
 const FAKE_HOURS: Record<string, OpeningHours> = {
   "fake:fushimi-inari": { status: "open", periods: [{ start: 0, end: WEEK_MINUTES }] },
   "fake:kinkaku-ji": daily(h(9), h(17)),
+  "fake:nanzen-ji": daily(h(8, 40), h(17)),
   // Monday closed; Tuesday to Friday 11:00 to 15:00 and 17:00 to 22:00; Saturday and Sunday 11:00 to 22:00.
   "fake:nishiki-market": {
     status: "open",
@@ -79,13 +93,14 @@ const googlePlaceSchema = z.object({
   displayName: z.object({ text: z.string() }).optional(),
   formattedAddress: z.string().optional(),
   location: z.object({ latitude: z.number(), longitude: z.number() }).optional(),
+  utcOffsetMinutes: z.number().int().optional(),
 });
 
 function fromGoogle(raw: unknown): Place | undefined {
   const parsed = googlePlaceSchema.safeParse(raw);
   if (!parsed.success || !parsed.data.location) return undefined;
-  const { id, displayName, formattedAddress, location } = parsed.data;
-  return { id, name: displayName?.text ?? "", address: formattedAddress ?? "", lat: location.latitude, lng: location.longitude };
+  const { id, displayName, formattedAddress, location, utcOffsetMinutes } = parsed.data;
+  return { id, name: displayName?.text ?? "", address: formattedAddress ?? "", lat: location.latitude, lng: location.longitude, utcOffsetMinutes };
 }
 
 const googleHoursSchema = z.object({
@@ -128,7 +143,7 @@ function fromGoogleHours(raw: unknown): OpeningHours | undefined {
 
 const REQUEST_TIMEOUT_MS = 5000;
 
-const FIELDS = "id,displayName,formattedAddress,location";
+const FIELDS = "id,displayName,formattedAddress,location,utcOffsetMinutes";
 const HOURS_FIELDS = "id,regularOpeningHours,businessStatus";
 
 // Google Places API (New). Place search is a text query; details are read by place id.
@@ -185,7 +200,7 @@ async function remember(db: Db, found: Place[], now: Date) {
     .values(once.map((p) => ({ ...p, fetchedAt: now })))
     .onConflictDoUpdate({
       target: places.id,
-      set: { name: sql`excluded."name"`, address: sql`excluded."address"`, lat: sql`excluded."lat"`, lng: sql`excluded."lng"`, fetchedAt: now },
+      set: { name: sql`excluded."name"`, address: sql`excluded."address"`, lat: sql`excluded."lat"`, lng: sql`excluded."lng"`, utcOffsetMinutes: sql`excluded."utcOffsetMinutes"`, fetchedAt: now },
     });
 }
 
@@ -207,7 +222,7 @@ export async function getPlaces(db: Db, provider: PlaceProvider, ids: string[], 
   const refetch: string[] = [];
   for (const id of unique) {
     const row = rows.get(id);
-    if (row && row.fetchedAt.getTime() > oldest) known.set(id, placeSchema.parse({ id, name: row.name, address: row.address, lat: row.lat, lng: row.lng }));
+    if (row && row.fetchedAt.getTime() > oldest) known.set(id, placeSchema.parse({ id, name: row.name, address: row.address, lat: row.lat, lng: row.lng, utcOffsetMinutes: row.utcOffsetMinutes ?? undefined }));
     else refetch.push(id);
   }
   const settled = await Promise.allSettled(refetch.map((id) => provider.get(id)));

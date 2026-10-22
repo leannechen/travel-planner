@@ -30,7 +30,7 @@ beforeEach(() => {
     this.removeAttribute("open");
   };
   vi.mocked(listTrips).mockResolvedValue([kyoto, taipei]);
-  window.history.replaceState(null, "", "/");
+  window.history.replaceState(null, "", "/trip/current");
   localStorage.clear();
 });
 afterEach(() => {
@@ -55,7 +55,7 @@ describe("one Trip at a time", () => {
 
     await switchTo("Taipei");
     await waitFor(() => expect(screen.getByRole("button", { name: /Map/ }).getAttribute("aria-pressed")).toBe("true"));
-    expect(window.location.search).toContain(`trip=${taipei.id}`);
+    expect(window.location.pathname).toBe(`/trip/${taipei.id}`);
     expect(window.location.search).toContain("view=map");
   });
 
@@ -67,13 +67,21 @@ describe("one Trip at a time", () => {
     await switchTo("Taipei");
     expect(await screen.findByText("Din Tai Fung")).toBeTruthy();
     expect(screen.queryByText("Fushimi Inari")).toBeNull();
-    expect(new URLSearchParams(window.location.search).get("trip")).toBe(taipei.id);
+    expect(window.location.pathname).toBe(`/trip/${taipei.id}`);
   });
 
-  it("shows the Trip named in the URL", async () => {
+  it("shows the Trip named in the address", async () => {
+    window.history.replaceState(null, "", `/trip/${taipei.id}`);
+    renderApp(<App />);
+    expect(await screen.findByText("Din Tai Fung")).toBeTruthy();
+  });
+
+  it("still understands the older /?trip= address, and moves it to /trip/<id>", async () => {
     window.history.replaceState(null, "", `/?trip=${taipei.id}`);
     renderApp(<App />);
     expect(await screen.findByText("Din Tai Fung")).toBeTruthy();
+    expect(window.location.pathname).toBe(`/trip/${taipei.id}`);
+    expect(window.location.search).not.toContain("trip=");
   });
 
   it("shows a Trip created from the list", async () => {

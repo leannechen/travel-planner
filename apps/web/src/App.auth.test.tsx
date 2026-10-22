@@ -40,7 +40,7 @@ beforeEach(() => {
     this.removeAttribute("open");
   };
   vi.mocked(listTrips).mockResolvedValue([kyoto]);
-  window.history.replaceState(null, "", "/");
+  window.history.replaceState(null, "", "/trip/current");
   localStorage.clear();
   sessionStorage.clear();
   forgetGuestId();
@@ -146,10 +146,28 @@ describe("after login", () => {
   });
 
   it("lands on the Trip list when there was nothing to add (37 B)", async () => {
+    window.history.replaceState(null, "", "/?code=x&state=y");
     renderApp(<App />, await loggedInClient({ returned: true }));
     expect(await screen.findByText("Choose a Trip")).toBeTruthy();
     expect(screen.queryByText("Fushimi Inari")).toBeNull();
     expect(await screen.findByRole("dialog")).toBeTruthy();
+  });
+
+  it("stays in the Trip when the login started from a Trip's address and nothing was added", async () => {
+    renderApp(<App />, await loggedInClient({ returned: true }));
+    expect(await screen.findByText("Fushimi Inari")).toBeTruthy();
+    expect(screen.queryByText("Choose a Trip")).toBeNull();
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("shows the Landing page again when the login started there and the address is back at the root", async () => {
+    window.history.replaceState(null, "", "/?code=x&state=y");
+    const client = await loggedInClient({ returned: true });
+    // What the real client does once it has handled the answer: back to where the login started.
+    const start = client.start;
+    renderApp(<App />, { ...client, start: async () => (window.history.replaceState(null, "", "/"), start()) });
+    expect(await screen.findByRole("button", { name: "Continue" })).toBeTruthy();
+    expect(screen.queryByText("Choose a Trip")).toBeNull();
   });
 });
 

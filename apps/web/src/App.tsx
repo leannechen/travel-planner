@@ -75,7 +75,7 @@ import { useT } from "./preferences";
 import { ShortcutSheet } from "./ShortcutSheet";
 import { Toast } from "./Toast";
 import { TitleForm } from "./TitleForm";
-import { chooseTrip, readWantedTripId, rememberTripId } from "./currentTrip";
+import { chooseTrip, hasTripInAddress, isLandingLocation, openTrip, readWantedTripId, rememberTripId, wantsTripList } from "./currentTrip";
 import { TripListDialog } from "./TripListDialog";
 import { TripCard, type EventMove, type Toasted } from "./TripCard";
 
@@ -120,7 +120,6 @@ type Removal = {
   resolve: (confirmed: boolean) => void;
 };
 
-// The Landing page after logging out, else the workspace. (The full Landing page is step 22.)
 const INVITE_PARAM = "invite";
 // How long an Event changed by someone else stays lit.
 const CHANGE_HIGHLIGHT_MS = 4000;
@@ -137,10 +136,28 @@ function isLoginCallback() {
   return params.has("code") && params.has("state");
 }
 
+// The root address is the Landing page; a Trip, an invitation, a share link and the login page's
+// answer have addresses of their own. Decided when the page opens and when the user goes Back or
+// Forward, not on every render: the workspace may leave the root address in place when no Trip is open.
 export function App() {
   const t = useT();
-  const [landing, setLanding] = useState(() => new URLSearchParams(window.location.search).has(LOGGED_OUT_PARAM));
+  const [landing, setLanding] = useState(isLandingLocation);
+  // The toast of the Landing page after Log out; not shown again when the user comes back to the page.
+  const [loggedOut, setLoggedOut] = useState(() => new URLSearchParams(window.location.search).has(LOGGED_OUT_PARAM));
+  useEffect(() => {
+    const onPop = () => setLanding(isLandingLocation());
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
   const auth = useAuth();
+  // Back from the login page the address only becomes the page the login started from once the
+  // session is known, so the page is decided again then (a login from the Landing page returns to it).
+  const loginAnswered = useRef(isLoginCallback());
+  useEffect(() => {
+    if (!loginAnswered.current || auth.status === "loading") return;
+    loginAnswered.current = false;
+    setLanding(isLandingLocation());
+  }, [auth.status]);
   // An invitation link is open until it was accepted or the user goes to their own Trips. Not read
   // while the login redirect is being finished: the address only becomes the invitation link after.
   const [leftInvite, setLeftInvite] = useState(false);
@@ -149,8 +166,10 @@ export function App() {
   if (landing) {
     return (
       <Landing
-        onStart={() => {
-          window.history.replaceState(null, "", window.location.pathname);
+        loggedOut={loggedOut}
+        onOpenTrip={(tripId) => {
+          openTrip(tripId);
+          setLoggedOut(false);
           setLanding(false);
         }}
       />
@@ -192,7 +211,7 @@ function Workspace({ joinedMessage }: { joinedMessage?: string }) {
   const [trips, setTrips] = useState<Trip[] | undefined>();
   // The page shows one Trip at a time: the one in the URL or this browser, else the first.
   const [wantedTripId, setWantedTripId] = useState(readWantedTripId);
-  const [tripListOpen, setTripListOpen] = useState(false);
+  const [tripListOpen, setTripListOpen] = useState(wantsTripList);
   const [error, setError] = useState<string | undefined>();
   // Why a drag or resize could not be saved; kept apart from the load error.
   const [saveError, setSaveError] = useState<string | undefined>();
@@ -250,7 +269,7 @@ function Workspace({ joinedMessage }: { joinedMessage?: string }) {
     // The "You joined" message is the news when both apply.
     if (joinedMessage) return;
     if (arrival.merged > 0) setToast({ id: Date.now(), message: t("auth.merged", { count: arrival.merged }) });
-    else if (!new URLSearchParams(window.location.search).has("trip")) {
+    else if (!hasTripInAddress()) {
       setChooser(true);
       setTripListOpen(true);
     }

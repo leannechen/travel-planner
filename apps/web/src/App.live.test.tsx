@@ -48,7 +48,7 @@ beforeEach(() => {
   vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
   FakeSocket.all = [];
   setLiveSocketFactory((url) => new FakeSocket(url) as never);
-  window.history.replaceState(null, "", "/");
+  window.history.replaceState(null, "", "/trip/current");
   localStorage.clear();
   sessionStorage.clear();
   forgetGuestId();

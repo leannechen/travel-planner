@@ -100,7 +100,7 @@ describe("an invitation link, logged in", () => {
 
     expect(await screen.findByText("You joined Kyoto & Osaka as an Editor")).toBeTruthy();
     expect(acceptInvitation).toHaveBeenCalledWith("secret-token");
-    expect(window.location.search).toBe(`?trip=${joinedTrip.id}`);
+    expect(window.location.pathname).toBe(`/trip/${joinedTrip.id}`);
   });
 
   it("offers to log in as the invited address when the account is another one", async () => {

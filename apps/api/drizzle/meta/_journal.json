@@ -127,6 +127,20 @@
       "when": 1792594292714,
       "tag": "0017_viewer_link",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1792641198566,
+      "tag": "0018_sample_trip",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1792650826911,
+      "tag": "0019_departure_time",
+      "breakpoints": true
     }
   ]
 }

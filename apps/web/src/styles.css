@@ -3801,6 +3801,442 @@ main.has-panel .topbar {
   }
 }
 
+/* ---------- Landing page (design 16, 16b to 16d) ---------- */
+.home {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 0 40px 56px;
+  background: var(--surface);
+}
+
+.home-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 68px;
+}
+
+.home-header strong {
+  font: 800 19px var(--font-head);
+}
+
+.home-header .logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+}
+
+/* Tonal button: tinted fill, no border. */
+.btn.tonal {
+  border-color: transparent;
+  background: var(--pri-tint);
+  color: var(--pri-ink);
+}
+
+.btn.tonal:hover {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--pri-tint) 80%, var(--pri));
+}
+
+.home-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 560px) minmax(0, 680px);
+  justify-content: space-between;
+  align-items: center;
+  gap: 40px;
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 24px 0 40px;
+}
+
+.home-copy {
+  display: grid;
+  justify-items: start;
+}
+
+.home-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 15px;
+  background: var(--pri-tint);
+  color: var(--pri-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.home-copy h1 {
+  margin: 18px 0 16px;
+  font: 800 54px/1.08 var(--font-head);
+  letter-spacing: -0.01em;
+}
+
+.home-copy h1 span {
+  background: linear-gradient(120deg, #2373f4, #3fb6f0);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.home-lead {
+  max-width: 500px;
+  margin: 0 0 26px;
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+.home-lead.short {
+  display: none;
+}
+
+.home-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 50px;
+}
+
+.home-actions small {
+  max-width: 160px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.home-actions .link {
+  font-size: 14px;
+  text-underline-offset: 3px;
+}
+
+.home-actions .link:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
+.home-cta {
+  height: 50px;
+  padding: 0 24px;
+  border-color: var(--pri);
+  border-radius: 14px;
+  background: var(--pri);
+  color: var(--onpri);
+  font-size: 15px;
+  box-shadow: 0 8px 20px rgba(35, 115, 244, 0.32);
+}
+
+/* Stays filled on hover (the generic .btn:hover would turn it into a plain button). */
+.home-cta:hover:not(:disabled) {
+  border-color: var(--pri-strong);
+  background: var(--pri-strong);
+  color: var(--onpri);
+}
+
+.home-cta:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.home-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 18px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.home-note svg {
+  flex: none;
+}
+
+.home-error {
+  margin: 14px 0 0;
+  color: var(--danger);
+  font-size: 14px;
+}
+
+.home-photos {
+  position: relative;
+  width: 680px;
+  max-width: 100%;
+  height: 600px;
+}
+
+.home-photos img {
+  position: absolute;
+  object-fit: cover;
+  box-shadow: 0 18px 40px rgba(22, 34, 59, 0.18);
+}
+
+.home-photos .p1 {
+  left: 0;
+  top: 40px;
+  width: 420px;
+  height: 540px;
+  border-radius: 30px;
+  object-position: 50% 60%;
+}
+
+.home-photos .p2 {
+  left: 440px;
+  top: 0;
+  width: 240px;
+  height: 280px;
+  border-radius: 26px;
+}
+
+.home-photos .p3 {
+  left: 440px;
+  top: 300px;
+  width: 240px;
+  height: 280px;
+  border-radius: 26px;
+  object-position: 45% 50%;
+}
+
+.home-cards {
+  position: absolute;
+  left: -26px;
+  top: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 230px;
+}
+
+.home-card {
+  display: grid;
+  gap: 2px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--a-bar);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--sh-pop);
+  font-size: 13px;
+}
+
+.home-card.meal {
+  border-left-color: var(--m-bar);
+}
+
+.home-card span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.home-card.attraction svg {
+  color: var(--a-ink);
+}
+
+.home-card.meal svg {
+  color: var(--m-ink);
+}
+
+.home-card small {
+  color: var(--muted);
+}
+
+.home-leg {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 30px;
+  padding: 4px 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: 0 4px 12px rgba(22, 34, 59, 0.12);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.home-features {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 36px;
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.home-feature {
+  display: grid;
+  gap: 3px;
+  align-content: start;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.home-feature b {
+  font-size: 15px;
+}
+
+.home-feature > span:last-child {
+  color: var(--muted);
+}
+
+.home-feature-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin-bottom: 9px;
+  border-radius: 12px;
+}
+
+.home-feature-icon.a {
+  background: var(--a-tint);
+  color: var(--a-ink);
+}
+
+.home-feature-icon.t {
+  background: var(--t-tint);
+  color: var(--t-ink);
+}
+
+.home-feature-icon.m {
+  background: var(--m-tint);
+  color: var(--m-ink);
+}
+
+.home-feature-icon.l {
+  background: var(--l-tint);
+  color: var(--l-ink);
+}
+
+@media (max-width: 70rem) {
+  .home-hero {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+  }
+
+  .home-photos {
+    transform-origin: top left;
+    transform: scale(0.8);
+    margin-bottom: -120px;
+  }
+}
+
+/* Phone: the first photo fills the top, with the name and Log in over it; the call to action sits
+   on a white sheet (design 16, phone). */
+@media (max-width: 40rem) {
+  .home {
+    position: relative;
+    padding: 0;
+    background: var(--surface);
+  }
+
+  .home::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 330px;
+    background:
+      linear-gradient(180deg, rgba(22, 34, 59, 0.7), transparent 32%),
+      url("/landing/venice.jpg") 50% 55% / cover;
+  }
+
+  .home-header {
+    position: relative;
+    z-index: 1;
+    padding: 14px 16px 0;
+    color: #fff;
+  }
+
+  .home-header .logo {
+    width: 32px;
+    height: 32px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.22);
+    backdrop-filter: blur(6px);
+  }
+
+  .home-header strong {
+    font-size: 16px;
+  }
+
+  .home-header .link {
+    color: #fff;
+  }
+
+  .home-header .landing-switches {
+    display: none;
+  }
+
+  .home-hero {
+    position: relative;
+    z-index: 1;
+    margin-top: 220px;
+    padding: 26px 20px 24px;
+    border-radius: 28px 28px 0 0;
+    background: var(--surface);
+  }
+
+  .home-copy {
+    justify-items: stretch;
+  }
+
+  .home-copy h1 {
+    margin: 0 0 10px;
+    font-size: 32px;
+    line-height: 1.1;
+  }
+
+  .home-badge,
+  .home-lead:not(.short),
+  .home-photos {
+    display: none;
+  }
+
+  .home-lead.short {
+    display: block;
+    margin: 0 0 18px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .home-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+    text-align: center;
+  }
+
+  .home-actions .home-cta {
+    justify-content: center;
+    width: 100%;
+    height: 52px;
+  }
+
+  .home-actions small {
+    max-width: none;
+  }
+
+  .home-note {
+    justify-content: center;
+    font-size: 12px;
+  }
+
+  .home-note svg {
+    display: none;
+  }
+
+  /* The phone design has no feature row. */
+  .home-features {
+    display: none;
+  }
+}
+
 /* ---------- Invitation page (design 41, 48) and Share dialog (design 19) ---------- */
 .invite-page .landing-hero {
   padding-top: 12vh;

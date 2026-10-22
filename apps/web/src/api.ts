@@ -14,6 +14,7 @@ import {
   noteSchema,
   openingHoursSchema,
   placeSchema,
+  sampleTripResponseSchema,
   todoSchema,
   startDateSchema,
   tripSchema,
@@ -143,6 +144,9 @@ export const getOpeningHours = (ids: string[]) => {
 export const listTrips = () => request("/api/trips", z.array(tripSchema));
 
 export const createTrip = (input: CreateTripInput) => request("/api/trips", tripSchema, input);
+
+// The user's copy of the sample Trip: made on the first call, the same one after that (PRD §1).
+export const openSampleTrip = () => request("/api/sample-trip", sampleTripResponseSchema, undefined, "POST");
 
 // Trip settings; the answer is the start date as saved.
 export const updateTrip = (tripId: string, input: UpdateTripInput) =>

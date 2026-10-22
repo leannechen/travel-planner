@@ -39,10 +39,11 @@ export function PreferenceSwitches() {
 const initialOf = (email: string | undefined) => (email?.trim()[0] ?? "?").toUpperCase();
 
 type Props = {
-  // Opens the list of Trips ("My Trips", desktop menu only).
-  onOpenTripList: () => void;
+  // Opens the list of Trips ("My Trips", desktop menu only). Without it the menu has no such row
+  // (the Landing page, which has no list to open).
+  onOpenTripList?: () => void;
   // Logs in again after the session expired (popup first, see the page).
-  onRelogin: () => void;
+  onRelogin?: () => void;
 };
 
 // The account spot at the top right. While the app starts it is a neutral circle, never "Log in"
@@ -118,17 +119,19 @@ export function AccountMenu({ onOpenTripList, onRelogin }: Props) {
             </span>
             {auth.email}
           </p>
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              setOpen(false);
-              onOpenTripList();
-            }}
-          >
-            <MapIcon size={15} aria-hidden="true" />
-            {t("account.myTrips")}
-          </button>
+          {onOpenTripList && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                onOpenTripList();
+              }}
+            >
+              <MapIcon size={15} aria-hidden="true" />
+              {t("account.myTrips")}
+            </button>
+          )}
           <button type="button" role="menuitem" onClick={() => void auth.logout()}>
             <LogOut size={15} aria-hidden="true" />
             {t("account.logout")}

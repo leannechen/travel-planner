@@ -200,7 +200,7 @@ describe("Google place provider", () => {
     expect(found).toEqual<Place[]>([{ id: "ChIJ123", name: "Kinkaku-ji", address: "Kyoto", lat: 35.03, lng: 135.72 }]);
     const [url, init] = fetchFn.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe("https://places.googleapis.com/v1/places:searchText");
-    expect(init.headers).toMatchObject({ "X-Goog-Api-Key": "KEY", "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.location" });
+    expect(init.headers).toMatchObject({ "X-Goog-Api-Key": "KEY", "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.location,places.utcOffsetMinutes" });
     expect(JSON.parse(init.body as string)).toMatchObject({ textQuery: "kinkaku" });
   });
 
@@ -217,7 +217,7 @@ describe("Google place provider", () => {
     expect(await provider.get("fake:nara park")).toBeUndefined();
     const [url, init] = fetchFn.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe("https://places.googleapis.com/v1/places/fake%3Anara%20park");
-    expect(init.headers).toMatchObject({ "X-Goog-FieldMask": "id,displayName,formattedAddress,location" });
+    expect(init.headers).toMatchObject({ "X-Goog-FieldMask": "id,displayName,formattedAddress,location,utcOffsetMinutes" });
     expect(init.signal).toBeInstanceOf(AbortSignal);
   });
 

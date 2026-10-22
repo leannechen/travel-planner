@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { createRemoteJWKSet, errors, jwtVerify, type JWTVerifyGetKey } from "jose";
 import type { NextFunction, Request, Response } from "express";
 import { z } from "zod";
@@ -229,6 +229,12 @@ export async function mergeGuest(db: Db, accountId: string, guestToken: string):
   return db.transaction(async (tx) => {
     const [guest] = await tx.select({ id: users.id }).from(users).where(eq(users.guestToken, guestToken)).for("update");
     if (!guest || guest.id === accountId) return 0;
+    // An account has one copy of a sample Trip: the guest's copy of one the account already has
+    // stays as an ordinary Trip.
+    await tx
+      .update(trips)
+      .set({ sampleOf: null })
+      .where(and(eq(trips.ownerId, guest.id), sql`${trips.sampleOf} in (select "sampleOf" from trips where "ownerId" = ${accountId})`));
     const moved = await tx.update(trips).set({ ownerId: accountId }).where(eq(trips.ownerId, guest.id)).returning({ id: trips.id });
     // Todos remember who added them; the guest's go with the account.
     await tx.update(todos).set({ createdBy: accountId }).where(eq(todos.createdBy, guest.id));

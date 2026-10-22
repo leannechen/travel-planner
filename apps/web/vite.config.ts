@@ -7,6 +7,7 @@ export default defineConfig({
   envDir: "../..",
   server: {
     // `ws` lets the live collaboration connection (/api/live) through.
-    proxy: { "/api": { target: "http://localhost:3001", ws: true } },
+    // API_PORT lets a second checkout run its own API beside one already on 3001.
+    proxy: { "/api": { target: `http://localhost:${process.env.API_PORT ?? 3001}`, ws: true } },
   },
 });

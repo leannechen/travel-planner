@@ -23,7 +23,7 @@ import {
   updateNoteInputSchema,
   updateTodoInputSchema,
 } from "@travel-planner/shared";
-import type { HealthResponse, Me } from "@travel-planner/shared";
+import type { HealthResponse, Me, SampleTripResponse } from "@travel-planner/shared";
 import { eq } from "drizzle-orm";
 import express from "express";
 import { z, ZodError } from "zod";
@@ -33,6 +33,7 @@ import { acceptInvitation, getSharing, identityAdminFromEnv, IdentityAdminError,
 import { authenticate, GUEST_HEADER, mergeGuest, verifierFromEnv, type TokenVerifier } from "./auth";
 import { createLiveHub } from "./live";
 import { createLeg, deleteLeg, isProviderError, listLegs, setLegMode, syncLegs } from "./legs";
+import { openSampleTrip } from "./sample-trip";
 import { fetchOpeningHours, getOpeningHours, getPlaces, PlaceProviderError, placeProviderFromEnv, searchPlaces, type PlaceProvider } from "./places";
 import { routeProviderFromEnv, type RouteProvider } from "./routes";
 import {
@@ -243,6 +244,13 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
   app.post("/api/trips", async (req, res) => {
     const input = createTripInputSchema.parse(req.body);
     res.status(201).json(await createTrip(db, res.locals.userId, input));
+  });
+
+  // The user's copy of the sample Trip, made on the first request and opened after that (PRD §1).
+  // Guests too: this is how a new visitor gets a first Trip.
+  app.post("/api/sample-trip", async (_req, res) => {
+    const opened: SampleTripResponse = await openSampleTrip(db, legDeps, res.locals.userId);
+    res.status(opened.created ? 201 : 200).json(opened);
   });
 
   app.patch("/api/trips/:tripId", async (req, res) => {

@@ -7,6 +7,8 @@ import {
   sharingSchema,
   shareLinkSchema,
   dayDeletionSchema,
+  generationSchema,
+  generationsSummarySchema,
   deletedEventSchema,
   eventSchema,
   legSchema,
@@ -22,6 +24,7 @@ import {
   type CreateEventInput,
   type CreateLegInput,
   type CreateTripInput,
+  type GenerateTripInput,
   type AcceptedInvitation,
   type DeletedEvent,
   type InvitationPreview,
@@ -144,6 +147,11 @@ export const getOpeningHours = (ids: string[]) => {
 };
 
 export const listTrips = () => request("/api/trips", z.array(tripSchema));
+
+// AI generation (PRD §7): today's remaining count and the one running, starting one, and following it.
+export const getGenerations = () => request("/api/generations", generationsSummarySchema);
+export const startGeneration = (input: GenerateTripInput) => request("/api/generations", generationSchema, input);
+export const getGeneration = (id: string) => request(`/api/generations/${encodeURIComponent(id)}`, generationSchema);
 
 export const createTrip = (input: CreateTripInput) => request("/api/trips", tripSchema, input);
 

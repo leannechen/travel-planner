@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { boolean, check, date, doublePrecision, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, unique, uuid, type AnyPgColumn } from "drizzle-orm/pg-core";
+import { boolean, check, date, doublePrecision, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, unique, uniqueIndex, uuid, type AnyPgColumn } from "drizzle-orm/pg-core";
 import type { OpeningHours, PlacePhotoRef } from "@travel-planner/shared";
 
 export const users = pgTable("users", {
@@ -189,6 +189,21 @@ export const places = pgTable("places", {
   photoFetchedAt: timestamp({ withTimezone: true }),
 });
 
+// Which place a generated Event's query found (ADR 0008), so the same query is not searched again.
+// Only the place id is kept, which the provider's terms allow; `placeId` null means nothing was found.
+// `provider` keeps the ids of one provider from being used with another.
+export const placeQueries = pgTable(
+  "place_queries",
+  {
+    provider: text().notNull(),
+    // Trimmed and in lower case.
+    query: text().notNull(),
+    placeId: text(),
+    fetchedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.provider, t.query] })],
+);
+
 // Travel time and distance between two places by one mode, fetched from the route provider and
 // kept as a cache per pair of places, so repeated Legs do not call it again. Refreshed when old.
 export const routeEstimates = pgTable(
@@ -266,6 +281,35 @@ export const notes = pgTable("notes", {
   pinned: boolean().notNull().default(false),
   updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });
+
+// One request to generate a Trip with AI (PRD §7). Counted for the daily limit, followed by the web
+// app while it runs, and kept for the cost: the model's token counts.
+export const generationStatus = pgEnum("generation_status", ["running", "done", "failed"]);
+export const generationFailure = pgEnum("generation_failure", ["unusable", "failed"]);
+export const aiGenerations = pgTable(
+  "ai_generations",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    userId: uuid()
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    prompt: text().notNull(),
+    language: text().notNull(),
+    status: generationStatus().notNull().default("running"),
+    failure: generationFailure(),
+    // The Trip it made; null while it runs, when it failed, or once the Trip is deleted.
+    tripId: uuid().references(() => trips.id, { onDelete: "set null" }),
+    inputTokens: integer(),
+    outputTokens: integer(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    finishedAt: timestamp({ withTimezone: true }),
+  },
+  (t) => [
+    // One generation at a time per user.
+    uniqueIndex("ai_generations_one_running").on(t.userId).where(sql`${t.status} = 'running'`),
+    index("ai_generations_user_created").on(t.userId, t.createdAt),
+  ],
+);
 
 export const tripsRelations = relations(trips, ({ many }) => ({
   days: many(days),

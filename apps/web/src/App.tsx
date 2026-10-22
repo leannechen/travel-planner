@@ -22,7 +22,7 @@ import {
   type Todo,
   type TodoDeletionSummary,
 } from "@travel-planner/shared";
-import type { CreateEventInput, CreateTripInput, CreateLegInput, Day, Event, EventFields, Leg, LivePerson, TravelMode, Trip, UpdateEventInput } from "@travel-planner/shared";
+import type { CreateEventInput, CreateTripInput, CreateLegInput, Day, Event, EventFields, Generation, Leg, LivePerson, TravelMode, Trip, UpdateEventInput } from "@travel-planner/shared";
 import { Map as MapIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -80,7 +80,9 @@ import { ShortcutSheet } from "./ShortcutSheet";
 import { Toast } from "./Toast";
 import { TitleForm } from "./TitleForm";
 import { chooseTrip, hasTripInAddress, isLandingLocation, openTrip, readWantedTripId, rememberTripId, wantsTripList } from "./currentTrip";
+import { NewTripDialog } from "./NewTripDialog";
 import { TripListDrawer } from "./TripListDrawer";
+import { useTripGeneration } from "./tripGeneration";
 import { TripCard, type EventMove, type Toasted } from "./TripCard";
 
 // `dayId` is a Day id, or "backlog" or "archive" for an Event outside any Day.
@@ -324,6 +326,27 @@ function Workspace({ joinedMessage }: { joinedMessage?: string }) {
   async function handleDeleteTrip(tripId: string) {
     await deleteTrip(tripId);
     setTrips((current) => current?.filter((trip) => trip.id !== tripId));
+  }
+
+  // AI generation (PRD §7), followed for the whole page. When it is done, the new Trip opens if the
+  // Generate dialog is still open; otherwise a toast says it is ready.
+  const generation = useTripGeneration(auth.status === "user", (finished, watching) => void handleGenerated(finished, watching));
+  // Generate with AI opened from the failure toast's "Try again".
+  const [retryingGeneration, setRetryingGeneration] = useState(false);
+  async function handleGenerated(finished: Generation, watching: boolean) {
+    if (!finished.tripId) {
+      // The dialog shows why itself; otherwise the toast offers to try again with the same prompt.
+      if (!watching) setToast({ id: Date.now(), message: t("ai.failedToast"), actionLabel: t("ai.tryAgain"), undo: () => setRetryingGeneration(true) });
+      return;
+    }
+    const trip = (await listTrips().catch(() => [])).find((tr) => tr.id === finished.tripId);
+    if (!trip) {
+      setToast({ id: Date.now(), message: t("ai.readyReload") });
+      return;
+    }
+    setTrips((current) => [trip, ...(current ?? []).filter((tr) => tr.id !== trip.id)]);
+    if (watching) switchTrip(trip.id);
+    else setToast({ id: Date.now(), message: t("ai.ready", { title: trip.title }), actionLabel: t("ai.open"), undo: () => switchTrip(trip.id) });
   }
 
   async function handleCreateTrip(input: CreateTripInput) {
@@ -1098,11 +1121,23 @@ function Workspace({ joinedMessage }: { joinedMessage?: string }) {
           currentId={currentTripId}
           onSwitch={switchTrip}
           onCreate={handleCreateTrip}
+          generation={auth.status === "user" ? generation : undefined}
           onRename={handleRenameTrip}
           onDelete={handleDeleteTrip}
           onOpenSettings={(tripId) => { setTripListOpen(false); setSettingsTripId(tripId); }}
           onShare={(tripId) => { setTripListOpen(false); if (auth.status === "guest") void auth.login(); else setShareTripId(tripId); }}
           onClose={() => setTripListOpen(false)}
+        />
+      )}
+      {retryingGeneration && auth.status === "user" && (
+        <NewTripDialog
+          generation={generation}
+          initialStep="ai"
+          onCancel={() => setRetryingGeneration(false)}
+          onCreate={async (input) => {
+            await handleCreateTrip(input);
+            setRetryingGeneration(false);
+          }}
         />
       )}
       {sheetOpen && <ShortcutSheet onClose={() => setSheetOpen(false)} />}
@@ -1136,7 +1171,7 @@ function Workspace({ joinedMessage }: { joinedMessage?: string }) {
           </ul>
         </ConfirmDialog>
       )}
-      {toast && <Toast key={toast.id} message={toast.message} actionLabel={toast.undo ? t("generic.undo") : undefined} onAction={toast.undo} onDismiss={dismissToast} />}
+      {toast && <Toast key={toast.id} message={toast.message} actionLabel={toast.undo ? (toast.actionLabel ?? t("generic.undo")) : undefined} onAction={toast.undo} onDismiss={dismissToast} />}
     </main>
     </>
   );

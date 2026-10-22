@@ -6,6 +6,7 @@ import { NewTripDialog } from "./NewTripDialog";
 import { useIsPhone } from "./phone";
 import { useT } from "./preferences";
 import { RenameTripDialog } from "./RenameTripDialog";
+import type { TripGeneration } from "./tripGeneration";
 
 type Props = {
   trips: Trip[];
@@ -20,12 +21,14 @@ type Props = {
   onClose: () => void;
   // The session ended: Trips can be looked at, not changed.
   readOnly?: boolean;
+  // AI generation for a logged-in user (step 23); New Trip then offers it first.
+  generation?: TripGeneration;
 };
 
 // The Trip list (design 24, 27): a drawer over the Backlog opened from the Trip title, a full screen
 // on a phone. Pick a Trip to show it, start a new one, or use a Trip's "⋯" menu. Escape, the close
 // button or a click outside closes it. Pinning the drawer open (design 27, C) is not done.
-export function TripListDrawer({ trips, currentId, onSwitch, onCreate, onRename, onDelete, onOpenSettings, onShare, onClose, readOnly }: Props) {
+export function TripListDrawer({ trips, currentId, onSwitch, onCreate, onRename, onDelete, onOpenSettings, onShare, onClose, readOnly, generation }: Props) {
   const t = useT();
   const phone = useIsPhone();
   const dialog = useRef<HTMLDialogElement>(null);
@@ -157,7 +160,7 @@ export function TripListDrawer({ trips, currentId, onSwitch, onCreate, onRename,
         </div>
       </dialog>
       {renaming && <RenameTripDialog title={renaming.title} onClose={() => setRenaming(undefined)} onRename={(title) => onRename(renaming.id, title)} />}
-      {creating && <NewTripDialog onCancel={() => setCreating(false)} onCreate={async (input) => { await onCreate(input); setCreating(false); }} />}
+      {creating && <NewTripDialog generation={generation} onCancel={() => setCreating(false)} onCreate={async (input) => { await onCreate(input); setCreating(false); }} />}
       {deleting && (
         <DeleteTripDialog
           trip={deleting}

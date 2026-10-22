@@ -1,13 +1,18 @@
 import { daily, openingHoursSchema, placePhotoRefSchema, placeSchema, WEEK_MINUTES, type OpeningHours, type Place, type PlacePhoto, type PlacePhotoRef } from "@travel-planner/shared";
-import { eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "./db/client";
-import { places } from "./db/schema";
+import { placeQueries, places } from "./db/schema";
 
 // Where place data comes from. The app only ever stores a place's id on an Event; the rest is
 // fetched through the provider and cached for a limited time (ADR 0007).
 export type PlaceProvider = {
+  // Which provider this is ("google", "fake"): ids from one are not used with another.
+  name: string;
   search(query: string): Promise<Place[]>;
+  // The id of the first place a query finds, or undefined when it finds none. Cheaper than a search:
+  // only the id is asked for (ADR 0008).
+  findId(query: string): Promise<string | undefined>;
   get(id: string): Promise<Place | undefined>;
   // The usual weekly opening hours, or undefined when the provider has none for the place (or does
   // not know it). Asked for only when the user turns opening hours on (PRD §3.5).
@@ -94,7 +99,12 @@ function fakePhotoUri(name: string): string {
 }
 
 export function fakePlaceProvider(): PlaceProvider {
+  const search = async (query: string) => {
+    const q = query.trim().toLowerCase();
+    return FAKE_PLACES.filter((p) => `${p.name} ${p.address}`.toLowerCase().includes(q)).slice(0, MAX_SEARCH_RESULTS);
+  };
   return {
+    name: "fake",
     async getPhoto(id) {
       const place = FAKE_PLACES.find((p) => p.id === id);
       if (!place || FAKE_WITHOUT_PHOTO.has(id)) return undefined;
@@ -103,9 +113,9 @@ export function fakePlaceProvider(): PlaceProvider {
     async getPhotoUri(ref) {
       return ref.name.startsWith("fake:") ? fakePhotoUri(ref.name.slice("fake:".length)) : undefined;
     },
-    async search(query) {
-      const q = query.trim().toLowerCase();
-      return FAKE_PLACES.filter((p) => `${p.name} ${p.address}`.toLowerCase().includes(q)).slice(0, MAX_SEARCH_RESULTS);
+    search,
+    async findId(query) {
+      return (await search(query))[0]?.id;
     },
     async get(id) {
       return FAKE_PLACES.find((p) => p.id === id);
@@ -228,6 +238,7 @@ export function googlePlaceProvider(apiKey: string, fetchFn: typeof fetch = fetc
     }
   }
   return {
+    name: "google",
     async search(query) {
       const { body } = await call("search", `${base}/places:searchText`, {
         method: "POST",
@@ -235,6 +246,17 @@ export function googlePlaceProvider(apiKey: string, fetchFn: typeof fetch = fetc
         body: JSON.stringify({ textQuery: query, maxResultCount: MAX_SEARCH_RESULTS }),
       });
       return ((body as { places?: unknown[] }).places ?? []).map(fromGoogle).filter((p): p is Place => p !== undefined);
+    },
+    // Asks for the id only, which Text Search bills as "Essentials IDs Only" (no charge).
+    async findId(query) {
+      const { body } = await call("search", `${base}/places:searchText`, {
+        method: "POST",
+        headers: { "content-type": "application/json", "X-Goog-Api-Key": apiKey, "X-Goog-FieldMask": "places.id" },
+        body: JSON.stringify({ textQuery: query, maxResultCount: 1 }),
+      });
+      const parsed = z.object({ places: z.array(z.object({ id: z.string() })).optional() }).safeParse(body);
+      if (!parsed.success) throw new PlaceProviderError("Place search failed (unexpected answer)");
+      return parsed.data.places?.[0]?.id;
     },
     async get(id) {
       const { body } = await call("lookup", `${base}/places/${encodeURIComponent(id)}`, {
@@ -290,6 +312,48 @@ async function remember(db: Db, found: Place[], now: Date) {
       target: places.id,
       set: { name: sql`excluded."name"`, address: sql`excluded."address"`, area: sql`excluded."area"`, lat: sql`excluded."lat"`, lng: sql`excluded."lng"`, utcOffsetMinutes: sql`excluded."utcOffsetMinutes"`, fetchedAt: now },
     });
+}
+
+// The place id each query finds (keys are the queries as given), or null when it finds none. What a
+// query found is kept in `place_queries` and used again until it is old; a query the provider could
+// not answer is left out (and not kept), so its Event simply has no place.
+const LOOKUP_BATCH = 5;
+export async function findPlaceIds(db: Db, provider: PlaceProvider, queries: string[], now = new Date()): Promise<Map<string, string | null>> {
+  const keyOf = (query: string) => query.trim().toLowerCase();
+  // Each key with the query as first written, which is what the provider is asked.
+  const written = new Map<string, string>();
+  for (const q of queries) if (!written.has(keyOf(q))) written.set(keyOf(q), q.trim());
+  const keys = [...written.keys()];
+  const found = new Map<string, string | null>();
+  if (keys.length === 0) return found;
+  const oldest = now.getTime() - PLACE_CACHE_DAYS * 24 * 60 * 60 * 1000;
+  const rows = await db
+    .select()
+    .from(placeQueries)
+    .where(and(eq(placeQueries.provider, provider.name), inArray(placeQueries.query, keys)));
+  for (const row of rows) if (row.fetchedAt.getTime() > oldest) found.set(row.query, row.placeId);
+
+  const missing = keys.filter((key) => !found.has(key));
+  // A few at a time, so a long Trip does not send dozens of requests at once.
+  for (let i = 0; i < missing.length; i += LOOKUP_BATCH) {
+    const batch = missing.slice(i, i + LOOKUP_BATCH);
+    const settled = await Promise.allSettled(batch.map((key) => provider.findId(written.get(key)!)));
+    const answered = batch.flatMap((key, j) => {
+      const r = settled[j]!;
+      if (r.status === "rejected") {
+        if (!(r.reason instanceof PlaceProviderError)) throw r.reason;
+        return [];
+      }
+      return [{ provider: provider.name, query: key, placeId: r.value ?? null, fetchedAt: now }];
+    });
+    if (answered.length === 0) continue;
+    await db
+      .insert(placeQueries)
+      .values(answered)
+      .onConflictDoUpdate({ target: [placeQueries.provider, placeQueries.query], set: { placeId: sql`excluded."placeId"`, fetchedAt: now } });
+    for (const a of answered) found.set(a.query, a.placeId);
+  }
+  return new Map(queries.flatMap((q) => (found.has(keyOf(q)) ? [[q, found.get(keyOf(q))!] as const] : [])));
 }
 
 // Searches the provider; what it returns is cached, so choosing a result needs no second lookup.

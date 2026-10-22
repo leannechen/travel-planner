@@ -279,6 +279,7 @@ export * from "./todo-removal";
 export * from "./trip-dates";
 export * from "./transport";
 export * from "./map-plan";
+export * from "./itinerary";
 
 export const createTodoInputSchema = z.object({ text: todoText, eventId: z.uuid().nullable().default(null) });
 export const updateTodoInputSchema = z
@@ -339,6 +340,62 @@ export type TripSeedInput = z.input<typeof tripSeedSchema>;
 export type TripSeed = z.infer<typeof tripSeedSchema>;
 export type SeedEventInput = z.input<typeof seedEventSchema>;
 export type SeedEvent = z.infer<typeof seedEventSchema>;
+
+// AI generation (PRD §7, ADR 0008). A logged-in user may start this many a day (UTC); a generation
+// that failed does not count unless the model answered, but all attempts together are capped too.
+export const AI_DAILY_LIMIT = 3;
+export const AI_DAILY_ATTEMPTS = 10;
+export const MAX_AI_DAYS = 14;
+export const MAX_AI_EVENTS_PER_DAY = 6;
+// Place searches per generation; Events past it get no place (place lookups cost the most).
+export const MAX_AI_PLACE_LOOKUPS = 60;
+export const MAX_AI_PROMPT_LENGTH = 1000;
+// The interface languages; the Trip is written in the one the user has.
+export const AI_LANGUAGES = ["en", "zh"] as const;
+export const generateTripInputSchema = z.object({
+  prompt: z.string().trim().min(1, "Describe the trip").max(MAX_AI_PROMPT_LENGTH),
+  language: z.enum(AI_LANGUAGES),
+});
+export type GenerateTripInput = z.infer<typeof generateTripInputSchema>;
+
+// What the model answers. It is loose on purpose (`normalizeItinerary` makes it fit the app's rules)
+// and every field is present, possibly null, as strict structured output requires.
+export const aiEventSchema = z.object({
+  title: z.string(),
+  kind: kindSchema,
+  // "HH:MM", 24-hour clock.
+  start: z.string(),
+  durationMinutes: z.number(),
+  // A specific named place to look up ("Uffizi Gallery, Florence"), or null for a general one ("Lunch").
+  // For Transport, where it leaves from; `destinationQuery` is where it arrives.
+  placeQuery: z.string().nullable(),
+  destinationQuery: z.string().nullable(),
+  transportLabel: transportLabelSchema.nullable(),
+  // Lodging only: the nights from this Day on.
+  nights: z.number().nullable(),
+  description: z.string().nullable(),
+});
+export const aiItinerarySchema = z.object({
+  title: z.string(),
+  // "YYYY-MM-DD" when the prompt gives dates, else null.
+  startDate: z.string().nullable(),
+  days: z.array(z.object({ events: z.array(aiEventSchema) })),
+});
+export type AiEvent = z.infer<typeof aiEventSchema>;
+export type AiItinerary = z.infer<typeof aiItinerarySchema>;
+
+// A generation as the web app follows it. A failed one says why: "unusable" when the model could not
+// make a Trip of the prompt (or refused), "failed" when something went wrong and trying again may work.
+export const generationSchema = z.object({
+  id: z.uuid(),
+  status: z.enum(["running", "done", "failed"]),
+  tripId: z.uuid().nullable(),
+  failure: z.enum(["unusable", "failed"]).nullable(),
+});
+export type Generation = z.infer<typeof generationSchema>;
+// How many generations the user has left today, and the one still running, if any.
+export const generationsSummarySchema = z.object({ remaining: z.number().int().min(0), running: generationSchema.nullable() });
+export type GenerationsSummary = z.infer<typeof generationsSummarySchema>;
 
 // A deleted Event with its Todos as they were; also what restoring it (undo) sends back.
 export const deletedEventSchema = z.object({ event: eventSchema, todos: z.array(todoSchema) });

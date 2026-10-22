@@ -23,6 +23,7 @@ import {
   updateLegInputSchema,
   updateNoteInputSchema,
   updateTodoInputSchema,
+  generateTripInputSchema,
 } from "@travel-planner/shared";
 import type { HealthResponse, Me, SampleTripResponse } from "@travel-planner/shared";
 import { eq } from "drizzle-orm";
@@ -35,6 +36,8 @@ import { authenticate, GUEST_HEADER, mergeGuest, verifierFromEnv, type TokenVeri
 import { createLiveHub } from "./live";
 import { createLeg, deleteLeg, isProviderError, listLegs, setLegMode, syncLegs } from "./legs";
 import { openSampleTrip } from "./sample-trip";
+import { generationsSummary, getGeneration, startGeneration } from "./generations";
+import { itineraryGeneratorFromEnv, type ItineraryGenerator } from "./itinerary-generator";
 import { fetchOpeningHours, getOpeningHours, getPlacePhoto, getPlaces, PlaceProviderError, placeProviderFromEnv, searchPlaces, type PlaceProvider } from "./places";
 import { imageStoreFromEnv, prepareImage, type ImageStore } from "./images";
 import { routeProviderFromEnv, type RouteProvider } from "./routes";
@@ -94,13 +97,14 @@ const idsQuerySchema = z.object({
     .pipe(z.array(placeIdSchema).max(MAX_PLACE_IDS)),
 });
 
-export function createApp(db: Db, options: { places?: PlaceProvider; routes?: RouteProvider; auth?: TokenVerifier; mailer?: InvitationMailer; identityAdmin?: IdentityAdmin; appOrigin?: string; images?: ImageStore } = {}) {
+export function createApp(db: Db, options: { places?: PlaceProvider; routes?: RouteProvider; generator?: ItineraryGenerator; auth?: TokenVerifier; mailer?: InvitationMailer; identityAdmin?: IdentityAdmin; appOrigin?: string; images?: ImageStore } = {}) {
   const images = options.images ?? imageStoreFromEnv();
   const mailer = options.mailer ?? logInvitationMailer();
   const identityAdmin = options.identityAdmin ?? identityAdminFromEnv();
   const appOrigin = options.appOrigin ?? process.env.APP_ORIGIN ?? "http://localhost:5173";
   const provider = options.places ?? placeProviderFromEnv();
   const legDeps = { places: provider, routes: options.routes ?? routeProviderFromEnv() };
+  const generationDeps = { ...legDeps, generator: options.generator ?? itineraryGeneratorFromEnv() };
   // After Events or Days change: Legs between Events that are no longer adjacent go, and Legs whose
   // places changed are calculated again.
   const syncTripLegs = (tripId: string) => syncLegs(db, legDeps, tripId);
@@ -298,6 +302,39 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
   app.post("/api/sample-trip", async (_req, res) => {
     const opened: SampleTripResponse = await openSampleTrip(db, legDeps, res.locals.userId);
     res.status(opened.created ? 201 : 200).json(opened);
+  });
+
+  // AI generation (PRD §7) is for accounts only; a guest is asked to log in.
+  const generationParamsSchema = z.object({ generationId: z.uuid() });
+  // Generations still running in this process, so tests can wait for them.
+  const pendingGenerations = new Set<Promise<void>>();
+  app.locals.pendingGenerations = pendingGenerations;
+  app.use("/api/generations", (_req, res, next) => {
+    if (res.locals.accountId) next();
+    else res.status(403).json({ error: "Log in to create a Trip with AI", code: "login_required" });
+  });
+  app.get("/api/generations", async (_req, res) => {
+    res.json(await generationsSummary(db, res.locals.userId));
+  });
+  app.post("/api/generations", async (req, res) => {
+    const input = generateTripInputSchema.parse(req.body);
+    const started = await startGeneration(db, generationDeps, res.locals.userId, input);
+    if (started === "limit") res.status(429).json({ error: "Daily limit reached. You can create another Trip with AI tomorrow.", code: "daily_limit" });
+    else if (started === "running") res.status(409).json({ error: "A Trip is already being created", code: "generation_running" });
+    else {
+      pendingGenerations.add(started.done);
+      void started.done.finally(() => pendingGenerations.delete(started.done));
+      res.status(202).json(started.generation);
+    }
+  });
+  app.get("/api/generations/:generationId", async (req, res) => {
+    const { generationId } = generationParamsSchema.parse(req.params);
+    const generation = await getGeneration(db, res.locals.userId, generationId);
+    if (!generation) {
+      res.status(404).json({ error: "Generation not found", code: "generation_not_found" });
+      return;
+    }
+    res.json(generation);
   });
 
   app.patch("/api/trips/:tripId", async (req, res) => {

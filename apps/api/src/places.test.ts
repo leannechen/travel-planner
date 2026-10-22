@@ -2,8 +2,8 @@ import type { Place } from "@travel-planner/shared";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { startTestApp } from "../test/test-app";
-import { places } from "./db/schema";
-import { areaFromComponents, fakePlaceProvider, fetchOpeningHours, getOpeningHours, getPlaces, googlePlaceProvider, PLACE_CACHE_DAYS, PlaceProviderError, searchPlaces, type PlaceProvider } from "./places";
+import { placeQueries, places } from "./db/schema";
+import { areaFromComponents, fakePlaceProvider, fetchOpeningHours, findPlaceIds, getOpeningHours, getPlaces, googlePlaceProvider, PLACE_CACHE_DAYS, PlaceProviderError, searchPlaces, type PlaceProvider } from "./places";
 
 let app: Awaited<ReturnType<typeof startTestApp>>;
 
@@ -18,9 +18,11 @@ const DAY = 24 * 60 * 60 * 1000;
 // A provider that counts its lookups, over the fake places.
 function counting() {
   const inner = fakePlaceProvider();
-  const calls = { search: 0, get: 0, hours: 0, photo: 0, photoUri: 0 };
+  const calls = { search: 0, findId: 0, get: 0, hours: 0, photo: 0, photoUri: 0 };
   const provider: PlaceProvider = {
+    name: inner.name,
     search: (q) => (calls.search++, inner.search(q)),
+    findId: (q) => (calls.findId++, inner.findId(q)),
     get: (id) => (calls.get++, inner.get(id)),
     getOpeningHours: (id) => (calls.hours++, inner.getOpeningHours(id)),
     getPhoto: (id) => (calls.photo++, inner.getPhoto(id)),
@@ -95,7 +97,7 @@ describe("getPlaces", () => {
   it("keeps what arrived when another lookup fails, and then reports the failure", async () => {
     const inner = fakePlaceProvider();
     const provider: PlaceProvider = {
-      search: inner.search,
+      ...inner,
       getOpeningHours: inner.getOpeningHours,
       getPhoto: inner.getPhoto,
       getPhotoUri: inner.getPhotoUri,
@@ -108,7 +110,7 @@ describe("getPlaces", () => {
 
   it("caches a search whose results repeat an id", async () => {
     const nara = (await fakePlaceProvider().get("fake:nara-park"))!;
-    const provider: PlaceProvider = { search: async () => [nara, nara], get: async () => nara, getOpeningHours: async () => undefined, getPhoto: async () => undefined, getPhotoUri: async () => undefined };
+    const provider: PlaceProvider = { name: "test", search: async () => [nara, nara], findId: async () => nara.id, get: async () => nara, getOpeningHours: async () => undefined, getPhoto: async () => undefined, getPhotoUri: async () => undefined };
     expect(await searchPlaces(app.db, provider, "nara")).toHaveLength(2);
     expect(await app.db.select().from(places)).toHaveLength(1);
   });
@@ -116,6 +118,32 @@ describe("getPlaces", () => {
   it("keeps the order of the ids and skips repeats", async () => {
     const found = await getPlaces(app.db, fakePlaceProvider(), ["fake:todai-ji", "fake:nara-park", "fake:todai-ji"]);
     expect(found.map((p) => p.id)).toEqual(["fake:todai-ji", "fake:nara-park"]);
+  });
+});
+
+describe("finding place ids for queries", () => {
+  it("keeps what a query found, also nothing, and asks again once it is old", async () => {
+    const { provider, calls } = counting();
+    const now = new Date();
+    const found = await findPlaceIds(app.db, provider, ["Nara Park", "  nara park ", "Nowhere at all"], now);
+    expect([...found]).toEqual([
+      ["Nara Park", "fake:nara-park"],
+      ["  nara park ", "fake:nara-park"],
+      ["Nowhere at all", null],
+    ]);
+    expect(calls.findId).toBe(2);
+
+    await findPlaceIds(app.db, provider, ["NARA PARK", "Nowhere at all"], now);
+    expect(calls.findId).toBe(2);
+    await findPlaceIds(app.db, provider, ["Nara Park"], new Date(now.getTime() + (PLACE_CACHE_DAYS + 1) * DAY));
+    expect(calls.findId).toBe(3);
+  });
+
+  it("leaves out a query the provider could not answer, and does not keep it", async () => {
+    const down: PlaceProvider = { ...fakePlaceProvider(), findId: (q) => (q === "Todai-ji" ? Promise.reject(new PlaceProviderError("down")) : fakePlaceProvider().findId(q)) };
+    const found = await findPlaceIds(app.db, down, ["Todai-ji", "Nara Park"]);
+    expect([...found]).toEqual([["Nara Park", "fake:nara-park"]]);
+    expect(await app.db.select().from(placeQueries).where(eq(placeQueries.query, "todai-ji"))).toEqual([]);
   });
 });
 
@@ -165,6 +193,24 @@ describe("opening hours cache", () => {
     const provider: PlaceProvider = { ...inner, getOpeningHours: () => Promise.reject(new PlaceProviderError("down")) };
     await expect(fetchOpeningHours(app.db, provider, "fake:kinkaku-ji", now)).rejects.toThrow("down");
     expect(await fetchOpeningHours(app.db, inner, "fake:nara-park", now)).toBeUndefined();
+  });
+});
+
+describe("Google place id search", () => {
+  const reply = (body: unknown) => Promise.resolve(new Response(JSON.stringify(body), { status: 200 }));
+
+  it("asks for the first place's id only, which Google does not charge for", async () => {
+    const fetchFn = vi.fn(() => reply({ places: [{ id: "ChIJ1" }] }));
+    expect(await googlePlaceProvider("KEY", fetchFn as unknown as typeof fetch).findId("Uffizi Gallery, Florence")).toBe("ChIJ1");
+    const [url, init] = fetchFn.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("https://places.googleapis.com/v1/places:searchText");
+    expect(init.headers).toMatchObject({ "X-Goog-FieldMask": "places.id" });
+    expect(JSON.parse(init.body as string)).toEqual({ textQuery: "Uffizi Gallery, Florence", maxResultCount: 1 });
+  });
+
+  it("finds nothing in an empty answer, and fails on one that makes no sense", async () => {
+    expect(await googlePlaceProvider("KEY", (() => reply({})) as unknown as typeof fetch).findId("x")).toBeUndefined();
+    await expect(googlePlaceProvider("KEY", (() => reply({ places: "?" })) as unknown as typeof fetch).findId("x")).rejects.toThrow(PlaceProviderError);
   });
 });
 

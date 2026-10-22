@@ -2204,6 +2204,176 @@ main.has-panel .topbar {
   border: 0;
 }
 
+/* New Trip chooser and Generate with AI (design 24, 22, 23) */
+.new-trip-dialog .dialog-actions .back {
+  gap: 4px;
+  margin-right: auto;
+}
+
+.new-trip-choices {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.new-trip-choice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border2);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.new-trip-choice:hover {
+  border-color: var(--pri);
+}
+
+.new-trip-choice:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+
+.new-trip-choice span {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+}
+
+.new-trip-choice small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.new-trip-choice.ai {
+  border-color: transparent;
+  background: linear-gradient(120deg, var(--pri), var(--d6));
+  color: var(--onpri);
+}
+
+.new-trip-choice.ai small {
+  color: var(--onpri);
+  opacity: 0.85;
+}
+
+.new-trip-dialog .ai-mark {
+  color: var(--pri);
+}
+
+.new-trip-dialog textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  font: inherit;
+}
+
+.ai-examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0 0;
+}
+
+.ai-example {
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface2);
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ai-example:hover {
+  border-color: var(--pri);
+}
+
+.ai-example:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+
+.new-trip-dialog .ai-note {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ai-callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  background: var(--pri-tint);
+  color: var(--pri-ink);
+  font-size: 12px;
+}
+
+.ai-callout svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+.ai-callout.warn {
+  border: 1px solid var(--warnb);
+  background: var(--warnbg);
+  color: var(--warn);
+}
+
+.ai-creating {
+  text-align: center;
+}
+
+.ai-creating .settings-head h2 {
+  text-align: center;
+}
+
+.ai-creating .hint {
+  margin: 8px 0 16px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.ai-skeleton {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.ai-skeleton span {
+  height: 40px;
+  border-radius: var(--r-sm);
+  background: var(--grid);
+  animation: ai-pulse 1.4s ease-in-out infinite;
+}
+
+.ai-skeleton span:nth-child(3n + 2) {
+  animation-delay: 0.2s;
+}
+
+.ai-skeleton span:nth-child(3n) {
+  animation-delay: 0.4s;
+}
+
+@keyframes ai-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-skeleton span {
+    animation: none;
+  }
+}
+
 .new-trip-mode legend {
   padding: 0;
   color: var(--muted);

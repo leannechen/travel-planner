@@ -4,7 +4,7 @@ Generating a Trip (PRD §7) is a single request to a language model that returns
 
 The model sits behind an `ItineraryGenerator` interface with a fake implementation (no key needed) and one real implementation, chosen by an environment variable. The first real one uses the OpenAI API (`openai` package, `responses.parse` with a Zod schema). Because the call is plain structured output with no tools, providers are interchangeable: another one is a new implementation of the interface, and the schema, the prompt and the place resolution stay as they are.
 
-The real places come from the place provider, not from the model, so a made-up place cannot reach a Trip: a query the provider does not find leaves that Event without a place. This also keeps the work bounded. The number of Days, Events per Day and place lookups per generation is capped in the schema and enforced again on the server, since place lookups cost more than the model call.
+The real places come from the place provider, not from the model, so a made-up place cannot reach a Trip: a query the provider does not find leaves that Event without a place. This also keeps the work bounded. The number of Days, Events per Day and place lookups per generation is capped: the prompt asks for it and the server enforces it, since place lookups cost more than the model call.
 
 ## Considered Options
 

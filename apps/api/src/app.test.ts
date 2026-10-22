@@ -1630,7 +1630,9 @@ describe("opening hours", () => {
 describe("places when the provider fails", () => {
   it("answers 502 for a search and for saving a place, not 500", async () => {
     const failing = await startTestApp({
+      name: "failing",
       search: () => Promise.reject(new PlaceProviderError("Place search failed (503)")),
+      findId: () => Promise.reject(new PlaceProviderError("Place search failed (503)")),
       get: () => Promise.reject(new PlaceProviderError("Place lookup failed (503)")),
       getOpeningHours: () => Promise.reject(new PlaceProviderError("Place opening hours failed (503)")),
       getPhoto: () => Promise.reject(new PlaceProviderError("Place photo failed (503)")),

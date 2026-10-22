@@ -7,6 +7,7 @@ import { listenLive } from "../src/live";
 import { memoryImageStore } from "../src/images";
 import { fakeTokenVerifier, GUEST_HEADER, type TokenVerifier } from "../src/auth";
 import { fakeRouteProvider, type RouteProvider } from "../src/routes";
+import { fakeItineraryGenerator, type ItineraryGenerator } from "../src/itinerary-generator";
 import { fakePlaceProvider, type PlaceProvider } from "../src/places";
 import type { IdentityAdmin, InvitationMailer } from "../src/sharing";
 import { createDb } from "../src/db/client";
@@ -15,7 +16,7 @@ import { TEST_DATABASE_URL } from "./global-setup";
 export const testToken = (sub = "test-user") => `fake:${sub}`;
 
 // Starts the app against the test database. Call reset() before each test.
-export async function startTestApp(places: PlaceProvider = fakePlaceProvider(), routes: RouteProvider = fakeRouteProvider(), auth: TokenVerifier = fakeTokenVerifier()) {
+export async function startTestApp(places: PlaceProvider = fakePlaceProvider(), routes: RouteProvider = fakeRouteProvider(), auth: TokenVerifier = fakeTokenVerifier(), generator: ItineraryGenerator = fakeItineraryGenerator()) {
   const { db, pool } = createDb(TEST_DATABASE_URL);
   // What would have been sent: invitations by email, and requests to Auth0 to send a verification email again.
   const mails: Parameters<InvitationMailer["send"]>[0][] = [];
@@ -28,9 +29,11 @@ export async function startTestApp(places: PlaceProvider = fakePlaceProvider(), 
 
   let server!: Server;
   let live!: { close(): void };
+  let pendingGenerations!: Set<Promise<void>>;
   await new Promise<void>((resolve) => {
-    const app = createApp(db, { places, routes, auth, mailer, identityAdmin, appOrigin: "http://app.test", images });
+    const app = createApp(db, { places, routes, generator, auth, mailer, identityAdmin, appOrigin: "http://app.test", images });
     live = app.locals.live;
+    pendingGenerations = app.locals.pendingGenerations;
     server = listenLive(app, 0, () => resolve());
   });
   const baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
@@ -53,13 +56,19 @@ export async function startTestApp(places: PlaceProvider = fakePlaceProvider(), 
     images,
     mails,
     resends,
+    // Waits for the AI generations still running in the background.
+    async settle() {
+      await Promise.all(pendingGenerations);
+    },
     async reset() {
       mails.length = 0;
       resends.length = 0;
       images.clear();
-      await db.execute(sql`truncate table events, days, trips, users, places, route_estimates cascade`);
+      await Promise.all(pendingGenerations);
+      await db.execute(sql`truncate table events, days, trips, users, places, route_estimates, place_queries cascade`);
     },
     async stop() {
+      await Promise.all(pendingGenerations);
       vi.stubGlobal("fetch", realFetch);
       live.close();
       await new Promise<void>((resolve, reject) =>

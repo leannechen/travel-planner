@@ -84,7 +84,8 @@ type Props = {
   viewer?: boolean;
 };
 
-export type Toasted = { id: number; message: string; undo?: () => void };
+// A toast's action is Undo unless it says otherwise.
+export type Toasted = { id: number; message: string; undo?: () => void; actionLabel?: string };
 
 // Where the pointer is, as a drop target: a Day's axis (its id) or a holding area. The Event being
 // dragged is skipped, as it is under the pointer itself; beside an axis (above, below) the Day's

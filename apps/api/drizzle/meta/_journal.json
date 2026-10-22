@@ -155,6 +155,13 @@
       "when": 1792654081145,
       "tag": "0021_sample_trip_departure_time",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1792680791564,
+      "tag": "0022_ai_generations",
+      "breakpoints": true
     }
   ]
 }

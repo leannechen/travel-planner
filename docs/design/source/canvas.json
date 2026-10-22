@@ -2,12 +2,34 @@
   "v": 3,
   "attachments": {},
   "boards": {
+    "LandingGuestTrips.dc.html": {
+      "h": 1000,
+      "title": "#16b · Landing — guest with Trips, desktop and phone · High fidelity",
+      "w": 2300,
+      "x": 10620,
+      "y": 4300
+    },
+    "LandingLoggedIn.dc.html": {
+      "h": 1000,
+      "title": "#16c · Landing — logged in, desktop and phone · High fidelity",
+      "w": 2300,
+      "x": 10620,
+      "y": 5420
+    },
+    "LandingLoggedInEmpty.dc.html": {
+      "h": 1000,
+      "title": "#16d · Landing — logged in, no Trips, desktop and phone · High fidelity",
+      "w": 2300,
+      "x": 10620,
+      "y": 6540
+    },
     "AccountMenu.dc.html": {
       "h": 2266,
       "title": "#38 · Account menu — logged out, logged in, open · High fidelity",
       "w": 5780,
       "x": 0,
-      "y": 22778
+      "y": 19158,
+      "page": "page-72j84k"
     },
     "ConfirmEvent.dc.html": {
       "h": 880,
@@ -139,7 +161,8 @@
       "title": "#35 · Guest workspace — tooltip on “Log in to save your progress” · High fidelity",
       "w": 2340,
       "x": 0,
-      "y": 15740
+      "y": 12120,
+      "page": "page-72j84k"
     },
     "GuestWorkspace.dc.html": {
       "h": 960,
@@ -153,11 +176,12 @@
       "title": "#41 · Invited Editor from an email link, logged out · High fidelity",
       "w": 2340,
       "x": 0,
-      "y": 29316
+      "y": 25696,
+      "page": "page-72j84k"
     },
     "Landing.dc.html": {
       "h": 1000,
-      "title": "#16 · Landing — desktop and phone · High fidelity",
+      "title": "#16 · Landing — new visitor, desktop and phone · High fidelity",
       "w": 2300,
       "x": 0,
       "y": 4300
@@ -181,21 +205,24 @@
       "title": "#36 · Hosted login page (Auth0, themed) — log in and sign up screens, wrong password; English and 繁中 · High fidelity",
       "w": 5780,
       "x": 0,
-      "y": 17816
+      "y": 14196,
+      "page": "page-72j84k"
     },
     "LoginReturn.dc.html": {
       "h": 2266,
       "title": "#37 · Returning to the app after login — Trip added, Trip list, login didn’t complete · High fidelity",
       "w": 5780,
       "x": 0,
-      "y": 20392
+      "y": 16772,
+      "page": "page-72j84k"
     },
     "Logout.dc.html": {
       "h": 1956,
       "title": "#39 · Log out — Landing with “You’re logged out” toast · High fidelity",
       "w": 2340,
       "x": 0,
-      "y": 25164
+      "y": 21544,
+      "page": "page-72j84k"
     },
     "Main.dc.html": {
       "expand": "fill",
@@ -285,7 +312,8 @@
       "title": "#40 · Session expired while editing — read-only Trip and banner · High fidelity",
       "w": 2340,
       "x": 0,
-      "y": 27240
+      "y": 23620,
+      "page": "page-72j84k"
     },
     "StatesEmpty.dc.html": {
       "h": 1000,
@@ -401,7 +429,8 @@
       "text": "Login and account — high fidelity",
       "w": 240,
       "x": 0,
-      "y": 15480
+      "y": 11860,
+      "page": "page-72j84k"
     },
     "t2": {
       "kind": "title1",
@@ -425,6 +454,14 @@
       "text": "Landing, Notes panel and Viewer mode",
       "w": 240,
       "x": 0,
+      "y": 4040
+    },
+    "t4b": {
+      "kind": "title1",
+      "maxW": 2300,
+      "text": "Landing — other states",
+      "w": 240,
+      "x": 10620,
       "y": 4040
     },
     "t5": {
@@ -485,6 +522,9 @@
     "DayMenuPhone.dc.html",
     "DaySwapLodging.dc.html",
     "Landing.dc.html",
+    "LandingGuestTrips.dc.html",
+    "LandingLoggedIn.dc.html",
+    "LandingLoggedInEmpty.dc.html",
     "NotesPanel.dc.html",
     "Viewer.dc.html",
     "Dialogs.dc.html",

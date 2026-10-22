@@ -93,7 +93,7 @@ Each step lists what it needs from earlier steps and when it is done.
 
 ### Onboarding, AI and export
 
-- [ ] **22. Sample Trip.** Landing page with only "Open a sample Trip" and log in, an editable copy for a guest, and a "Log in to save your progress" button. *Needs:* 18.
+- [ ] **22. Sample Trip.** Landing page with four states (see design-spec 2.1): a new visitor gets "Open a sample Trip" and log in; a guest or logged-in user who already has Trips gets "Continue" (opens the most recently opened Trip) with "Open a sample Trip" as a secondary link; a logged-in user with no Trips gets "Open a sample Trip" only; the top right shows the avatar when logged in. Opening the sample reuses an existing copy (`trips.sampleOf` + unique index `(ownerId, sampleOf)`). Also an editable copy for a guest, and a "Log in to save your progress" button. *Needs:* 18.
 - [ ] **23. AI generation.** Prompt (from the New Trip action, logged-in users only) to a new Trip with real places and times, daily limit. *Needs:* 14, 15, 18.
 - [ ] **24. Export.** Document, backup with import, and whole-Trip image. *Needs:* 15.
 

@@ -18,7 +18,7 @@
     "db:down": "docker compose down"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=24.22.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

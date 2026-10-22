@@ -17,6 +17,18 @@ Reference material in `docs/reference/`: `excalidraw-design-draft.png` (Day layo
 - Secondary action: log in. There is no prompt field for AI generation on the landing page; logged-in users generate from the New Trip action in their Trip list.
 - In a guest's workspace the top bar shows a "Log in to save your progress" button (wording to be confirmed) until they log in.
 
+**Landing states.** The page is the same in every state (headline, photos, feature row); only the call to action and the top right change. Screens: 16 (new visitor), 16b, 16c, 16d.
+
+| State | Primary button | Secondary | Top right |
+|---|---|---|---|
+| New visitor (no guest id, not logged in) | Open a sample Trip | none | Log in |
+| Guest with Trips | Continue (opens the most recently opened Trip) | Open a sample Trip as a text link; small note that Trips are only saved in this browser | Log in |
+| Logged in | Continue (opens the most recently opened Trip) | Open a sample Trip | Avatar (Account menu) |
+| Logged in, no Trips | Open a sample Trip | none | Avatar (Account menu) |
+
+- If the sample Trip copy already exists, "Open a sample Trip" opens that copy instead of making another (`trips.sampleOf` plus a unique index on `(ownerId, sampleOf)`).
+- The helper text under the button changes with the state: "No login needed. You get an editable copy." for a new visitor; "You get an editable copy in your Trips." when logged in with no Trips. The badge above the headline reads "Free to try · no login needed" for a new visitor, "Welcome back" when there is a Trip to continue, and "Start with a sample" when logged in with no Trips.
+
 ### 2.1a Sign-in and sign-up
 - No prompt before login: entry points go directly to the Auth0 page. The guest save button carries the note about losing data when browser data is cleared.
 - Themed Auth0 hosted page (login and sign-up tabs, email and password only, error state); only branding can be customized.

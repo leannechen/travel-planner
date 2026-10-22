@@ -22,7 +22,7 @@ design/
 
 ## Images
 
-All images in `png/` are exported at **2x** (twice the CSS pixel width and height). Divide pixel measurements by 2 to get CSS pixels. `16-landing`, `26-event-image`, `36-login-hosted`, `39-logout` and `41-invite-editor` are WebP instead of PNG to keep the repo small because they contain large photos. Screen sizes in the table below are in CSS pixels.
+All images in `png/` are exported at **2x** (twice the CSS pixel width and height). Divide pixel measurements by 2 to get CSS pixels. `16-landing`, `16b`, `16c`, `16d`, `26-event-image`, `36-login-hosted`, `39-logout` and `41-invite-editor` are WebP instead of PNG to keep the repo small because they contain large photos. Screen sizes in the table below are in CSS pixels.
 
 ## Reading values from the source
 
@@ -51,7 +51,10 @@ All images in `png/` are exported at **2x** (twice the CSS pixel width and heigh
 | 13 | `png/13-day-delete.png` | `source/DayDelete.dc.html` | 1440x900 | Delete Day — confirmation and undo toast |
 | 14 | `png/14-day-menu-phone.png` | `source/DayMenuPhone.dc.html` | 1330x930 | Day menu and delete confirmation — phone |
 | 15 | `png/15-day-swap-lodging.png` | `source/DaySwapLodging.dc.html` | 1440x940 | Swapping two Days — the 3-night stay stays in place |
-| 16 | `png/16-landing.webp` | `source/Landing.dc.html` | 2300x1000 | Landing — desktop and phone |
+| 16 | `png/16-landing.webp` | `source/Landing.dc.html` | 2300x1000 | Landing — new visitor, desktop and phone |
+| 16b | `png/16b-landing-guest-trips.webp` | `source/LandingGuestTrips.dc.html` | 2300x1000 | Landing — guest with Trips (Continue + Open a sample Trip link + “only saved in this browser”) |
+| 16c | `png/16c-landing-logged-in.webp` | `source/LandingLoggedIn.dc.html` | 2300x1000 | Landing — logged in with Trips (Continue + Open a sample Trip link, avatar top right) |
+| 16d | `png/16d-landing-logged-in-empty.webp` | `source/LandingLoggedInEmpty.dc.html` | 2300x1000 | Landing — logged in, no Trips (Open a sample Trip only, avatar top right) |
 | 17 | `png/17-notes-panel.png` | `source/NotesPanel.dc.html` | 3040x1200 | Notes panel — open on Schedule and Map, movable, states, phone sheet |
 | 18 | `png/18-viewer-mode.png` | `source/Viewer.dc.html` | 2040x900 | Viewer mode — read-only workspace and Event details |
 | 19 | `png/19-dialogs.png` | `source/Dialogs.dc.html` | 2380x900 | Dialogs — Share (on / off), Export, Trip settings |

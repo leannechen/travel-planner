@@ -28,7 +28,9 @@ import {
 } from "@travel-planner/shared";
 import { and, asc, desc, eq, inArray, isNotNull, or, sql } from "drizzle-orm";
 import type { Db } from "./db/client";
-import { days, events, legs, notes, todos, trips, users } from "./db/schema";
+import { days, eventImages, events, legs, notes, todos, trips, users } from "./db/schema";
+import type { ImageStore, PreparedImage } from "./images";
+import { randomUUID } from "node:crypto";
 
 // A Trip the user owns or has been invited to edit. Everything but sharing needs this much (PRD §8).
 export const editableBy = (userId: string) =>
@@ -58,6 +60,7 @@ function toEvent(row: Pick<typeof events.$inferSelect, keyof Event>): Event {
     placeId: row.placeId,
     destinationId: row.destinationId,
     openingHoursOn: row.openingHoursOn,
+    imageId: row.imageId,
   };
 }
 
@@ -91,6 +94,7 @@ const eventColumns = {
   placeId: true,
   destinationId: true,
   openingHoursOn: true,
+  imageId: true,
 } as const;
 
 const arrivalOrder = [asc(events.createdAt), asc(events.id)];
@@ -116,6 +120,7 @@ const eventColumnsSelect = {
   placeId: events.placeId,
   destinationId: events.destinationId,
   openingHoursOn: events.openingHoursOn,
+  imageId: events.imageId,
 };
 
 export async function listTrips(db: Db, userId: string): Promise<Trip[]> {
@@ -409,6 +414,91 @@ export async function setOpeningHours(
   const [current] = await db.select().from(events).where(eq(events.id, eventId));
   // Deleted while the hours were being fetched.
   return current && toEvent(current);
+}
+
+// Gives the Event this image, replacing the one it had (step 39). The file is stored first and the
+// row switched in one transaction, so a failure leaves the old image in place; the old file is deleted
+// last. Returns the Event, or undefined when it is not in this user's Trip.
+export async function setEventImage(
+  db: Db,
+  store: ImageStore,
+  userId: string,
+  tripId: string,
+  eventId: string,
+  image: PreparedImage,
+): Promise<Event | undefined> {
+  if (!(await findEventPlace(db, userId, tripId, eventId))) return undefined;
+  const imageId = randomUUID();
+  await store.put(imageId, image.bytes);
+  let old: string | undefined;
+  let event: Event | undefined;
+  try {
+    event = await db.transaction(async (tx) => {
+      const [locked] = await tx
+        .select({ id: events.id })
+        .from(events)
+        .where(and(eq(events.id, eventId), eq(events.tripId, tripId)))
+        .for("update");
+      if (!locked) return undefined;
+      const [previous] = await tx.delete(eventImages).where(eq(eventImages.eventId, eventId)).returning({ key: eventImages.storageKey });
+      old = previous?.key;
+      await tx.insert(eventImages).values({ id: imageId, eventId, storageKey: imageId, contentType: image.contentType, byteSize: image.bytes.length, createdBy: userId });
+      const [row] = await tx.update(events).set({ imageId }).where(eq(events.id, eventId)).returning();
+      return toEvent(row!);
+    });
+  } catch (err) {
+    await store.delete(imageId);
+    throw err;
+  }
+  if (!event) {
+    // Deleted while the file was being stored.
+    await store.delete(imageId);
+    return undefined;
+  }
+  if (old) await store.delete(old);
+  return event;
+}
+
+// Takes the image off the Event. Returns the Event, or undefined when it is not in this user's Trip;
+// an Event without an image is returned as it is.
+export async function removeEventImage(db: Db, store: ImageStore, userId: string, tripId: string, eventId: string): Promise<Event | undefined> {
+  if (!(await findEventPlace(db, userId, tripId, eventId))) return undefined;
+  const removed = await db.delete(eventImages).where(eq(eventImages.eventId, eventId)).returning({ key: eventImages.storageKey });
+  const [row] = await db.select(eventColumnsSelect).from(events).where(and(eq(events.id, eventId), eq(events.tripId, tripId)));
+  for (const { key } of removed) await store.delete(key);
+  return row && toEvent(row);
+}
+
+export type StoredImage = { key: string; contentType: string; imageId: string };
+
+// The Event's image for someone who can edit the Trip, or undefined.
+export async function findEventImage(db: Db, userId: string, tripId: string, eventId: string): Promise<StoredImage | undefined> {
+  const [row] = await db
+    .select({ key: eventImages.storageKey, contentType: eventImages.contentType, imageId: eventImages.id })
+    .from(eventImages)
+    .innerJoin(events, eq(events.id, eventImages.eventId))
+    .innerJoin(trips, eq(trips.id, events.tripId))
+    .where(and(eq(events.id, eventId), eq(events.tripId, tripId), editableBy(userId)));
+  return row;
+}
+
+// The same for a Viewer: only Events that Viewer sees (on a Day or in the Backlog, never the
+// Archive) of a Trip whose link is on.
+export async function findSharedEventImage(db: Db, token: string, eventId: string): Promise<StoredImage | undefined> {
+  const [row] = await db
+    .select({ key: eventImages.storageKey, contentType: eventImages.contentType, imageId: eventImages.id })
+    .from(eventImages)
+    .innerJoin(events, eq(events.id, eventImages.eventId))
+    .innerJoin(trips, eq(trips.id, events.tripId))
+    .where(
+      and(
+        eq(events.id, eventId),
+        eq(trips.shareToken, token),
+        eq(trips.shareEnabled, true),
+        or(isNotNull(events.dayId), eq(events.holding, "backlog")),
+      ),
+    );
+  return row;
 }
 
 type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
@@ -714,11 +804,14 @@ export async function deleteTodo(db: Db, userId: string, tripId: string, todoId:
 }
 
 // Deletes an Event with its Todos and returns both as they were, so the deletion can be undone.
+// `gone.imageKey` is set to the key of the Event's image, which went with it: the caller deletes the
+// file. It is read under the same lock as an image replacement takes, so the two never interleave.
 export async function deleteEvent(
   db: Db,
   userId: string,
   tripId: string,
   eventId: string,
+  gone: { imageKey?: string } = {},
 ): Promise<DeletedEvent | undefined> {
   return db.transaction(async (tx) => {
     const [trip] = await tx
@@ -733,10 +826,12 @@ export async function deleteEvent(
       .where(and(eq(events.id, eventId), eq(events.tripId, tripId)))
       .for("update");
     if (!event) return undefined;
-    const gone = await tx.select().from(todos).where(eq(todos.eventId, eventId)).orderBy(...todoOrder);
-    // The Todos are deleted with the Event (cascade).
+    const removedTodos = await tx.select().from(todos).where(eq(todos.eventId, eventId)).orderBy(...todoOrder);
+    const [image] = await tx.select({ key: eventImages.storageKey }).from(eventImages).where(eq(eventImages.eventId, eventId));
+    gone.imageKey = image?.key;
+    // The Todos and the image row are deleted with the Event (cascade).
     await tx.delete(events).where(eq(events.id, eventId));
-    return { event: toEvent(event), todos: gone.map(toTodo) };
+    return { event: toEvent(event), todos: removedTodos.map(toTodo) };
   });
 }
 
@@ -806,7 +901,8 @@ async function restoreEventInTransaction(
     const place = dayId ? { dayId, holding: null } : { dayId: null, holding: event.holding ?? ("backlog" as const) };
     const [row] = await tx
       .insert(events)
-      .values({ ...event, tripId, ...place })
+      // The image went with the Event; undo brings back the Event, not the file.
+      .values({ ...event, imageId: null, tripId, ...place })
       .returning();
     if (restored.length > 0) {
       // One timestamp apart, so they come back in the order they had.

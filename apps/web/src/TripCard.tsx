@@ -229,7 +229,8 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onShare, onDays
   useEffect(() => {
     if (!drawer) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
+      // A picture shown large over the drawer takes the key first.
+      if (e.key !== "Escape" || document.querySelector(".lightbox")) return;
       e.preventDefault();
       setDrawer(undefined);
     };

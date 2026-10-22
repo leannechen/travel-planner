@@ -18,6 +18,7 @@ import {
   type Leg,
 } from "@travel-planner/shared";
 import type { DropPreview } from "./dropPreview";
+import { EventImage } from "./eventImage";
 import { KindIcon } from "./kinds";
 import { formatDuration, MODE_ICONS, modeKey } from "./legFormat";
 import { useT } from "./preferences";
@@ -29,6 +30,8 @@ import { ChangedEventsContext } from "./liveContext";
 import { useContext, useEffect, useMemo, useState, type MouseEvent, type PointerEvent } from "react";
 
 export const PX_PER_HOUR = 64;
+// The shortest card (in pixels) that shows its Event's picture.
+const THUMB_MIN_HEIGHT = 88;
 export const SNAP_PX = (PX_PER_HOUR * SNAP_MINUTES) / 60;
 
 export type Range = { startMinute: number; endMinute: number };
@@ -327,6 +330,8 @@ function EventCard({
       }}
     >
       <button type="button" ref={handleRef} onClick={onSelect}>
+        {/* Only a card tall enough has room for the picture next to its text (design 26). */}
+        {event.imageId && drawnHeight >= THUMB_MIN_HEIGHT && <EventImage event={event} decorative className="event-thumb" />}
         <strong>
           <KindIcon kind={event.kind} transportLabel={event.transportLabel} />
           <span className="event-title">{event.title}</span>

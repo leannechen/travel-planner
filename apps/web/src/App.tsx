@@ -41,6 +41,8 @@ import {
   listTrips,
   restoreEvent,
   restoreNote,
+  removeEventImage,
+  uploadEventImage,
   turnOffOpeningHours,
   updateTrip,
   turnOnOpeningHours,
@@ -54,6 +56,7 @@ import { AccountMenu, ExpiredBanner, GuestBanner, LoginErrorStrip } from "./Acco
 import { useAuth } from "./AuthProvider";
 import { Collaborators } from "./Collaborators";
 import { ChangedEventsContext } from "./liveContext";
+import { TripIdContext } from "./eventImage";
 import { openLive } from "./live";
 import { SharedTripPage, sharedTokenOf } from "./SharedTripPage";
 import { LOGGED_OUT_PARAM } from "./authClient";
@@ -506,6 +509,25 @@ function Workspace({ joinedMessage }: { joinedMessage?: string }) {
     applyOpeningHoursChoice(tripId, await turnOffOpeningHours(tripId, eventId));
   }
 
+  // Puts the image the server answered into the Event as it is on screen now, without the save
+  // counter, for the same reason as the opening-hours choice: it is separate from the other fields.
+  function applyImageChange(tripId: string, answer: Event) {
+    const patch = (e: Event) => ({ ...e, imageId: answer.imageId });
+    setTripAreas(tripId, (areas) => {
+      const current = [...areas.days.flatMap((d) => d.events), ...areas.backlog, ...areas.archive].find((e) => e.id === answer.id);
+      return current ? upsertEvent(areas, patch(current)) : areas;
+    });
+    const last = confirmed.current.get(answer.id);
+    if (last) confirmed.current.set(answer.id, patch(last));
+  }
+
+  // An image is uploaded or removed by the panel's Save, after the other fields are saved.
+  async function handleChangeImage(tripId: string, eventId: string, change: { file: File } | "remove") {
+    const answer = change === "remove" ? await removeEventImage(tripId, eventId) : await uploadEventImage(tripId, eventId, change.file);
+    applyImageChange(tripId, answer);
+    return answer;
+  }
+
   const deleting = useRef(new Set<string>());
 
   async function handleDeleteEvent(tripId: string, event: Event) {
@@ -921,6 +943,7 @@ function Workspace({ joinedMessage }: { joinedMessage?: string }) {
       {saveError && !expired && <p role="alert">{saveError}</p>}
       {trip && (
         <ChangedEventsContext.Provider value={changedIds}>
+        <TripIdContext.Provider value={trip.id}>
         <TripCard
           key={trip.id}
           trip={trip}
@@ -963,6 +986,7 @@ function Workspace({ joinedMessage }: { joinedMessage?: string }) {
             })
           }
         />
+        </TripIdContext.Provider>
         </ChangedEventsContext.Provider>
       )}
       {trips?.length === 0 && <p>{t("app.noTrips")}</p>}
@@ -983,6 +1007,7 @@ function Workspace({ joinedMessage }: { joinedMessage?: string }) {
         </div>
       )}
       {selectedTrip && selection && (selectedEvent || "draft" in selection) && (
+        <TripIdContext.Provider value={selectedTrip.id}>
         <EventPanel
           key={panelKey}
           days={selectedTrip.days}
@@ -1004,10 +1029,12 @@ function Workspace({ joinedMessage }: { joinedMessage?: string }) {
           onOpenTripSettings={() => setSettingsTripId(selectedTrip.id)}
           onTurnOnOpeningHours={(eventId) => handleTurnOnHours(selectedTrip.id, eventId)}
           onRemoveOpeningHours={(eventId) => handleTurnOffHours(selectedTrip.id, eventId)}
+          onChangeImage={(eventId, change) => handleChangeImage(selectedTrip.id, eventId, change)}
           quiet={"eventId" in selection && selection.quiet}
           restored={selection.restored}
           onLoginToSave={expired ? (typed) => relogin(typed) : undefined}
         />
+        </TripIdContext.Provider>
       )}
       {notesTripId && trips?.some((t) => t.id === notesTripId) && (
         <NotesPanel

@@ -21,6 +21,7 @@ import {
   type Todo,
   type UpdateEventInput,
 } from "@travel-planner/shared";
+import { EventImageSection, type PendingImage } from "./EventImageSection";
 import { OpeningHoursSection } from "./OpeningHoursSection";
 import { eventConflicts, useOpeningHours } from "./openingHours";
 import { PlaceField } from "./PlaceField";
@@ -116,6 +117,9 @@ type Props = {
   // Opening hours are turned on and off at once, not with Save. "none": Google has no hours for the place.
   onTurnOnOpeningHours: (eventId: string) => Promise<"on" | "none">;
   onRemoveOpeningHours: (eventId: string) => Promise<void>;
+  // Uploads a picture for the Event, or takes its image off; the answer is the Event. Called by Save,
+  // after the other fields are saved. Without it the panel has no Image section.
+  onChangeImage?: (eventId: string, change: { file: File } | "remove") => Promise<Event>;
   // Selected from the keyboard: leave the focus where it is so the arrow keys keep working.
   quiet?: boolean;
   // The fields to start with instead of the Event's own: edits kept across a login redirect.
@@ -147,6 +151,7 @@ export function EventPanel({
   onOpenTripSettings,
   onTurnOnOpeningHours,
   onRemoveOpeningHours,
+  onChangeImage,
   quiet,
   restored,
   onLoginToSave,
@@ -176,6 +181,7 @@ export function EventPanel({
     placeId: null,
     destinationId: null,
     openingHoursOn: false,
+    imageId: null,
     ...newEvent!,
   };
   const original: EventFields = {
@@ -209,6 +215,25 @@ export function EventPanel({
   const failed = useRef(false);
   // The fields as the panel opened, to tell whether anything was typed into a new Event.
   const untouched = useRef(JSON.stringify(original));
+
+  // The picture chosen and not yet saved, or the image's removal (applied by Save, never before). The
+  // ref is what a queued save reads; the state is what is drawn.
+  const [pendingImage, setPendingImageState] = useState<PendingImage | undefined>();
+  const pendingImageRef = useRef<PendingImage | undefined>(undefined);
+  const [uploading, setUploading] = useState(false);
+  function setPendingImage(next: PendingImage | undefined) {
+    const old = pendingImageRef.current;
+    if (old?.kind === "set") URL.revokeObjectURL(old.url);
+    pendingImageRef.current = next;
+    setPendingImageState(next);
+  }
+  useEffect(
+    () => () => {
+      const old = pendingImageRef.current;
+      if (old?.kind === "set") URL.revokeObjectURL(old.url);
+    },
+    [],
+  );
 
   // What this panel last sent for the time and place, so its own saves are not mistaken for
   // outside changes.
@@ -283,6 +308,33 @@ export function EventPanel({
   }
 
   async function save() {
+    await saveFields();
+    if (!failed.current) await applyImage();
+  }
+
+  // Uploads or removes the image chosen in the panel. The Event is saved by now; a failure keeps the
+  // choice and the panel open with the error, and Save tries again.
+  async function applyImage() {
+    const pending = pendingImageRef.current;
+    const current = saved.current;
+    if (!pending || !current || !onChangeImage) return;
+    setUploading(true);
+    try {
+      const updated = await onChangeImage(current.id, pending.kind === "set" ? { file: pending.file } : "remove");
+      saved.current = { ...saved.current!, imageId: updated.imageId };
+      setPendingImage(undefined);
+    } catch (err) {
+      failed.current = true;
+      // The server's reasons for refusing a picture, in the interface language.
+      const code = (err as { code?: string }).code;
+      const message = code === "image_type" ? t("image.wrongType") : code === "image_too_large" ? t("image.tooLarge") : err instanceof Error ? err.message : t("generic.error");
+      setStatus({ kind: "error", message });
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function saveFields() {
     const current = saved.current;
     const plan = planEventSave(latest.current, current);
     failed.current = plan.kind === "error";
@@ -349,7 +401,11 @@ export function EventPanel({
   // Saves what is typed and reports whether it worked.
   async function saveNow() {
     // A new Event without a title has nothing to create: say so rather than drop what was typed.
-    if (!saved.current && planEventSave(latest.current, undefined).kind === "wait" && JSON.stringify(latest.current) !== untouched.current) {
+    if (
+      !saved.current &&
+      planEventSave(latest.current, undefined).kind === "wait" &&
+      (JSON.stringify(latest.current) !== untouched.current || pendingImageRef.current)
+    ) {
       failed.current = true;
       setStatus({ kind: "error", message: t("event.titleRequired") });
       return false;
@@ -365,6 +421,7 @@ export function EventPanel({
   }
 
   function isDirty() {
+    if (pendingImageRef.current) return true;
     const plan = planEventSave(latest.current, saved.current);
     if (plan.kind === "wait") return !saved.current && JSON.stringify(latest.current) !== untouched.current;
     return plan.kind === "update" || plan.kind === "create" || plan.kind === "error";
@@ -684,6 +741,17 @@ export function EventPanel({
             onSetDate={onOpenTripSettings}
             onTurnOn={() => onTurnOnOpeningHours(event.id)}
             onRemove={() => onRemoveOpeningHours(event.id)}
+          />
+        )}
+        {onChangeImage && (
+          <EventImageSection
+            event={event}
+            kind={fields.kind}
+            pending={pendingImage}
+            uploading={uploading}
+            readOnly={expired}
+            onPick={(file) => setPendingImage({ kind: "set", file, url: URL.createObjectURL(file) })}
+            onRemove={() => setPendingImage(event?.imageId ? { kind: "remove" } : undefined)}
           />
         )}
         </div>

@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { boolean, check, date, doublePrecision, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { boolean, check, date, doublePrecision, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, unique, uuid, type AnyPgColumn } from "drizzle-orm/pg-core";
 import type { OpeningHours } from "@travel-planner/shared";
 
 export const users = pgTable("users", {
@@ -120,6 +120,8 @@ export const events = pgTable(
     // The user asked for the place's opening hours (PRD §3.5). Only the choice is kept here; the
     // hours are read through the `places` cache. Cleared when the place changes.
     openingHoursOn: boolean().notNull().default(false),
+    // The Event's uploaded image (step 39); the row holds where the file is kept. Cleared with the row.
+    imageId: uuid().references((): AnyPgColumn => eventImages.id, { onDelete: "set null" }),
     startMinute: integer().notNull().default(540),
     durationMinutes: integer().notNull().default(60),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
@@ -134,6 +136,24 @@ export const events = pgTable(
     check("events_duration_range", sql`${t.durationMinutes} between 1 and 1439`),
   ],
 );
+
+// The image an Event was given (one per Event). The bytes live in the image store under `storageKey`
+// (never in the database); the row goes with its Event, and the file is deleted by the code that
+// deletes or replaces the row.
+export const eventImages = pgTable("event_images", {
+  id: uuid().primaryKey().defaultRandom(),
+  eventId: uuid()
+    .notNull()
+    .unique()
+    .references((): AnyPgColumn => events.id, { onDelete: "cascade" }),
+  storageKey: text().notNull(),
+  contentType: text().notNull(),
+  byteSize: integer().notNull(),
+  createdBy: uuid()
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+});
 
 // Place data fetched from the place provider, kept as a cache: the provider's terms allow storing
 // place ids but not the rest beyond a limited time, so rows are refreshed when older than that

@@ -178,6 +178,29 @@ export const turnOnOpeningHours = (tripId: string, eventId: string) =>
 export const turnOffOpeningHours = (tripId: string, eventId: string) =>
   request(`/api/trips/${tripId}/events/${eventId}/opening-hours`, eventSchema, undefined, "DELETE");
 
+// An Event's image (step 39). The file is sent as it is; the server checks what it really is and
+// answers with the Event, whose `imageId` has changed.
+export async function uploadEventImage(tripId: string, eventId: string, file: Blob) {
+  const res = await send(`/api/trips/${tripId}/events/${eventId}/image`, {
+    method: "PUT",
+    headers: { "content-type": file.type || "application/octet-stream" },
+    body: file,
+  });
+  if (!res.ok) throw await failure(res);
+  return eventSchema.parse(await res.json());
+}
+
+export const removeEventImage = (tripId: string, eventId: string) =>
+  request(`/api/trips/${tripId}/events/${eventId}/image`, eventSchema, undefined, "DELETE");
+
+// The bytes of an Event's image. A Viewer reads it through the share link, which needs no login; for
+// anyone else the request has to carry the credentials, so the picture cannot be a plain <img src>.
+export async function getEventImage(tripId: string, eventId: string): Promise<Blob> {
+  const res = sharedToken ? await fetch(sharedUrl(`/events/${eventId}/image`)) : await send(`/api/trips/${tripId}/events/${eventId}/image`);
+  if (!res.ok) throw await failure(res);
+  return res.blob();
+}
+
 export const getMe = () => request("/api/me", meSchema);
 
 export const addTodo = (tripId: string, text: string, eventId: string | null) =>

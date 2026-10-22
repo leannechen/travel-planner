@@ -3,7 +3,7 @@ import { createRemoteJWKSet, errors, jwtVerify, type JWTVerifyGetKey } from "jos
 import type { NextFunction, Request, Response } from "express";
 import { z } from "zod";
 import type { Db } from "./db/client";
-import { todos, trips, users } from "./db/schema";
+import { eventImages, todos, trips, users } from "./db/schema";
 
 // What the API needs from a valid access token: who it is for.
 // `email` and `emailVerified` come from custom claims that an Auth0 Action adds to the access token
@@ -232,6 +232,8 @@ export async function mergeGuest(db: Db, accountId: string, guestToken: string):
     const moved = await tx.update(trips).set({ ownerId: accountId }).where(eq(trips.ownerId, guest.id)).returning({ id: trips.id });
     // Todos remember who added them; the guest's go with the account.
     await tx.update(todos).set({ createdBy: accountId }).where(eq(todos.createdBy, guest.id));
+    // So do their uploaded images: the rows would otherwise go with the guest, leaving the files.
+    await tx.update(eventImages).set({ createdBy: accountId }).where(eq(eventImages.createdBy, guest.id));
     await tx.delete(users).where(eq(users.id, guest.id));
     return moved.length;
   });

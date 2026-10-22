@@ -99,7 +99,15 @@ export const eventSchema = z.object({
   // Whether the user asked for the place's opening hours (PRD §3.5). Only this choice is kept on
   // the Event; the hours are read through the place cache. Turned off when the place changes.
   openingHoursOn: z.boolean(),
+  // The id of the Event's uploaded image, or null. The file is read at `.../image`; a new image gets a
+  // new id, so a changed id is what tells a page its copy is old.
+  imageId: z.uuid().nullable(),
 });
+
+// What an uploaded Event image may be (step 39): JPEG, PNG or WebP, at most this many bytes as sent.
+export const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
+export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+export const isImageType = (type: string): type is (typeof IMAGE_TYPES)[number] => (IMAGE_TYPES as readonly string[]).includes(type);
 
 const todoText = z.string().trim().min(1, "Todo text is required").max(500);
 

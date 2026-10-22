@@ -96,6 +96,8 @@ export const en = {
   "drag.event": "event",
 
   "area.holding": "Holding areas",
+  "panel.collapse": "Collapse panel",
+  "panel.expand": "Expand panel",
   "area.backlog": "Backlog",
   "area.archive": "Archive",
   "area.addToBacklog": "Add to Backlog",
@@ -550,6 +552,8 @@ export const zh: Record<FullKey, string> = {
   "drag.event": "事件",
 
   "area.holding": "暫存區",
+  "panel.collapse": "收合面板",
+  "panel.expand": "展開面板",
   "area.backlog": "未決區",
   "area.archive": "放棄區",
   "area.addToBacklog": "新增到未決區",

@@ -349,8 +349,8 @@ describe("fake route provider", () => {
 });
 
 describe("Google route provider", () => {
-  const from = { id: "a", name: "A", address: "", lat: 35.1, lng: 135.2 };
-  const to = { id: "b", name: "B", address: "", lat: 35.3, lng: 135.4 };
+  const from = { id: "a", name: "A", address: "", area: "", lat: 35.1, lng: 135.2 };
+  const to = { id: "b", name: "B", address: "", area: "", lat: 35.3, lng: 135.4 };
   const answer = (body: unknown, status = 200) => vi.fn(async () => new Response(JSON.stringify(body), { status }));
 
   it("asks for the duration and distance only, between the two points, by the mode", async () => {

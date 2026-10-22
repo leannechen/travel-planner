@@ -25,6 +25,9 @@ export const placeSchema = z.object({
   id: placeIdSchema,
   name: z.string(),
   address: z.string(),
+  // A short form of the address for the Event block, like "Fushimi Ward, Kyoto"; empty when the
+  // provider has none. Never stored on an Event (PRD §3.2).
+  area: z.string(),
   lat: z.number(),
   lng: z.number(),
 });

@@ -10,8 +10,8 @@ import { makeDay, makeEvent, makeTrip, renderApp, setPhone } from "./test-helper
 
 vi.mock("./api", () => ({ insertDay: vi.fn(), deleteDay: vi.fn(), reorderDays: vi.fn(), restoreDay: vi.fn(), getPlaces: vi.fn() }));
 
-const kyoto: Place = { id: "p1", name: "Kyoto Station", address: "Kyoto", lat: 35, lng: 135 };
-const kinkaku: Place = { id: "p2", name: "Kinkaku-ji", address: "Kyoto", lat: 35.1, lng: 135.1 };
+const kyoto: Place = { id: "p1", name: "Kyoto Station", address: "Kyoto", area: "Kyoto", lat: 35, lng: 135 };
+const kinkaku: Place = { id: "p2", name: "Kinkaku-ji", address: "Kyoto", area: "Kyoto", lat: 35.1, lng: 135.1 };
 
 const a = makeEvent({ title: "Station", startMinute: 540, durationMinutes: 60, placeId: "p1" });
 const b = makeEvent({ title: "Golden Pavilion", startMinute: 660, durationMinutes: 60, placeId: "p2" });

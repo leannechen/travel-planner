@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { startTestApp } from "../test/test-app";
 import { places } from "./db/schema";
-import { fakePlaceProvider, fetchOpeningHours, getOpeningHours, getPlaces, googlePlaceProvider, PLACE_CACHE_DAYS, PlaceProviderError, searchPlaces, type PlaceProvider } from "./places";
+import { areaFromComponents, fakePlaceProvider, fetchOpeningHours, getOpeningHours, getPlaces, googlePlaceProvider, PLACE_CACHE_DAYS, PlaceProviderError, searchPlaces, type PlaceProvider } from "./places";
 
 let app: Awaited<ReturnType<typeof startTestApp>>;
 
@@ -63,9 +63,31 @@ describe("getPlaces", () => {
     expect(calls.get).toBe(2);
   });
 
+  it("keeps the area with the place, and fetches a row cached before the area existed again", async () => {
+    const { provider, calls } = counting();
+    const now = new Date("2026-10-19T00:00:00Z");
+    const [first] = await getPlaces(app.db, provider, ["fake:fushimi-inari"], now);
+    expect(first!.area).toBe("Fushimi Ward, Kyoto");
+    expect((await getPlaces(app.db, provider, ["fake:fushimi-inari"], now))[0]!.area).toBe("Fushimi Ward, Kyoto");
+    expect(calls.get).toBe(1);
+    await app.db.update(places).set({ area: null }).where(eq(places.id, "fake:fushimi-inari"));
+    expect((await getPlaces(app.db, provider, ["fake:fushimi-inari"], now))[0]!.area).toBe("Fushimi Ward, Kyoto");
+    expect(calls.get).toBe(2);
+  });
+
+  it("serves a fresh row without an area when fetching its area fails", async () => {
+    const now = new Date("2026-10-19T00:00:00Z");
+    await getPlaces(app.db, fakePlaceProvider(), ["fake:nara-park"], now);
+    await app.db.update(places).set({ area: null }).where(eq(places.id, "fake:nara-park"));
+    const inner = fakePlaceProvider();
+    const down: PlaceProvider = { ...inner, get: () => Promise.reject(new PlaceProviderError("down")) };
+    expect((await getPlaces(app.db, down, ["fake:nara-park"], now))[0]).toMatchObject({ id: "fake:nara-park", area: "" });
+    await expect(getPlaces(app.db, down, ["fake:nara-park"], new Date(now.getTime() + (PLACE_CACHE_DAYS + 1) * DAY))).rejects.toThrow("down");
+  });
+
   it("drops an id the provider no longer knows, and its cached row", async () => {
     const stale = new Date("2026-01-01T00:00:00Z");
-    await app.db.insert(places).values({ id: "fake:gone", name: "Gone", address: "-", lat: 0, lng: 0, fetchedAt: stale });
+    await app.db.insert(places).values({ id: "fake:gone", name: "Gone", address: "-", area: "", lat: 0, lng: 0, fetchedAt: stale });
     expect(await getPlaces(app.db, fakePlaceProvider(), ["fake:gone", "fake:nara-park"])).toHaveLength(1);
     expect(await app.db.select().from(places).where(eq(places.id, "fake:gone"))).toEqual([]);
   });
@@ -194,17 +216,31 @@ describe("Google opening hours", () => {
   });
 });
 
+describe("areaFromComponents", () => {
+  const c = (longText: string, ...types: string[]) => ({ longText, types });
+  it("joins the district and the city, leaving out the street", () => {
+    const fushimi = [c("68", "premise"), c("Fukakusa Yabunouchichō", "sublocality_level_2"), c("Fushimi Ward", "sublocality_level_1", "sublocality"), c("Kyoto", "locality"), c("Kyoto", "administrative_area_level_1")];
+    expect(areaFromComponents(fushimi)).toBe("Fushimi Ward, Kyoto");
+  });
+  it("uses what exists and does not repeat a name", () => {
+    expect(areaFromComponents([c("Singapore", "locality", "country")])).toBe("Singapore");
+    expect(areaFromComponents([c("Soho", "neighborhood"), c("London", "postal_town")])).toBe("Soho, London");
+    expect(areaFromComponents([c("Japan", "country")])).toBe("");
+    expect(areaFromComponents()).toBe("");
+  });
+});
+
 describe("Google place provider", () => {
-  const googlePlace = { id: "ChIJ123", displayName: { text: "Kinkaku-ji" }, formattedAddress: "Kyoto", location: { latitude: 35.03, longitude: 135.72 } };
+  const googlePlace = { id: "ChIJ123", displayName: { text: "Kinkaku-ji" }, formattedAddress: "Kyoto", addressComponents: [{ longText: "Kita Ward", types: ["sublocality_level_1", "sublocality"] }, { longText: "Kyoto", types: ["locality"] }], location: { latitude: 35.03, longitude: 135.72 } };
   const reply = (body: unknown, status = 200) => Promise.resolve(new Response(JSON.stringify(body), { status }));
 
   it("searches with the key, a field mask and the text query", async () => {
     const fetchFn = vi.fn(() => reply({ places: [googlePlace, { id: "no-location" }] }));
     const found = await googlePlaceProvider("KEY", fetchFn as unknown as typeof fetch).search("kinkaku");
-    expect(found).toEqual<Place[]>([{ id: "ChIJ123", name: "Kinkaku-ji", address: "Kyoto", lat: 35.03, lng: 135.72 }]);
+    expect(found).toEqual<Place[]>([{ id: "ChIJ123", name: "Kinkaku-ji", address: "Kyoto", area: "Kita Ward, Kyoto", lat: 35.03, lng: 135.72 }]);
     const [url, init] = fetchFn.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe("https://places.googleapis.com/v1/places:searchText");
-    expect(init.headers).toMatchObject({ "X-Goog-Api-Key": "KEY", "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.location" });
+    expect(init.headers).toMatchObject({ "X-Goog-Api-Key": "KEY", "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.addressComponents,places.location" });
     expect(JSON.parse(init.body as string)).toMatchObject({ textQuery: "kinkaku" });
   });
 
@@ -221,7 +257,7 @@ describe("Google place provider", () => {
     expect(await provider.get("fake:nara park")).toBeUndefined();
     const [url, init] = fetchFn.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe("https://places.googleapis.com/v1/places/fake%3Anara%20park");
-    expect(init.headers).toMatchObject({ "X-Goog-FieldMask": "id,displayName,formattedAddress,location" });
+    expect(init.headers).toMatchObject({ "X-Goog-FieldMask": "id,displayName,formattedAddress,addressComponents,location" });
     expect(init.signal).toBeInstanceOf(AbortSignal);
   });
 

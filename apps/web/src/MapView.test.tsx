@@ -8,7 +8,7 @@ import { makeDay, makeEvent, makeTrip, renderApp } from "./test-helpers";
 
 vi.mock("./api", () => ({ getPlaces: vi.fn() }));
 
-const place = (id: string, name: string, lat: number, lng: number): Place => ({ id, name, address: "", lat, lng });
+const place = (id: string, name: string, lat: number, lng: number): Place => ({ id, name, address: "", area: "", lat, lng });
 const PLACES = [place("p-temple", "Temple", 35, 135), place("p-market", "Market", 35.01, 135.02), place("p-park", "Park", 34.9, 135.1)];
 
 const temple = makeEvent({ title: "Visit temple", startMinute: 540, placeId: "p-temple" });

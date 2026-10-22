@@ -18,6 +18,7 @@ import {
   type Leg,
 } from "@travel-planner/shared";
 import type { DropPreview } from "./dropPreview";
+import { eventArea } from "./eventArea";
 import { EventThumb } from "./eventImage";
 import { KindIcon } from "./kinds";
 import { formatDuration, MODE_ICONS, modeKey } from "./legFormat";
@@ -27,6 +28,7 @@ import type { MessageKey } from "./messages";
 import { endGesture, gestureJustEnded } from "./gesture";
 import { Plus, TriangleAlert } from "lucide-react";
 import { ChangedEventsContext } from "./liveContext";
+import { usePlaces } from "./placeCache";
 import { useContext, useEffect, useMemo, useState, type MouseEvent, type PointerEvent } from "react";
 
 export const PX_PER_HOUR = 64;
@@ -137,6 +139,8 @@ export function DayTimeline({
 }: Props) {
   const t = useT();
   const placements = new Map(layoutDay(events).map((p) => [p.id, p]));
+  // The areas shown after the times, looked up for the whole Day at once (cached for the session).
+  const { places } = usePlaces(useMemo(() => events.flatMap((e) => [e.placeId, e.destinationId].filter((id): id is string => !!id)), [events]));
   const [resizing, setResizing] = useState<({ id: string } & EventTimes) | undefined>();
   // The slot whose buttons are shown by a tap (touch screens); a hover or focus shows them too.
   const [openSlot, setOpenSlot] = useState<string | undefined>();
@@ -229,6 +233,7 @@ export function DayTimeline({
             selected={event.id === selectedEventId}
             resizing={resizing?.id === event.id}
             openingConflict={openingConflicts?.has(event.id) ?? false}
+            area={eventArea(event, places)}
             onSelect={() => {
               if (!gestureJustEnded()) onSelectEvent(event.id);
             }}
@@ -281,6 +286,8 @@ type CardProps = {
   selected: boolean;
   resizing: boolean;
   openingConflict: boolean;
+  // The place's area shown after the time; empty for none.
+  area: string;
   onSelect: () => void;
   onResizeStart: (edge: "top" | "bottom", e: PointerEvent<HTMLElement>) => void;
 };
@@ -295,6 +302,7 @@ function EventCard({
   selected,
   resizing,
   openingConflict,
+  area,
   onSelect,
   onResizeStart,
 }: CardProps) {
@@ -313,7 +321,7 @@ function EventCard({
     ? t(preview.area === "backlog" ? "area.backlog" : "area.archive")
     : preview?.startMinute !== undefined
       ? `${preview.dayPosition ? `${t("day.title", { n: preview.dayPosition })} · ` : ""}${formatMinute(preview.startMinute)} – ${formatEnd(preview.startMinute + times.durationMinutes)}`
-      : `${formatMinute(times.startMinute)} – ${formatEnd(realEnd)}`;
+      : `${formatMinute(times.startMinute)} – ${formatEnd(realEnd)}${area ? ` · ${area}` : ""}`;
   const tall = drawnHeight >= THUMB_MIN_HEIGHT;
   const changedByOther = useContext(ChangedEventsContext).has(event.id);
   const classes = ["event-card", `kind-${event.kind}`, selected && "selected", openingConflict && "warn", isDragging && "dragging", changedByOther && "changed"].filter(Boolean).join(" ");

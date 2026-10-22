@@ -28,19 +28,19 @@ const MAX_SEARCH_RESULTS = 8;
 
 // A few places in Kyoto, Osaka and Nara for development and tests, so no key is needed.
 const FAKE_PLACES: Place[] = [
-  ["fushimi-inari", "Fushimi Inari Taisha", "68 Fukakusa Yabunouchicho, Fushimi Ward, Kyoto", 34.9671, 135.7727],
-  ["kinkaku-ji", "Kinkaku-ji", "1 Kinkakujicho, Kita Ward, Kyoto", 35.0394, 135.7292],
-  ["arashiyama-bamboo", "Arashiyama Bamboo Grove", "Sagaotenryuji Susukinobabacho, Ukyo Ward, Kyoto", 35.017, 135.6713],
-  ["nishiki-market", "Nishiki Market", "Nishidaimonjicho, Nakagyo Ward, Kyoto", 35.005, 135.7649],
-  ["kyoto-station", "Kyoto Station", "Higashishiokojicho, Shimogyo Ward, Kyoto", 34.9858, 135.7588],
-  ["granvia-kyoto", "Hotel Granvia Kyoto", "JR Kyoto Station Karasuma Central Exit, Kyoto", 34.9855, 135.7587],
-  ["osaka-castle", "Osaka Castle", "1-1 Osakajo, Chuo Ward, Osaka", 34.6873, 135.5262],
-  ["dotonbori", "Dotonbori", "Dotonbori, Chuo Ward, Osaka", 34.6687, 135.5013],
-  ["osaka-nanko-port", "Osaka Nanko Port", "Nanko Kita, Suminoe Ward, Osaka", 34.6112, 135.4153],
-  ["nara-park", "Nara Park", "Zoshicho, Nara", 34.685, 135.8430],
-  ["todai-ji", "Todai-ji", "406-1 Zoshicho, Nara", 34.6890, 135.8398],
-  ["beppu-port", "Beppu International Tourist Port", "Beppu, Oita", 33.2892, 131.5001],
-].map(([id, name, address, lat, lng]) => ({ id: `fake:${id}`, name, address, lat, lng }) as Place);
+  ["fushimi-inari", "Fushimi Inari Taisha", "68 Fukakusa Yabunouchicho, Fushimi Ward, Kyoto", "Fushimi Ward, Kyoto", 34.9671, 135.7727],
+  ["kinkaku-ji", "Kinkaku-ji", "1 Kinkakujicho, Kita Ward, Kyoto", "Kita Ward, Kyoto", 35.0394, 135.7292],
+  ["arashiyama-bamboo", "Arashiyama Bamboo Grove", "Sagaotenryuji Susukinobabacho, Ukyo Ward, Kyoto", "Ukyo Ward, Kyoto", 35.017, 135.6713],
+  ["nishiki-market", "Nishiki Market", "Nishidaimonjicho, Nakagyo Ward, Kyoto", "Nakagyo Ward, Kyoto", 35.005, 135.7649],
+  ["kyoto-station", "Kyoto Station", "Higashishiokojicho, Shimogyo Ward, Kyoto", "Shimogyo Ward, Kyoto", 34.9858, 135.7588],
+  ["granvia-kyoto", "Hotel Granvia Kyoto", "JR Kyoto Station Karasuma Central Exit, Kyoto", "Shimogyo Ward, Kyoto", 34.9855, 135.7587],
+  ["osaka-castle", "Osaka Castle", "1-1 Osakajo, Chuo Ward, Osaka", "Chuo Ward, Osaka", 34.6873, 135.5262],
+  ["dotonbori", "Dotonbori", "Dotonbori, Chuo Ward, Osaka", "Chuo Ward, Osaka", 34.6687, 135.5013],
+  ["osaka-nanko-port", "Osaka Nanko Port", "Nanko Kita, Suminoe Ward, Osaka", "Suminoe Ward, Osaka", 34.6112, 135.4153],
+  ["nara-park", "Nara Park", "Zoshicho, Nara", "Nara", 34.685, 135.8430],
+  ["todai-ji", "Todai-ji", "406-1 Zoshicho, Nara", "Nara", 34.6890, 135.8398],
+  ["beppu-port", "Beppu International Tourist Port", "Beppu, Oita", "Beppu", 33.2892, 131.5001],
+].map(([id, name, address, area, lat, lng]) => ({ id: `fake:${id}`, name, address, area, lat, lng }) as Place);
 
 const h = (hours: number, minutes = 0) => hours * 60 + minutes;
 
@@ -106,14 +106,34 @@ const googlePlaceSchema = z.object({
   id: z.string(),
   displayName: z.object({ text: z.string() }).optional(),
   formattedAddress: z.string().optional(),
+  addressComponents: z.array(z.object({ longText: z.string().optional(), types: z.array(z.string()).optional() })).optional(),
   location: z.object({ latitude: z.number(), longitude: z.number() }).optional(),
 });
+
+type AddressComponent = { longText?: string; types?: string[] };
+
+// The short area for an Event block from Google's address components: the district (a ward in
+// Japan) and the city, "Fushimi Ward, Kyoto". The street and number are left out, as the block
+// is narrow; the first component of each kind wins. Either part may be missing, and a district
+// named like its city ("Singapore") is not repeated.
+export function areaFromComponents(components: AddressComponent[] = []): string {
+  const find = (...types: string[]) => {
+    for (const type of types) {
+      const found = components.find((c) => c.longText && c.types?.includes(type));
+      if (found) return found.longText!;
+    }
+    return undefined;
+  };
+  const district = find("sublocality_level_1", "sublocality", "neighborhood");
+  const city = find("locality", "postal_town", "administrative_area_level_2", "administrative_area_level_1");
+  return [...new Set([district, city].filter((part): part is string => !!part))].join(", ");
+}
 
 function fromGoogle(raw: unknown): Place | undefined {
   const parsed = googlePlaceSchema.safeParse(raw);
   if (!parsed.success || !parsed.data.location) return undefined;
-  const { id, displayName, formattedAddress, location } = parsed.data;
-  return { id, name: displayName?.text ?? "", address: formattedAddress ?? "", lat: location.latitude, lng: location.longitude };
+  const { id, displayName, formattedAddress, addressComponents, location } = parsed.data;
+  return { id, name: displayName?.text ?? "", address: formattedAddress ?? "", area: areaFromComponents(addressComponents), lat: location.latitude, lng: location.longitude };
 }
 
 const googleHoursSchema = z.object({
@@ -173,7 +193,7 @@ const PHOTO_WIDTH_PX = 1200;
 
 const REQUEST_TIMEOUT_MS = 5000;
 
-const FIELDS = "id,displayName,formattedAddress,location";
+const FIELDS = "id,displayName,formattedAddress,addressComponents,location";
 const HOURS_FIELDS = "id,regularOpeningHours,businessStatus";
 
 // Google Places API (New). Place search is a text query; details are read by place id.
@@ -253,7 +273,7 @@ async function remember(db: Db, found: Place[], now: Date) {
     .values(once.map((p) => ({ ...p, fetchedAt: now })))
     .onConflictDoUpdate({
       target: places.id,
-      set: { name: sql`excluded."name"`, address: sql`excluded."address"`, lat: sql`excluded."lat"`, lng: sql`excluded."lng"`, fetchedAt: now },
+      set: { name: sql`excluded."name"`, address: sql`excluded."address"`, area: sql`excluded."area"`, lat: sql`excluded."lat"`, lng: sql`excluded."lng"`, fetchedAt: now },
     });
 }
 
@@ -273,17 +293,28 @@ export async function getPlaces(db: Db, provider: PlaceProvider, ids: string[], 
   const oldest = now.getTime() - PLACE_CACHE_DAYS * 24 * 60 * 60 * 1000;
   const known = new Map<string, Place>();
   const refetch: string[] = [];
+  // Fresh rows cached before the area existed (null): fetched again for the area, but served
+  // without one if that fails, as they were before.
+  const withoutArea = new Map<string, Place>();
   for (const id of unique) {
     const row = rows.get(id);
-    if (row && row.fetchedAt.getTime() > oldest) known.set(id, placeSchema.parse({ id, name: row.name, address: row.address, lat: row.lat, lng: row.lng }));
-    else refetch.push(id);
+    const fresh = row && row.fetchedAt.getTime() > oldest;
+    if (row && fresh && row.area !== null) known.set(id, placeSchema.parse({ id, name: row.name, address: row.address, area: row.area, lat: row.lat, lng: row.lng }));
+    else {
+      if (row && fresh) withoutArea.set(id, placeSchema.parse({ id, name: row.name, address: row.address, area: "", lat: row.lat, lng: row.lng }));
+      refetch.push(id);
+    }
   }
   const settled = await Promise.allSettled(refetch.map((id) => provider.get(id)));
   const fresh = settled.flatMap((r) => (r.status === "fulfilled" && r.value ? [r.value] : []));
   // What did arrive is kept even when another lookup failed.
   await remember(db, fresh, now);
   for (const p of fresh) known.set(p.id, p);
-  const failed = settled.find((r) => r.status === "rejected");
+  for (const [i, r] of settled.entries()) {
+    const id = refetch[i]!;
+    if (r.status === "rejected" && withoutArea.has(id)) known.set(id, withoutArea.get(id)!);
+  }
+  const failed = settled.find((r, i): r is PromiseRejectedResult => r.status === "rejected" && !withoutArea.has(refetch[i]!));
   if (failed) throw failed.reason;
   const gone = refetch.filter((id) => !known.has(id));
   if (gone.length > 0) await db.delete(places).where(inArray(places.id, gone));

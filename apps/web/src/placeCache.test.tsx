@@ -7,7 +7,7 @@ import { usePlaces } from "./placeCache";
 
 vi.mock("./api", () => ({ getPlaces: vi.fn() }));
 
-const place = (id: string): Place => ({ id, name: id, address: "", lat: 35, lng: 135 });
+const place = (id: string): Place => ({ id, name: id, address: "", area: "", lat: 35, lng: 135 });
 
 afterEach(() => vi.clearAllMocks());
 

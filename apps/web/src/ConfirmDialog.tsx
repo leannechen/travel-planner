@@ -6,6 +6,8 @@ type Props = {
   confirmLabel: string;
   // Danger (red) for deleting, primary (blue) for a move that is not a loss of the Event itself.
   tone?: "danger" | "primary";
+  // Greys out the confirm button, e.g. until the Trip title is typed.
+  confirmDisabled?: boolean;
   // Shows a "Do not remind me again" checkbox; its state is passed to onConfirm.
   reminderOption?: boolean;
   children: ReactNode;
@@ -14,7 +16,7 @@ type Props = {
 };
 
 // A modal confirmation. Cancel is focused first, so Enter never confirms by accident; Escape cancels.
-export function ConfirmDialog({ title, confirmLabel, tone = "danger", reminderOption, children, onConfirm, onCancel }: Props) {
+export function ConfirmDialog({ title, confirmLabel, confirmDisabled, tone = "danger", reminderOption, children, onConfirm, onCancel }: Props) {
   const t = useT();
   const dialog = useRef<HTMLDialogElement>(null);
   const [skip, setSkip] = useState(false);
@@ -37,7 +39,7 @@ export function ConfirmDialog({ title, confirmLabel, tone = "danger", reminderOp
         <button type="button" autoFocus onClick={onCancel}>
           {t("generic.cancel")}
         </button>
-        <button type="button" className={tone === "danger" ? "danger" : "primary"} onClick={() => onConfirm(skip)}>
+        <button type="button" className={tone === "danger" ? "danger" : "primary"} disabled={confirmDisabled} onClick={() => onConfirm(skip)}>
           {confirmLabel}
         </button>
       </div>

@@ -150,9 +150,11 @@ export const createTrip = (input: CreateTripInput) => request("/api/trips", trip
 // The user's copy of the sample Trip: made on the first call, the same one after that (PRD §1).
 export const openSampleTrip = () => request("/api/sample-trip", sampleTripResponseSchema, undefined, "POST");
 
-// Trip settings; the answer is the start date as saved.
+// Trip settings; the answer is the title and start date as saved.
 export const updateTrip = (tripId: string, input: UpdateTripInput) =>
-  request(`/api/trips/${tripId}`, z.object({ startDate: startDateSchema.nullable() }), input, "PATCH");
+  request(`/api/trips/${tripId}`, z.object({ title: tripSchema.shape.title, startDate: startDateSchema.nullable() }), input, "PATCH");
+
+export const deleteTrip = (tripId: string) => requestNothing(`/api/trips/${tripId}`, "DELETE");
 
 export const addEvent = (tripId: string, dayId: string, input: CreateEventInput) =>
   request(`/api/trips/${tripId}/days/${dayId}/events`, eventSchema, input);

@@ -6,11 +6,13 @@ type Props = {
   submitLabel: string;
   onSubmit: (title: string) => Promise<void>;
   disabled?: boolean;
+  // Starts with this text, and keeps it after submitting (a rename).
+  initial?: string;
 };
 
-export function TitleForm({ label, submitLabel, onSubmit, disabled = false }: Props) {
+export function TitleForm({ label, submitLabel, onSubmit, disabled = false, initial = "" }: Props) {
   const t = useT();
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState(initial);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | undefined>();
 
@@ -23,7 +25,7 @@ export function TitleForm({ label, submitLabel, onSubmit, disabled = false }: Pr
     setError(undefined);
     try {
       await onSubmit(trimmed);
-      setTitle("");
+      if (initial === "") setTitle("");
     } catch (err) {
       setError(err instanceof Error ? err.message : t("generic.error"));
     } finally {
@@ -33,7 +35,7 @@ export function TitleForm({ label, submitLabel, onSubmit, disabled = false }: Pr
 
   return (
     <form onSubmit={handleSubmit}>
-      <input aria-label={label} placeholder={label} value={title} onChange={(e) => setTitle(e.target.value)} />
+      <input autoFocus={initial !== ""} aria-label={label} placeholder={label} value={title} onChange={(e) => setTitle(e.target.value)} />
       <button type="submit" disabled={pending || disabled}>
         {submitLabel}
       </button>

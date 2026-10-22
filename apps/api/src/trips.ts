@@ -261,14 +261,46 @@ export async function createTrip(db: Db, userId: string, input: CreateTripInput)
   });
 }
 
-// Changes the Trip's settings; undefined when it is not owned by this user.
-export async function updateTrip(db: Db, userId: string, tripId: string, input: UpdateTripInput): Promise<{ startDate: string | null } | undefined> {
+// Changes the Trip's settings; undefined when the user cannot change them. The start date is for the
+// Owner and Editors, the title for the Owner only (PRD §8.1).
+export async function updateTrip(
+  db: Db,
+  userId: string,
+  tripId: string,
+  input: UpdateTripInput,
+): Promise<{ title: string; startDate: string | null } | undefined> {
   const [row] = await db
     .update(trips)
-    .set({ startDate: input.startDate })
-    .where(and(eq(trips.id, tripId), editableBy(userId)))
-    .returning({ startDate: trips.startDate });
+    .set({
+      ...(input.startDate !== undefined && { startDate: input.startDate }),
+      ...(input.title !== undefined && { title: input.title }),
+    })
+    .where(and(eq(trips.id, tripId), input.title !== undefined ? eq(trips.ownerId, userId) : editableBy(userId)))
+    .returning({ title: trips.title, startDate: trips.startDate });
   return row;
+}
+
+// Deletes the Trip with everything in it (cascade). Owner only; false when it is not theirs. The keys
+// of the uploaded images are put in `gone.imageKeys`: the caller deletes the files.
+export async function deleteTrip(db: Db, userId: string, tripId: string, gone: { imageKeys: string[] } = { imageKeys: [] }): Promise<boolean> {
+  return db.transaction(async (tx) => {
+    // The exclusive lock waits for every change in progress (they hold a shared one) and keeps new
+    // ones out, so no image is uploaded between reading the keys and deleting the rows.
+    const [trip] = await tx
+      .select({ id: trips.id })
+      .from(trips)
+      .where(and(eq(trips.id, tripId), eq(trips.ownerId, userId)))
+      .for("update");
+    if (!trip) return false;
+    const images = await tx
+      .select({ key: eventImages.storageKey })
+      .from(eventImages)
+      .innerJoin(events, eq(events.id, eventImages.eventId))
+      .where(eq(events.tripId, tripId));
+    gone.imageKeys = images.map((image) => image.key);
+    await tx.delete(trips).where(eq(trips.id, tripId));
+    return true;
+  });
 }
 
 // Returns undefined when the Day is not in a Trip owned by this user.
@@ -437,6 +469,10 @@ export async function setEventImage(
   let event: Event | undefined;
   try {
     event = await db.transaction(async (tx) => {
+      // The shared lock on the Trip keeps deleteTrip from reading the image keys while this row is
+      // not yet committed (it would miss the file).
+      const [trip] = await tx.select({ id: trips.id }).from(trips).where(eq(trips.id, tripId)).for("share");
+      if (!trip) return undefined;
       const [locked] = await tx
         .select({ id: events.id })
         .from(events)

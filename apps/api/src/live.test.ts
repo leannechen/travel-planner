@@ -145,6 +145,20 @@ describe("live collaboration", () => {
     expect(await editor.closed).toBe(4403);
   });
 
+  it("ends every connection to a Trip when its Owner deletes it", async () => {
+    const trip = await ownerTrip();
+    await withEditor(trip.id);
+    const owner = connect(trip.id, { token: OWNER });
+    const editor = connect(trip.id, { token: MEI });
+    await owner.until((m) => m.type === "ready");
+    await editor.until((m) => m.type === "ready");
+
+    expect((await call("DELETE", `/api/trips/${trip.id}`, OWNER)).status).toBe(204);
+
+    expect(await owner.closed).toBe(4403);
+    expect(await editor.closed).toBe(4403);
+  });
+
   it("lets a Viewer hear about changes without being listed, and cuts them off when the link goes off", async () => {
     const trip = await ownerTrip();
     const { token } = (await (await call("PUT", `/api/trips/${trip.id}/link`, OWNER, { enabled: true })).json()) as { token: string };

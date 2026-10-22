@@ -3,13 +3,14 @@ import { cleanup, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
-import { createTrip, listTrips } from "./api";
+import { createTrip, deleteTrip, listTrips } from "./api";
 import { makeDay, makeEvent, makeTrip, renderApp, setPhone } from "./test-helpers";
 
 vi.mock("./api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("./api")>()),
   listTrips: vi.fn(),
   createTrip: vi.fn(),
+  deleteTrip: vi.fn(async () => undefined),
   getMe: vi.fn(async () => ({ id: "me" })),
   listLegs: vi.fn(async () => []),
   getOpeningHours: vi.fn(async () => ({})),
@@ -43,10 +44,25 @@ const openList = () => userEvent.click(screen.getByRole("button", { name: "Kyoto
 
 async function switchTo(name: string) {
   await openList();
-  await userEvent.click(await screen.findByRole("button", { name: new RegExp(name) }));
+  await userEvent.click(await screen.findByRole("button", { name: new RegExp(`^${name}`) }));
 }
 
 describe("one Trip at a time", () => {
+  it("shows the next Trip after the one shown is deleted", async () => {
+    renderApp(<App />);
+    await screen.findByText("Fushimi Inari");
+    await openList();
+    await userEvent.click(screen.getByRole("button", { name: "Actions for Kyoto" }));
+    await userEvent.click(screen.getByRole("button", { name: "Delete Trip…" }));
+    await userEvent.type(screen.getByLabelText("Type the Trip title to confirm"), "Kyoto");
+    await userEvent.click(screen.getByRole("button", { name: "Delete Trip" }));
+
+    expect(deleteTrip).toHaveBeenCalledWith(kyoto.id);
+    expect(await screen.findByText("Din Tai Fung")).toBeTruthy();
+    expect(screen.queryByText("Fushimi Inari")).toBeNull();
+    await waitFor(() => expect(window.location.pathname).toBe(`/trip/${taipei.id}`));
+  });
+
   it("keeps the Map View when switching Trips", async () => {
     renderApp(<App />);
     await screen.findByText("Fushimi Inari");
@@ -90,8 +106,10 @@ describe("one Trip at a time", () => {
     renderApp(<App />);
     await screen.findByText("Fushimi Inari");
     await openList();
+    await userEvent.click(await screen.findByRole("button", { name: "New Trip" }));
     await userEvent.type(await screen.findByLabelText("Trip title"), "Seoul");
-    await userEvent.click(screen.getByRole("button", { name: "New Trip" }));
+    await userEvent.click(screen.getByRole("button", { name: "Create Trip" }));
+    expect(createTrip).toHaveBeenCalledWith({ title: "Seoul", travelMode: "transit", startDate: null });
     expect(await screen.findByText("Gyeongbokgung")).toBeTruthy();
   });
 

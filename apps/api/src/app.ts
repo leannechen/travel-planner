@@ -68,6 +68,7 @@ import {
   updateEvent,
   updateNote,
   updateTrip,
+  deleteTrip,
   updateTodo,
 } from "./trips";
 
@@ -308,6 +309,20 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
       return;
     }
     res.json(trip);
+  });
+
+  // Owner only; an Editor's Trip answers 404 as if it were not theirs. Everything in the Trip goes,
+  // the uploaded image files too, and anyone with it open is disconnected.
+  app.delete("/api/trips/:tripId", async (req, res) => {
+    const { tripId } = tripParamsSchema.parse(req.params);
+    const gone = { imageKeys: [] as string[] };
+    if (!(await deleteTrip(db, res.locals.userId, tripId, gone))) {
+      res.status(404).json({ error: "Trip not found" });
+      return;
+    }
+    live.kickAll(tripId);
+    await Promise.allSettled(gone.imageKeys.map((key) => images.delete(key)));
+    res.status(204).end();
   });
 
   // Sharing is for accounts (a guest logs in first, PRD §8) and the Owner's: an Editor's Trip

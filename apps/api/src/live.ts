@@ -28,6 +28,8 @@ export type LiveHub = {
   kick(tripId: string, userId: string): void;
   // The share link was turned off: everyone reading through it is disconnected.
   kickViewers(tripId: string): void;
+  // The Trip was deleted: everyone connected to it is disconnected.
+  kickAll(tripId: string): void;
   attach(server: Server): void;
   close(): void;
 };
@@ -154,6 +156,9 @@ export function createLiveHub(db: Db, verifier: TokenVerifier): LiveHub {
     },
     kick(tripId, userId) {
       for (const c of [...(rooms.get(tripId) ?? [])]) if (c.userId === userId) c.socket.close(CLOSE_NO_ACCESS, "No access to this Trip");
+    },
+    kickAll(tripId) {
+      for (const c of [...(rooms.get(tripId) ?? [])]) c.socket.close(CLOSE_NO_ACCESS, "This Trip was deleted");
     },
     // Call close() before the server's own close(): that waits for open connections.
     kickViewers(tripId) {

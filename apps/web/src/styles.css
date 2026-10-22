@@ -1069,7 +1069,12 @@ main.has-panel .topbar {
   gap: 6px;
 }
 
-.event-panel .btn.sm {
+.event-panel .btn.primary:hover {
+  border-color: var(--pri);
+  background: var(--pri);
+}
+
+.btn.sm {
   height: 28px;
   padding: 0 10px;
   font-size: 12px;
@@ -2017,75 +2022,268 @@ main.has-panel .topbar {
   font-weight: 800;
 }
 
-.trip-list-dialog {
-  width: min(26rem, calc(100vw - 32px));
-  padding: 20px 22px 18px;
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
+/* The Trip list: a drawer over the Backlog (design 27, B), a full screen on a phone (design 24). */
+.trip-list-drawer {
+  width: min(20rem, 100vw);
+  max-width: none;
+  /* Under the top bar, so the Trip title stays in view and the Days do not move (design 27, B). */
+  height: calc(100dvh - 56px);
+  max-height: none;
+  margin: 56px 0 0;
+  padding: 0;
+  overflow-y: auto;
+  border: 0;
+  border-right: 1px solid var(--muted);
+  border-radius: 0;
   background: var(--surface);
-  box-shadow: var(--sh-dlg);
+  box-shadow: 6px 0 24px rgba(22, 34, 59, 0.12);
   color: var(--text);
 }
 
-.trip-list-dialog::backdrop {
-  background: rgba(14, 21, 38, 0.5);
+.trip-list-body {
+  box-sizing: border-box;
+  min-height: 100%;
+  padding: 12px 10px;
 }
 
-.trip-list-dialog h2 {
-  margin: 0 0 10px;
-  font-size: 17px;
+.trip-list-drawer::backdrop {
+  background: transparent;
+}
+
+.trip-list-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.trip-list-head h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 15px;
   font-weight: 800;
 }
 
-.trip-list-dialog ul {
-  display: grid;
-  gap: 4px;
-  margin: 0 0 14px;
+.trip-list-new {
+  width: 100%;
+  justify-content: center;
+}
+
+.trip-list-drawer ul {
+  margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.trip-list-dialog li button {
+.trip-item {
+  position: relative;
   display: flex;
-  width: 100%;
+  align-items: center;
+  min-height: 34px;
+  border-radius: var(--r-md);
+}
+
+.trip-item:hover {
+  background: var(--surface2);
+}
+
+.trip-item.on {
+  background: var(--pri-tint);
+  font-weight: 600;
+}
+
+.trip-item-main {
+  display: flex;
+  flex: 1;
+  min-width: 0;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px;
+  padding: 6px 4px 6px 8px;
   border: 0;
-  border-radius: var(--r-md);
   background: none;
-  color: inherit;
-  font: inherit;
   text-align: left;
-  cursor: pointer;
 }
 
-.trip-list-dialog li button[aria-current="true"] {
-  background: var(--pri-tint);
-  font-weight: 700;
-}
-
-.trip-list-name {
+.trip-item-text {
+  display: flex;
   flex: 1;
+  min-width: 0;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.trip-item-name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.trip-list-days {
+.trip-item-days {
+  flex: none;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: 400;
+}
+
+/* The "⋯" shows on hover, on the open Trip, with the keyboard and always on a phone. */
+.trip-item-menu {
+  width: 24px;
+  height: 24px;
+  margin-right: 4px;
+  visibility: hidden;
+}
+
+.trip-item:hover .trip-item-menu,
+.trip-item.on .trip-item-menu,
+.trip-item:focus-within .trip-item-menu {
+  visibility: visible;
+}
+
+.trip-menu {
+  position: absolute;
+  z-index: 3;
+  top: 100%;
+  right: 0;
+  display: grid;
+  width: 200px;
+  padding: 6px;
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--sh-pop);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.trip-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: none;
+  text-align: left;
+}
+
+.trip-menu button:hover {
+  background: var(--surface2);
+}
+
+.trip-menu hr {
+  margin: 4px 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+.trip-menu .danger-text {
+  color: var(--danger);
+}
+
+.trip-delete-confirm {
+  display: grid;
+  gap: 4px;
+  margin-top: 10px;
+  font-size: 13px;
+}
+
+.new-trip-dialog {
+  width: min(27.5rem, calc(100vw - 32px));
+  max-width: none;
+}
+
+.new-trip-dialog input:not([type="radio"]) {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.new-trip-mode {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.new-trip-mode legend {
+  padding: 0;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.segmented {
+  display: flex;
+  margin-top: 4px;
+  overflow: hidden;
+  border: 1px solid var(--border2);
+  border-radius: var(--r-md);
+}
+
+.segmented label {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 34px;
+  cursor: pointer;
+}
+
+.segmented label.on {
+  background: var(--text);
+  color: var(--surface);
+}
+
+.segmented input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.segmented label:has(input:focus-visible) {
+  outline: 2px solid var(--pri);
+  outline-offset: -2px;
+}
+
+.btn.primary {
+  border-color: var(--pri-strong);
+  background: var(--pri-strong);
+  color: var(--onpri);
+  font-weight: 600;
+}
+
+.btn.sm {
+  height: 30px;
 }
 
 @media (max-width: 40rem) {
-  /* A full screen on a phone (design 24, "Trips screen"). */
-  .trip-list-dialog {
+  /* A bottom sheet over a dimmed page; a click on the dimmed part closes it. */
+  .trip-list-drawer {
     width: 100vw;
-    max-width: none;
-    height: 100dvh;
-    max-height: none;
-    border: 0;
-    border-radius: 0;
+    height: auto;
+    max-height: 80dvh;
+    margin: auto 0 0;
+    border-top: 1px solid var(--border2);
+    border-right: 0;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .trip-list-drawer::backdrop {
+    background: rgba(0, 0, 0, 0.3);
+  }
+
+  .trip-list-body {
+    padding: 0 16px 20px;
+  }
+
+  .trip-item {
+    min-height: 56px;
+  }
+
+  .trip-item-menu {
+    visibility: visible;
   }
 }
 
@@ -2488,8 +2686,32 @@ main.has-panel .topbar {
     white-space: normal;
   }
 
+  /* Two rows: the Trip title, Notes and the account on the first, the Schedule / Map switch across
+     the full width on the second (design 02), so nothing is wider than the screen. */
   .topbar {
-    padding: 0 60px 0 12px;
+    flex-wrap: wrap;
+    row-gap: 8px;
+    height: auto;
+    padding: 8px 12px;
+  }
+
+  .topbar h2 {
+    min-width: 0;
+    padding: 0 4px;
+  }
+
+  .topbar .trip-title {
+    max-width: 100%;
+  }
+
+  .topbar .view-switch {
+    order: 10;
+    flex: 1 0 100%;
+  }
+
+  .topbar .view-switch button {
+    flex: 1;
+    justify-content: center;
   }
 
   .topbar .ib {

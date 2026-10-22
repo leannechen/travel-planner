@@ -22,7 +22,7 @@ import {
   type Todo,
   type TodoDeletionSummary,
 } from "@travel-planner/shared";
-import type { CreateEventInput, CreateLegInput, Day, Event, EventFields, Leg, LivePerson, TravelMode, Trip, UpdateEventInput } from "@travel-planner/shared";
+import type { CreateEventInput, CreateTripInput, CreateLegInput, Day, Event, EventFields, Leg, LivePerson, TravelMode, Trip, UpdateEventInput } from "@travel-planner/shared";
 import { Map as MapIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -45,6 +45,7 @@ import {
   uploadEventImage,
   turnOffOpeningHours,
   updateTrip,
+  deleteTrip,
   turnOnOpeningHours,
   updateEvent,
   updateLegMode,
@@ -79,7 +80,7 @@ import { ShortcutSheet } from "./ShortcutSheet";
 import { Toast } from "./Toast";
 import { TitleForm } from "./TitleForm";
 import { chooseTrip, hasTripInAddress, isLandingLocation, openTrip, readWantedTripId, rememberTripId, wantsTripList } from "./currentTrip";
-import { TripListDialog } from "./TripListDialog";
+import { TripListDrawer } from "./TripListDrawer";
 import { TripCard, type EventMove, type Toasted } from "./TripCard";
 
 // `dayId` is a Day id, or "backlog" or "archive" for an Event outside any Day.
@@ -314,8 +315,19 @@ function Workspace({ joinedMessage }: { joinedMessage?: string }) {
     setTrips((current) => current?.map((trip) => (trip.id === tripId ? { ...trip, startDate: saved.startDate } : trip)));
   }
 
-  async function handleCreateTrip(title: string) {
-    const trip = await createTrip({ title });
+  async function handleRenameTrip(tripId: string, title: string) {
+    const saved = await updateTrip(tripId, { title });
+    setTrips((current) => current?.map((trip) => (trip.id === tripId ? { ...trip, title: saved.title } : trip)));
+  }
+
+  // The next Trip to show is the first one left; the page's own choice takes care of it.
+  async function handleDeleteTrip(tripId: string) {
+    await deleteTrip(tripId);
+    setTrips((current) => current?.filter((trip) => trip.id !== tripId));
+  }
+
+  async function handleCreateTrip(input: CreateTripInput) {
+    const trip = await createTrip(input);
     setTrips((current) => [trip, ...(current ?? [])]);
     switchTrip(trip.id);
   }
@@ -956,7 +968,7 @@ function Workspace({ joinedMessage }: { joinedMessage?: string }) {
     <>
     <main className={selectedTrip ? "has-panel" : undefined}>
       {!trip && banners}
-      {trips?.length === 0 && <TitleForm label={t("app.tripTitle")} submitLabel={t("app.createTrip")} onSubmit={handleCreateTrip} />}
+      {trips?.length === 0 && <TitleForm label={t("app.tripTitle")} submitLabel={t("app.createTrip")} onSubmit={(title) => handleCreateTrip({ title })} />}
       {/* An expired session already has its banner. */}
       {error && !expired && <p role="alert">{error}</p>}
       {saveError && !expired && <p role="alert">{saveError}</p>}
@@ -1080,7 +1092,18 @@ function Workspace({ joinedMessage }: { joinedMessage?: string }) {
         <ShareDialog tripId={shareTripId} tripTitle={trips.find((tr) => tr.id === shareTripId)!.title} ownerEmail={auth.email} onClose={() => setShareTripId(undefined)} />
       )}
       {tripListOpen && trips && (
-        <TripListDialog readOnly={expired} trips={trips} currentId={currentTripId} onSwitch={switchTrip} onCreate={handleCreateTrip} onClose={() => setTripListOpen(false)} />
+        <TripListDrawer
+          readOnly={expired}
+          trips={trips}
+          currentId={currentTripId}
+          onSwitch={switchTrip}
+          onCreate={handleCreateTrip}
+          onRename={handleRenameTrip}
+          onDelete={handleDeleteTrip}
+          onOpenSettings={(tripId) => { setTripListOpen(false); setSettingsTripId(tripId); }}
+          onShare={(tripId) => { setTripListOpen(false); if (auth.status === "guest") void auth.login(); else setShareTripId(tripId); }}
+          onClose={() => setTripListOpen(false)}
+        />
       )}
       {sheetOpen && <ShortcutSheet onClose={() => setSheetOpen(false)} />}
       {guard.asking && (

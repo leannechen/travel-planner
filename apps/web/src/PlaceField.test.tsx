@@ -10,8 +10,8 @@ import { renderApp } from "./test-helpers";
 
 vi.mock("./api", () => ({ searchPlaces: vi.fn(), getPlaces: vi.fn() }));
 
-const kinkaku: Place = { id: "p1", name: "Kinkaku-ji", address: "Kita Ward, Kyoto", lat: 35, lng: 135 };
-const nara: Place = { id: "p2", name: "Nara Park", address: "Nara", lat: 34, lng: 135 };
+const kinkaku: Place = { id: "p1", name: "Kinkaku-ji", address: "Kita Ward, Kyoto", area: "Kita Ward, Kyoto", lat: 35, lng: 135 };
+const nara: Place = { id: "p2", name: "Nara Park", address: "Nara", area: "Nara", lat: 34, lng: 135 };
 
 // Holds the chosen id like the Event panel does.
 function Harness({ initial = "", onChange }: { initial?: string; onChange: (id: string) => void }) {

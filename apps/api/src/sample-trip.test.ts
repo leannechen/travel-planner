@@ -138,7 +138,7 @@ describe("the pinned place ids", () => {
   };
 
   it("are used without a search when the provider knows them", async () => {
-    const station = { id: stationId, name: "Kyoto Station", address: "Kyoto", lat: 34.98, lng: 135.76 };
+    const station = { id: stationId, name: "Kyoto Station", address: "Kyoto", area: "Shimogyo Ward, Kyoto", lat: 34.98, lng: 135.76 };
     const searched: string[] = [];
     const provider = {
       ...fakePlaceProvider(),

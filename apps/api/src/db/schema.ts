@@ -171,6 +171,9 @@ export const places = pgTable("places", {
   id: text().primaryKey(),
   name: text().notNull(),
   address: text().notNull(),
+  // The short area ("Fushimi Ward, Kyoto"); an empty string means the provider has none, null that
+  // the row was cached before the field existed, so it is fetched again.
+  area: text(),
   lat: doublePrecision().notNull(),
   lng: doublePrecision().notNull(),
   utcOffsetMinutes: integer(),

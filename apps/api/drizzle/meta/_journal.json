@@ -145,8 +145,15 @@
     {
       "idx": 20,
       "version": "7",
-      "when": 1792652688401,
-      "tag": "0020_sample_trip_departure_time",
+      "when": 1792652983374,
+      "tag": "0020_place_area",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1792654081145,
+      "tag": "0021_sample_trip_departure_time",
       "breakpoints": true
     }
   ]

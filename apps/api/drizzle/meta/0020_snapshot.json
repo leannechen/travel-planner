@@ -1,5 +1,5 @@
 {
-  "id": "89a0f94b-cab4-4cee-8877-ac19f962c545",
+  "id": "9be92868-204d-4958-938b-a401ed617672",
   "prevId": "4968bd7f-8920-409e-9464-9f012fca6fac",
   "version": "7",
   "dialect": "postgresql",
@@ -605,6 +605,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "area": {
+          "name": "area",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "lat": {
           "name": "lat",
           "type": "double precision",
@@ -616,12 +622,6 @@
           "type": "double precision",
           "primaryKey": false,
           "notNull": true
-        },
-        "utcOffsetMinutes": {
-          "name": "utcOffsetMinutes",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
         },
         "fetchedAt": {
           "name": "fetchedAt",
@@ -686,13 +686,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "departureHour": {
-          "name": "departureHour",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": -1
-        },
         "durationMinutes": {
           "name": "durationMinutes",
           "type": "integer",
@@ -716,13 +709,12 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {
-        "route_estimates_fromPlaceId_toPlaceId_mode_departureHour_pk": {
-          "name": "route_estimates_fromPlaceId_toPlaceId_mode_departureHour_pk",
+        "route_estimates_fromPlaceId_toPlaceId_mode_pk": {
+          "name": "route_estimates_fromPlaceId_toPlaceId_mode_pk",
           "columns": [
             "fromPlaceId",
             "toPlaceId",
-            "mode",
-            "departureHour"
+            "mode"
           ]
         }
       },
@@ -1059,12 +1051,6 @@
           "notNull": true,
           "default": false
         },
-        "sampleOf": {
-          "name": "sampleOf",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "createdAt": {
           "name": "createdAt",
           "type": "timestamp with time zone",
@@ -1096,14 +1082,6 @@
           "nullsNotDistinct": false,
           "columns": [
             "shareToken"
-          ]
-        },
-        "trips_owner_sample_unique": {
-          "name": "trips_owner_sample_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "ownerId",
-            "sampleOf"
           ]
         }
       },

@@ -25,6 +25,9 @@ export const placeSchema = z.object({
   id: placeIdSchema,
   name: z.string(),
   address: z.string(),
+  // A short form of the address for the Event block, like "Fushimi Ward, Kyoto"; empty when the
+  // provider has none. Never stored on an Event (PRD §3.2).
+  area: z.string(),
   lat: z.number(),
   lng: z.number(),
   // Local time at the place, minutes ahead of UTC; used to turn a Day's clock time into a departure time.

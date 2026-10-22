@@ -61,7 +61,7 @@ export function EventImageSection({ event, kind, pending, uploading, readOnly, o
           {url && <span className="image-tag">{t("image.yours")}</span>}
         </div>
       ) : (
-        <div className="image-tile" aria-hidden="true">
+        <div className={`image-tile kind-${kind}`} aria-hidden="true">
           <KindIcon kind={kind} transportLabel={null} />
         </div>
       )}

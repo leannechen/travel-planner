@@ -726,7 +726,7 @@ main.has-panel .topbar {
   border-color: var(--bar);
 }
 
-.event-card > button > span {
+.event-card .event-text > span {
   display: block;
 }
 
@@ -747,7 +747,7 @@ main.has-panel .topbar {
   text-overflow: ellipsis;
 }
 
-.event-card > button > span {
+.event-card .event-text > span {
   margin-top: 2px;
   overflow: hidden;
   color: var(--muted);
@@ -2869,7 +2869,7 @@ main.has-panel .topbar {
   padding: 5px 9px 5px 17px;
 }
 
-.event-card > button > .event-warning {
+.event-card .event-text > .event-warning {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -4112,14 +4112,41 @@ main.has-panel .topbar {
 }
 
 /* ---------- Event images ---------- */
-/* The picture on a tall Event card sits left of the text, which wraps around it. */
+/* On a tall Event card the picture, or the kind's icon tile, sits left of the text, centred with it. */
+.event-card > button.has-media {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.event-card .event-text {
+  flex: 1;
+  min-width: 0;
+}
+
 .event-thumb {
-  float: left;
+  flex: none;
   width: 56px;
   height: 56px;
-  margin: 0 8px 0 0;
   border-radius: var(--r-sm);
   object-fit: cover;
+}
+
+.event-card > button > .event-thumb-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  border: 1px dashed var(--border);
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.event-card .event-thumb-tile svg {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: none;
 }
 
 .image-section {
@@ -4165,12 +4192,13 @@ main.has-panel .topbar {
   height: 120px;
   border: 1px dashed var(--border);
   border-radius: var(--r-md);
-  background: var(--surface);
+  background: var(--bg);
+  color: var(--ink);
 }
 
 .image-tile svg {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
 }
 
 .image-tag {

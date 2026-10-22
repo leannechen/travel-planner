@@ -314,6 +314,7 @@ function EventCard({
     : preview?.startMinute !== undefined
       ? `${preview.dayPosition ? `${t("day.title", { n: preview.dayPosition })} · ` : ""}${formatMinute(preview.startMinute)} – ${formatEnd(preview.startMinute + times.durationMinutes)}`
       : `${formatMinute(times.startMinute)} – ${formatEnd(realEnd)}`;
+  const tall = drawnHeight >= THUMB_MIN_HEIGHT;
   const changedByOther = useContext(ChangedEventsContext).has(event.id);
   const classes = ["event-card", `kind-${event.kind}`, selected && "selected", openingConflict && "warn", isDragging && "dragging", changedByOther && "changed"].filter(Boolean).join(" ");
 
@@ -329,20 +330,29 @@ function EventCard({
         width: `${100 / columnCount}%`,
       }}
     >
-      <button type="button" ref={handleRef} onClick={onSelect}>
-        {/* Only a card tall enough has room for the picture next to its text (design 26). */}
-        {event.imageId && drawnHeight >= THUMB_MIN_HEIGHT && <EventImage event={event} decorative className="event-thumb" />}
-        <strong>
-          <KindIcon kind={event.kind} transportLabel={event.transportLabel} />
-          <span className="event-title">{event.title}</span>
-        </strong>
-        <span>{shownTime}</span>
-        {openingConflict && (
-          <span className="event-warning">
-            <TriangleAlert size={12} aria-hidden="true" />
-            {t("opening.conflict")}
-          </span>
-        )}
+      <button type="button" ref={handleRef} onClick={onSelect} className={tall ? "has-media" : undefined}>
+        {/* Only a card tall enough has room for the picture, or the kind's icon in its place, next to the text (design 26). */}
+        {tall &&
+          (event.imageId ? (
+            <EventImage event={event} decorative className="event-thumb" />
+          ) : (
+            <span className="event-thumb event-thumb-tile" aria-hidden="true">
+              <KindIcon kind={event.kind} transportLabel={event.transportLabel} size={24} />
+            </span>
+          ))}
+        <div className="event-text">
+          <strong>
+            <KindIcon kind={event.kind} transportLabel={event.transportLabel} />
+            <span className="event-title">{event.title}</span>
+          </strong>
+          <span>{shownTime}</span>
+          {openingConflict && (
+            <span className="event-warning">
+              <TriangleAlert size={12} aria-hidden="true" />
+              {t("opening.conflict")}
+            </span>
+          )}
+        </div>
       </button>
       {(selected || resizing) && (
         <>

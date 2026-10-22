@@ -184,6 +184,7 @@ Opening hours are a hint, not a fact. Google gives only the usual weekly hours f
 - From a free-text prompt such as "Kanazawa, Japan, 5 days", the system creates a new Trip with Events on Days.
 - Preferences are part of the free text (for example "likes hot springs, relaxed pace"); there are no structured fields in v1.
 - Generated Events use real Google Maps places and are scheduled with times. The user edits the result; they may discard it and generate again.
+- A generated Trip has at most 14 Days and 6 Events per Day. Only specific named places get a location; an Event whose place is not found has none, and the user can add it. Legs are not created (§3.3).
 - AI is limited to creating new Trips and does not read existing Trip content.
 - Only logged-in users can generate a Trip with AI; usage is limited per user per day. Guests cannot use AI, and the landing page has no prompt field. Logged-in users start generation from the New Trip action in their Trip list. The sample Trip is pre-built and does not call AI.
 

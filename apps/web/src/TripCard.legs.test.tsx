@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Leg, Place } from "@travel-planner/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -335,6 +335,23 @@ describe("Legs on the timeline", () => {
     await user.click(screen.getByRole("button", { name: /Open the Leg/ }));
     await user.type(screen.getByRole("textbox", { name: "Duration (minutes)" }), "25{Enter}");
     expect((await screen.findByRole("alert")).textContent).toBe("This Leg has a calculated duration now, so it takes no minutes by hand.");
+  });
+
+  it("moves up when it grows near the bottom of the window, so the minutes field is not cut off", async () => {
+    const user = userEvent.setup();
+    cleanup();
+    let resized: (() => void) | undefined;
+    vi.stubGlobal("ResizeObserver", class { constructor(callback: () => void) { resized = callback; } observe() {} unobserve() {} disconnect() {} });
+    withLeg({ mode: "transit", durationMinutes: 25, distanceMeters: null, manual: true });
+    const pill = screen.getByRole("button", { name: /Open the Leg/ });
+    pill.getBoundingClientRect = () => ({ top: 700, bottom: 722, left: 100, right: 180, width: 80, height: 22, x: 100, y: 700, toJSON() {} });
+    await user.click(pill);
+    const popover = screen.getByRole("dialog");
+    expect(popover.style.top).toBe("692px");
+    await user.click(screen.getByRole("button", { name: "Edit the duration" }));
+    Object.defineProperty(popover, "offsetHeight", { configurable: true, value: 400 });
+    act(() => resized?.());
+    expect(popover.style.top).toBe(`${window.innerHeight - 400 - 8}px`);
   });
 
   it("warns with the entered duration when the gap is shorter", async () => {

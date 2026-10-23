@@ -74,7 +74,9 @@ export function LegPopover({ anchor, from, to, leg, defaultMode, onCreate, onCha
   const fromPlace = usePlace(fromPlaceId ?? "").place;
   const toPlace = usePlace(toPlaceId ?? "").place;
 
-  // Follows the anchor while the page scrolls or resizes.
+  // Follows the anchor while the page scrolls or resizes, and its own height while that changes (the
+  // minutes field opening, an error showing), so near the bottom of the window it moves up instead of
+  // being cut off.
   useLayoutEffect(() => {
     if (phone) return;
     const measure = () => {
@@ -84,9 +86,12 @@ export function LegPopover({ anchor, from, to, leg, defaultMode, onCreate, onCha
     measure();
     window.addEventListener("resize", measure);
     window.addEventListener("scroll", measure, true);
+    const grows = typeof ResizeObserver === "undefined" || !root.current ? undefined : new ResizeObserver(measure);
+    if (grows && root.current) grows.observe(root.current);
     return () => {
       window.removeEventListener("resize", measure);
       window.removeEventListener("scroll", measure, true);
+      grows?.disconnect();
     };
   }, [anchor, phone, leg]);
 

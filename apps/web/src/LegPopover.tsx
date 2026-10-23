@@ -112,7 +112,8 @@ export function LegPopover({ anchor, from, to, leg, defaultMode, onCreate, onCha
   const gap = legGap(from, to);
   const tooShort = leg ? legTooShort(leg, gap) : false;
   const calculated = leg && leg.durationMinutes !== null;
-  const mapLink = calculated && fromPlace && toPlace ? routeUrl(fromPlace, toPlace, leg.mode) : undefined;
+  // Google Maps shows transit where the Routes API has none (Japan), so its link stays for a transit Leg.
+  const mapLink = leg && (calculated || leg.mode === "transit") && fromPlace && toPlace ? routeUrl(fromPlace, toPlace, leg.mode) : undefined;
   const Icon = MODE_ICONS[mode];
   const title = !leg
     ? t("leg.chooserTitle")
@@ -189,7 +190,7 @@ export function LegPopover({ anchor, from, to, leg, defaultMode, onCreate, onCha
               <span>{t("leg.tooShort", { duration: formatDuration(leg.durationMinutes!, t) })}</span>
             </p>
           )}
-          {!calculated && <p className="leg-note">{noLocation ? t("leg.noLocation") : t("leg.noRoute")}</p>}
+          {!calculated && <p className="leg-note">{noLocation ? t("leg.noLocation") : mode === "transit" ? t("leg.noTransit") : t("leg.noRoute")}</p>}
           {error && <p role="alert" className="leg-error">{error}</p>}
           {mapLink && (
             <a href={mapLink} target="_blank" rel="noreferrer">

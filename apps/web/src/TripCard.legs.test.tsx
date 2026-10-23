@@ -227,16 +227,27 @@ describe("Legs on the timeline", () => {
     expect(within(screen.getByRole("dialog")).getByRole("status").textContent).toContain("Gap is shorter than the trip");
   });
 
-  it("shows 'Can't calculate' with no map link when the Leg has no duration", async () => {
+  it("shows 'Can't calculate' with no map link when a Drive Leg has no duration", async () => {
     const user = userEvent.setup();
     cleanup();
-    withLeg({ durationMinutes: null, distanceMeters: null });
+    withLeg({ mode: "drive", durationMinutes: null, distanceMeters: null });
     const pill = screen.getByRole("button", { name: /Open the Leg/ });
     expect(pill.textContent).toContain("Can't calculate");
     await user.click(pill);
     const dialog = screen.getByRole("dialog", { name: "Leg · can't calculate" });
     expect(within(dialog).queryByRole("link")).toBeNull();
     expect(within(dialog).getByText("—")).toBeTruthy();
+    expect(within(dialog).getByText(/No route was found/)).toBeTruthy();
+  });
+
+  it("explains a transit Leg with no route and keeps the Google Maps link", async () => {
+    const user = userEvent.setup();
+    cleanup();
+    withLeg({ mode: "transit", durationMinutes: null, distanceMeters: null });
+    await user.click(screen.getByRole("button", { name: /Open the Leg/ }));
+    const dialog = screen.getByRole("dialog", { name: "Leg · can't calculate" });
+    expect(within(dialog).getByText(/Google gives no transit routes in some countries/)).toBeTruthy();
+    expect(within(dialog).getByRole("link", { name: "Open in Google Maps" })).toBeTruthy();
   });
 
   it("changes the mode at once and deletes without asking", async () => {

@@ -38,7 +38,7 @@ Each non-goal is listed with its reason, so it is not reopened without new infor
 |---|---|
 | Importing Google Maps lists | No official API; the planning flow does not depend on it |
 | AI that adds to an existing Trip | AI in v1 only creates a new Trip; patching an existing plan is a different problem |
-| Manually editing a Leg's duration | Avoids users fighting the computed value; they can change the travel mode instead |
+| Overriding a Leg duration Google calculated | Avoids users fighting the computed value; they can change the travel mode instead. A duration can be entered by hand only where Google cannot calculate one (§3.3, ADR 0009) |
 | Offline editing | Needs conflict handling that interacts with collaboration |
 | Live cursors and merging simultaneous edits to one field | Cost far exceeds value for this domain (ADR 0003) |
 | Exporting a Trip as a document or an image | Not needed (decided 2026-10-23); the full backup is the only export |

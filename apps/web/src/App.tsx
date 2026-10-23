@@ -50,6 +50,7 @@ import {
   importBackup,
   turnOnOpeningHours,
   updateEvent,
+  updateLegDuration,
   updateLegMode,
   updateNote,
   updateTodo,
@@ -480,6 +481,17 @@ function Workspace({ joinedMessage }: { joinedMessage?: string }) {
     void refreshLegs(tripId);
   }
 
+  async function handleSetLegDuration(tripId: string, leg: Leg, durationMinutes: number | null) {
+    legRequests.current++;
+    try {
+      const changed = await updateLegDuration(tripId, leg.id, durationMinutes);
+      setTripLegs(tripId, (legs) => legs.map((l) => (l.id === changed.id ? changed : l)));
+    } finally {
+      // Also when it was refused: the Leg may have been calculated in another session meanwhile.
+      void refreshLegs(tripId);
+    }
+  }
+
   async function handleDeleteLeg(tripId: string, leg: Leg) {
     legRequests.current++;
     await deleteLeg(tripId, leg.id);
@@ -597,6 +609,21 @@ function Workspace({ joinedMessage }: { joinedMessage?: string }) {
     setTripAreas(tripId, (areas) => upsertEvent(areas, event));
   }
 
+  // A Leg whose duration was entered by hand is not calculated again when only an Event's time changes
+  // (ADR 0009), so the user is told to check it: once per save, when the Event keeps its Day and still
+  // has such a Leg before or after it.
+  function remindManualLegs(tripId: string, before: Event | undefined, after: Event) {
+    if (!before || !after.dayId || before.dayId !== after.dayId) return;
+    if (before.startMinute === after.startMinute && before.durationMinutes === after.durationMinutes) return;
+    // A changed place drops the duration entered by hand, so there is nothing to check.
+    if (before.placeId !== after.placeId || before.destinationId !== after.destinationId) return;
+    const trip = tripsRef.current?.find((t) => t.id === tripId);
+    if (!trip) return;
+    const days = trip.days.map((d) => (d.id === after.dayId ? { ...d, events: d.events.map((e) => (e.id === after.id ? after : e)) } : d));
+    const kept = keepAdjacentLegs(days, trip.legs);
+    if (kept.some((l) => l.manual && (l.fromEventId === after.id || l.toEventId === after.id))) setToast({ id: Date.now(), message: t("leg.manualCheck") });
+  }
+
   async function handleUpdateEvent(tripId: string, eventId: string, input: UpdateEventInput) {
     const trip = tripsRef.current?.find((t) => t.id === tripId);
     const current = trip && allEvents(trip).find((e) => e.id === eventId);
@@ -607,6 +634,7 @@ function Workspace({ joinedMessage }: { joinedMessage?: string }) {
     const n = beginSave(eventId);
     const event = await updateEvent(tripId, eventId, input);
     applySaved(tripId, event, n);
+    remindManualLegs(tripId, current, event);
     void refreshLegs(tripId);
     if (input.area === "archive" && current?.holding !== "archive") showArchived();
     return event;
@@ -958,7 +986,10 @@ function Workspace({ joinedMessage }: { joinedMessage?: string }) {
     const { dayId, holding, ...times } = move;
     const patch: UpdateEventInput = { ...times, ...(holding ? { area: holding } : dayId ? { dayId } : {}) };
     try {
-      applySaved(tripId, await updateEvent(tripId, eventId, patch), n);
+      const saved = await updateEvent(tripId, eventId, patch);
+      // A newer save of the same Event has taken over; it reminds about the Leg itself.
+      if (isLatestSave(eventId, n)) remindManualLegs(tripId, current, saved);
+      applySaved(tripId, saved, n);
       void refreshLegs(tripId);
       if (move.holding === "archive" && current.holding !== "archive") showArchived();
     } catch (err) {
@@ -1091,6 +1122,7 @@ function Workspace({ joinedMessage }: { joinedMessage?: string }) {
           onMove={(eventId, move) => handleMove(trip.id, eventId, move)}
           onCreateLeg={(input) => handleCreateLeg(trip.id, input)}
           onChangeLegMode={(leg, mode) => handleChangeLegMode(trip.id, leg, mode)}
+          onSetLegDuration={(leg, minutes) => handleSetLegDuration(trip.id, leg, minutes)}
           onDeleteLeg={(leg) => handleDeleteLeg(trip.id, leg)}
           onToast={setToast}
           notesOpen={notesTripId === trip.id}

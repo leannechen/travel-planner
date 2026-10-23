@@ -3,12 +3,12 @@ import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/re
 import userEvent from "@testing-library/user-event";
 import type { Leg, Place } from "@travel-planner/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { getPlaces } from "./api";
+import { ApiError, getPlaces } from "./api";
 import { TripCard } from "./TripCard";
 import { PreferencesProvider } from "./preferences";
 import { makeDay, makeEvent, makeTrip, renderApp, setPhone } from "./test-helpers";
 
-vi.mock("./api", () => ({ insertDay: vi.fn(), deleteDay: vi.fn(), reorderDays: vi.fn(), restoreDay: vi.fn(), getPlaces: vi.fn() }));
+vi.mock("./api", async (importOriginal) => ({ ApiError: (await importOriginal<typeof import("./api")>()).ApiError, insertDay: vi.fn(), deleteDay: vi.fn(), reorderDays: vi.fn(), restoreDay: vi.fn(), getPlaces: vi.fn() }));
 
 const kyoto: Place = { id: "p1", name: "Kyoto Station", address: "Kyoto", area: "Kyoto", lat: 35, lng: 135 };
 const kinkaku: Place = { id: "p2", name: "Kinkaku-ji", address: "Kyoto", area: "Kyoto", lat: 35.1, lng: 135.1 };
@@ -31,6 +31,7 @@ function setup(legs: Leg[] = [], events = [a, b, c]) {
     onMove: vi.fn(),
     onCreateLeg: vi.fn().mockResolvedValue(undefined),
     onChangeLegMode: vi.fn().mockResolvedValue(undefined),
+    onSetLegDuration: vi.fn().mockResolvedValue(undefined),
     onDeleteLeg: vi.fn().mockResolvedValue(undefined),
     onToast: vi.fn(),
     notesOpen: false,
@@ -52,6 +53,7 @@ const leg = (dayId: string, from: string, to: string, overrides: Partial<Leg> = 
   mode: "transit",
   durationMinutes: 25,
   distanceMeters: 7400,
+  manual: false,
   ...overrides,
 });
 
@@ -171,6 +173,7 @@ describe("Legs on the timeline", () => {
       onMove: vi.fn(),
       onCreateLeg: vi.fn(),
       onChangeLegMode: vi.fn().mockResolvedValue(undefined),
+      onSetLegDuration: vi.fn().mockResolvedValue(undefined),
       onDeleteLeg: vi.fn().mockResolvedValue(undefined),
       onToast: vi.fn(),
       notesOpen: false,
@@ -227,7 +230,7 @@ describe("Legs on the timeline", () => {
     expect(within(screen.getByRole("dialog")).getByRole("status").textContent).toContain("Gap is shorter than the trip");
   });
 
-  it("shows 'Can't calculate' with no map link when a Drive Leg has no duration", async () => {
+  it("shows 'Can't calculate' for a Drive Leg with no route, with the map link and a minutes field", async () => {
     const user = userEvent.setup();
     cleanup();
     withLeg({ mode: "drive", durationMinutes: null, distanceMeters: null });
@@ -235,19 +238,111 @@ describe("Legs on the timeline", () => {
     expect(pill.textContent).toContain("Can't calculate");
     await user.click(pill);
     const dialog = screen.getByRole("dialog", { name: "Leg · can't calculate" });
-    expect(within(dialog).queryByRole("link")).toBeNull();
     expect(within(dialog).getByText("—")).toBeTruthy();
     expect(within(dialog).getByText(/No route was found/)).toBeTruthy();
+    expect(within(dialog).getByRole("link", { name: "Open in Google Maps" })).toBeTruthy();
+    expect(within(dialog).getByRole("textbox", { name: "Duration (minutes)" })).toBeTruthy();
   });
 
-  it("explains a transit Leg with no route and keeps the Google Maps link", async () => {
+  it("explains a transit Leg with no route, and saves the minutes entered", async () => {
     const user = userEvent.setup();
     cleanup();
-    withLeg({ mode: "transit", durationMinutes: null, distanceMeters: null });
+    const props = withLeg({ mode: "transit", durationMinutes: null, distanceMeters: null });
     await user.click(screen.getByRole("button", { name: /Open the Leg/ }));
     const dialog = screen.getByRole("dialog", { name: "Leg · can't calculate" });
-    expect(within(dialog).getByText(/Google gives no transit routes in some countries/)).toBeTruthy();
+    expect(within(dialog).getByText(/Google gives no public-transit routes in some countries/)).toBeTruthy();
     expect(within(dialog).getByRole("link", { name: "Open in Google Maps" })).toBeTruthy();
+    expect(within(dialog).getByText("Whole minutes, 1 to 1,440.")).toBeTruthy();
+    // Not Clear or Cancel while there is nothing to clear.
+    expect(within(dialog).queryByRole("button", { name: "Clear duration" })).toBeNull();
+    expect(within(dialog).queryByRole("button", { name: "Cancel" })).toBeNull();
+    await user.type(within(dialog).getByRole("textbox", { name: "Duration (minutes)" }), "25{Enter}");
+    expect(props.onSetLegDuration).toHaveBeenCalledWith(props.trip.legs[0], 25);
+  });
+
+  it("refuses minutes outside 1 to 1,440 under the field", async () => {
+    const user = userEvent.setup();
+    cleanup();
+    const props = withLeg({ mode: "transit", durationMinutes: null, distanceMeters: null });
+    await user.click(screen.getByRole("button", { name: /Open the Leg/ }));
+    const field = screen.getByRole("textbox", { name: "Duration (minutes)" });
+    for (const typed of ["0", "1441", "2.5", "abc"]) {
+      await user.clear(field);
+      await user.type(field, typed);
+      await user.click(screen.getByRole("button", { name: "Save" }));
+      expect(screen.getByRole("alert").textContent).toBe("Enter whole minutes from 1 to 1,440.");
+    }
+    expect(props.onSetLegDuration).not.toHaveBeenCalled();
+  });
+
+  it("shows a duration entered by hand with a pencil on the Leg, 'Entered by you' and Edit", async () => {
+    const user = userEvent.setup();
+    cleanup();
+    withLeg({ mode: "transit", durationMinutes: 25, distanceMeters: null, manual: true });
+    const pill = screen.getByRole("button", { name: "Transit, 25 min, entered by you. Open the Leg" });
+    expect(pill.querySelector(".leg-manual-mark")).not.toBeNull();
+    await user.click(pill);
+    const dialog = screen.getByRole("dialog", { name: "Leg · 25 min" });
+    expect(within(dialog).getByRole("tooltip").textContent).toBe("Entered by you");
+    expect(within(dialog).getByRole("button", { name: "Edit the duration" })).toBeTruthy();
+    expect(within(dialog).queryByRole("textbox")).toBeNull();
+    expect(within(dialog).getByRole("link", { name: "Open in Google Maps" })).toBeTruthy();
+  });
+
+  it("edits a duration entered by hand: Save, Cancel, Esc and Clear duration", async () => {
+    const user = userEvent.setup();
+    cleanup();
+    const props = withLeg({ mode: "transit", durationMinutes: 25, distanceMeters: null, manual: true });
+    await user.click(screen.getByRole("button", { name: /Open the Leg/ }));
+    await user.click(screen.getByRole("button", { name: "Edit the duration" }));
+    const field = screen.getByRole("textbox", { name: "Duration (minutes)" });
+    expect((field as HTMLInputElement).value).toBe("25");
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(within(screen.getByRole("dialog")).queryByRole("textbox")).toBeNull();
+
+    // Esc leaves editing, not the popover.
+    await user.click(screen.getByRole("button", { name: "Edit the duration" }));
+    await user.keyboard("{Escape}");
+    expect(within(screen.getByRole("dialog")).queryByRole("textbox")).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Edit the duration" }));
+    await user.clear(screen.getByRole("textbox", { name: "Duration (minutes)" }));
+    await user.type(screen.getByRole("textbox", { name: "Duration (minutes)" }), "40");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    expect(props.onSetLegDuration).toHaveBeenLastCalledWith(props.trip.legs[0], 40);
+
+    await user.click(screen.getByRole("button", { name: "Edit the duration" }));
+    await user.click(screen.getByRole("button", { name: "Clear duration" }));
+    expect(props.onSetLegDuration).toHaveBeenLastCalledWith(props.trip.legs[0], null);
+  });
+
+  it("keeps a duration entered by hand when its own mode is chosen again", async () => {
+    const user = userEvent.setup();
+    cleanup();
+    const props = withLeg({ mode: "transit", durationMinutes: 25, distanceMeters: null, manual: true });
+    await user.click(screen.getByRole("button", { name: /Open the Leg/ }));
+    // The current mode has the focus when the popover opens.
+    await user.keyboard("{Enter}");
+    await user.click(screen.getByRole("button", { name: "Transit" }));
+    expect(props.onChangeLegMode).not.toHaveBeenCalled();
+  });
+
+  it("says so when the Leg was calculated in the meantime", async () => {
+    const user = userEvent.setup();
+    cleanup();
+    const props = withLeg({ mode: "transit", durationMinutes: null, distanceMeters: null });
+    props.onSetLegDuration.mockRejectedValueOnce(new ApiError("Only a Leg ...", "leg_calculated"));
+    await user.click(screen.getByRole("button", { name: /Open the Leg/ }));
+    await user.type(screen.getByRole("textbox", { name: "Duration (minutes)" }), "25{Enter}");
+    expect((await screen.findByRole("alert")).textContent).toBe("This Leg has a calculated duration now, so it takes no minutes by hand.");
+  });
+
+  it("warns with the entered duration when the gap is shorter", async () => {
+    const user = userEvent.setup();
+    cleanup();
+    withLeg({ mode: "transit", durationMinutes: 90, distanceMeters: null, manual: true });
+    await user.click(screen.getByRole("button", { name: /Open the Leg/ }));
+    expect(within(screen.getByRole("dialog")).getByRole("status").textContent).toContain("The trip takes 1 h 30 min (entered by you).");
   });
 
   it("changes the mode at once and deletes without asking", async () => {

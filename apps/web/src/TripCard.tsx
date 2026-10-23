@@ -61,6 +61,7 @@ type Props = {
   onMove: (eventId: string, move: EventMove) => void;
   onCreateLeg: (input: CreateLegInput) => Promise<Leg>;
   onChangeLegMode: (leg: Leg, mode: TravelMode) => Promise<void>;
+  onSetLegDuration: (leg: Leg, durationMinutes: number | null) => Promise<void>;
   onDeleteLeg: (leg: Leg) => Promise<void>;
   // The page shows one toast at a time; a new one replaces the old.
   onToast: (toast: Toasted | undefined) => void;
@@ -106,7 +107,7 @@ function dropTargetAt(root: HTMLElement, x: number, y: number, draggedId: string
   return undefined;
 }
 
-export function TripCard({ trip, onOpenSettings, onOpenTripList, onShare, onDaysChange, selectedEventId, draft, onSelectEvent: selectEventProp, onCreateAt: createAtProp, onAddToBacklog: addToBacklogProp, onMove: moveProp, onCreateLeg, onChangeLegMode, onDeleteLeg, onToast, notesOpen, onToggleNotes, onShowShortcuts, footer, onAddTodo, onToggleTodo, onDeleteTodo, account, collaborators, banner, sidebar, readOnly: readOnlyProp = false, viewer = false }: Props) {
+export function TripCard({ trip, onOpenSettings, onOpenTripList, onShare, onDaysChange, selectedEventId, draft, onSelectEvent: selectEventProp, onCreateAt: createAtProp, onAddToBacklog: addToBacklogProp, onMove: moveProp, onCreateLeg, onChangeLegMode, onSetLegDuration, onDeleteLeg, onToast, notesOpen, onToggleNotes, onShowShortcuts, footer, onAddTodo, onToggleTodo, onDeleteTodo, account, collaborators, banner, sidebar, readOnly: readOnlyProp = false, viewer = false }: Props) {
   const t = useT();
   const { language } = usePreferences();
   const readOnly = readOnlyProp || viewer;
@@ -575,6 +576,7 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onShare, onDays
           defaultMode={trip.travelMode}
           onCreate={(mode) => onCreateLeg({ fromEventId: legFrom.id, toEventId: legTo.id, mode })}
           onChangeMode={onChangeLegMode}
+          onSetDuration={onSetLegDuration}
           onDelete={onDeleteLeg}
           onClose={closeLeg}
         />

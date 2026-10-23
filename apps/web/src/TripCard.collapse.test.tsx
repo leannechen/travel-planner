@@ -29,6 +29,7 @@ function setup() {
       onMove={fn}
       onCreateLeg={fn}
       onChangeLegMode={fn}
+      onSetLegDuration={fn}
       onDeleteLeg={fn}
       onToast={fn}
       notesOpen={false}

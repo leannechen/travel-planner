@@ -48,7 +48,7 @@ const trip: Trip = {
     { id: id(500), body: "recent", pinned: false, updatedAt: "2026-10-02T00:00:00.000Z" },
     { id: id(501), body: "pinned", pinned: true, updatedAt: "2026-10-01T00:00:00.000Z" },
   ],
-  legs: [{ id: id(600), dayId: id(200), fromEventId: id(1), toEventId: id(2), mode: "transit", durationMinutes: 10, distanceMeters: 500 }],
+  legs: [{ id: id(600), dayId: id(200), fromEventId: id(1), toEventId: id(2), mode: "transit", durationMinutes: 10, distanceMeters: 500, manual: false }],
 };
 
 describe("buildBackup", () => {

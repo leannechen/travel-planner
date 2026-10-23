@@ -276,6 +276,10 @@ export const createLeg = (tripId: string, input: CreateLegInput) => request(`/ap
 export const updateLegMode = (tripId: string, legId: string, mode: TravelMode) =>
   request(`/api/trips/${tripId}/legs/${legId}`, legSchema, { mode }, "PATCH");
 
+// A duration entered by hand for a Leg that cannot be calculated, or null to clear it (ADR 0009).
+export const updateLegDuration = (tripId: string, legId: string, durationMinutes: number | null) =>
+  request(`/api/trips/${tripId}/legs/${legId}`, legSchema, { durationMinutes }, "PATCH");
+
 // The server answers 204 with no body.
 export const deleteLeg = (tripId: string, legId: string) => requestNothing(`/api/trips/${tripId}/legs/${legId}`, "DELETE");
 

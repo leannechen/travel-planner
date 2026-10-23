@@ -1866,6 +1866,119 @@ main.has-panel .topbar {
   font-size: 12px;
 }
 
+/* A duration entered by hand (ADR 0009, designs 25b, 25c). */
+.leg-manual-mark {
+  opacity: 0.75;
+}
+
+.leg-duration-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.leg-info {
+  position: relative;
+  display: inline-flex;
+}
+
+.leg-info .ib {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  color: var(--muted);
+}
+
+.leg-tip {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  z-index: 1;
+  display: none;
+  padding: 3px 8px;
+  border-radius: var(--r-xs);
+  background: var(--pri-strong);
+  color: var(--onpri);
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+
+.leg-info:hover .leg-tip,
+.leg-info .ib:focus-visible + .leg-tip,
+.leg-tip.open {
+  display: block;
+}
+
+.leg-duration-value {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.leg-duration {
+  margin: 0 0 10px;
+}
+
+.leg-duration-row {
+  display: flex;
+  gap: 6px;
+}
+
+.leg-duration-row input {
+  flex: 1;
+  min-width: 0;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--border2);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.leg-duration-row input:focus-visible {
+  border-color: var(--pri);
+  outline: none;
+  box-shadow: var(--focus);
+}
+
+.leg-duration-row input[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+.leg-duration-row .btn.pri {
+  border-color: var(--pri-strong);
+  background: var(--pri-strong);
+  color: var(--onpri);
+}
+
+.leg-hint,
+.leg-field-error {
+  margin: 4px 0 0;
+  font-size: 12px;
+}
+
+.leg-hint {
+  color: var(--muted);
+}
+
+.leg-field-error {
+  color: var(--danger);
+}
+
+.leg-clear {
+  margin-top: 8px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-weight: 500;
+}
+
 @media (max-width: 40rem) {
   .leg-popover.sheet {
     z-index: 15;
@@ -1887,6 +2000,19 @@ main.has-panel .topbar {
 
   .leg-popover .seg button {
     height: 40px;
+  }
+
+  .leg-duration-row .btn,
+  .leg-duration-row input,
+  .leg-duration-value .btn,
+  .leg-clear {
+    min-height: 44px;
+  }
+
+  .leg-info .ib {
+    width: 44px;
+    height: 44px;
+    margin: -12px -12px -12px -8px;
   }
 
   .leg-actions .btn {

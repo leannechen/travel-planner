@@ -8,6 +8,8 @@ export const DEFAULT_TRAVEL_MODE: TravelMode = "transit";
 
 // A Leg between two adjacent Events of a Day (PRD §3.3). `durationMinutes` and `distanceMeters`
 // are null while the Leg cannot be calculated (an Event has no location, or no route was found).
+// `manual` is a duration the user entered for a Leg that could not be calculated (ADR 0009); it has
+// no distance.
 export const legSchema = z.object({
   id: z.uuid(),
   dayId: z.uuid(),
@@ -16,6 +18,7 @@ export const legSchema = z.object({
   mode: travelModeSchema,
   durationMinutes: z.number().int().positive().nullable(),
   distanceMeters: z.number().int().nonnegative().nullable(),
+  manual: z.boolean(),
 });
 export type Leg = z.infer<typeof legSchema>;
 
@@ -24,7 +27,13 @@ export const createLegInputSchema = z.object({
   toEventId: z.uuid(),
   mode: travelModeSchema,
 });
-export const updateLegInputSchema = z.object({ mode: travelModeSchema });
+// The longest duration that can be entered by hand: a whole day.
+export const MAX_MANUAL_LEG_MINUTES = 1440;
+// A Leg changes its mode (and is calculated again), or is given a duration by hand (null clears it).
+export const updateLegInputSchema = z.union([
+  z.object({ mode: travelModeSchema }).strict(),
+  z.object({ durationMinutes: z.number().int().min(1).max(MAX_MANUAL_LEG_MINUTES).nullable() }).strict(),
+]);
 export type CreateLegInput = z.infer<typeof createLegInputSchema>;
 export type UpdateLegInput = z.infer<typeof updateLegInputSchema>;
 

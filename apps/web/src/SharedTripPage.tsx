@@ -148,6 +148,7 @@ export function SharedTripPage({ token }: { token: string }) {
           onMove={noop}
           onCreateLeg={() => Promise.reject(new Error("read only"))}
           onChangeLegMode={noopAsync}
+          onSetLegDuration={noopAsync}
           onDeleteLeg={noopAsync}
           onToast={noop}
           notesOpen={false}

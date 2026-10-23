@@ -27,6 +27,7 @@ function setup(selectedEventId?: string) {
     onMove: vi.fn(),
     onCreateLeg: vi.fn(),
     onChangeLegMode: vi.fn(),
+    onSetLegDuration: vi.fn(),
     onDeleteLeg: vi.fn(),
     onToast: vi.fn(),
     notesOpen: false,

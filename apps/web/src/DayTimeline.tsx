@@ -26,7 +26,7 @@ import { useT } from "./preferences";
 import type { Params } from "./i18n";
 import type { MessageKey } from "./messages";
 import { endGesture, gestureJustEnded } from "./gesture";
-import { Plus, TriangleAlert } from "lucide-react";
+import { Pencil, Plus, TriangleAlert } from "lucide-react";
 import { ChangedEventsContext } from "./liveContext";
 import { usePlaces } from "./placeCache";
 import { useContext, useEffect, useMemo, useState, type MouseEvent, type PointerEvent } from "react";
@@ -388,11 +388,13 @@ function LegRow({ from, to, leg, range, onOpen }: LegRowProps) {
       <button
         type="button"
         className={warning || none ? "leg-pill warn" : "leg-pill"}
-        aria-label={t("leg.pill", { mode: t(modeKey(leg.mode)), duration })}
+        aria-label={t(leg.manual ? "leg.pillManual" : "leg.pill", { mode: t(modeKey(leg.mode)), duration })}
         onClick={open}
       >
         {warning || none ? <TriangleAlert size={12} aria-hidden="true" /> : <Icon size={12} aria-hidden="true" />}
         {warning ? t("leg.pillShort", { duration, gap: formatDuration(Math.max(gap, 0), t) }) : duration}
+        {/* A duration entered by hand (ADR 0009, design 25b). */}
+        {leg.manual && <Pencil size={10} aria-hidden="true" className="leg-manual-mark" />}
       </button>
     </li>
   );

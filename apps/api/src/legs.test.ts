@@ -9,6 +9,8 @@ const inner = fakeRouteProvider();
 const calls = { estimate: 0 };
 const departures: (Departure | undefined)[] = [];
 let failing = false;
+// While set, there is no route between any two places (as for transit in Japan).
+let noRoute = false;
 // While set, lookups wait for it: a slow provider.
 let gate: Promise<void> | undefined;
 const routes: RouteProvider = {
@@ -17,6 +19,7 @@ const routes: RouteProvider = {
     departures.push(departure);
     await gate;
     if (failing) throw new RouteProviderError("down");
+    if (noRoute) return undefined;
     return inner.estimate(from, to, mode);
   },
 };
@@ -30,6 +33,7 @@ beforeEach(async () => {
   calls.estimate = 0;
   departures.length = 0;
   failing = false;
+  noRoute = false;
   gate = undefined;
 });
 afterAll(() => app.stop());
@@ -186,6 +190,98 @@ describe("changing a Leg", () => {
     failing = true;
     expect((await send("PATCH", `/api/trips/${tripId}/legs/${leg!.id}`, { mode: "drive" })).status).toBe(502);
     expect(await legsOf(tripId)).toEqual([leg]);
+  });
+});
+
+describe("a duration entered by hand (ADR 0009)", () => {
+  const setDuration = (tripId: string, legId: string, durationMinutes: unknown, headers: Record<string, string> = {}) =>
+    fetch(url(`/api/trips/${tripId}/legs/${legId}`), { method: "PATCH", headers: { "content-type": "application/json", ...headers }, body: JSON.stringify({ durationMinutes }) });
+  // A transit Leg Google has no route for.
+  async function uncalculated() {
+    noRoute = true;
+    const made = await tripWithLeg("transit");
+    expect(made.leg).toMatchObject({ durationMinutes: null, manual: false });
+    return made;
+  }
+
+  it("is kept for a Leg that cannot be calculated, with no distance", async () => {
+    const { tripId, leg } = await uncalculated();
+    const res = await setDuration(tripId, leg!.id, 25);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ durationMinutes: 25, distanceMeters: null, manual: true });
+    expect(await legsOf(tripId)).toEqual([{ ...leg, durationMinutes: 25, distanceMeters: null, manual: true }]);
+    // The Trip carries it too, as the page loads it.
+    const [trip] = tripSchema.array().parse(await (await send("GET", "/api/trips")).json());
+    expect(trip!.legs[0]).toMatchObject({ durationMinutes: 25, manual: true });
+  });
+
+  it("can be changed, and cleared back to 'cannot calculate'", async () => {
+    const { tripId, leg } = await uncalculated();
+    await setDuration(tripId, leg!.id, 25);
+    expect(await (await setDuration(tripId, leg!.id, 40)).json()).toMatchObject({ durationMinutes: 40, manual: true });
+    expect(await (await setDuration(tripId, leg!.id, null)).json()).toMatchObject({ durationMinutes: null, distanceMeters: null, manual: false });
+  });
+
+  it("must be whole minutes from 1 to 1,440", async () => {
+    const { tripId, leg } = await uncalculated();
+    for (const value of [0, 1441, 2.5, "25"]) expect((await setDuration(tripId, leg!.id, value)).status).toBe(400);
+    expect((await setDuration(tripId, leg!.id, 1440)).status).toBe(200);
+    const both = await send("PATCH", `/api/trips/${tripId}/legs/${leg!.id}`, { mode: "walk", durationMinutes: 5 });
+    expect(both.status).toBe(400);
+  });
+
+  it("is refused for a Leg that is calculated, or whose Event has no place", async () => {
+    const calculated = await tripWithLeg("walk");
+    const refused = await setDuration(calculated.tripId, calculated.leg!.id, 25);
+    expect(refused.status).toBe(409);
+    expect(await refused.json()).toMatchObject({ code: "leg_calculated" });
+    await send("PATCH", `/api/trips/${calculated.tripId}/events/${calculated.b.id}`, { placeId: null });
+    expect((await setDuration(calculated.tripId, calculated.leg!.id, 25)).status).toBe(409);
+  });
+
+  it("is only for the Trip's Owner and Editors", async () => {
+    const { tripId, leg } = await uncalculated();
+    expect((await setDuration(tripId, leg!.id, 25, { authorization: "Bearer fake:stranger@example.com" })).status).toBe(404);
+    expect((await setDuration(tripId, leg!.id, 25, { "x-guest-id": crypto.randomUUID() })).status).toBe(404);
+    const other = await newTrip();
+    expect((await setDuration(other.tripId, leg!.id, 25)).status).toBe(404);
+  });
+
+  it("is dropped when the mode changes, and the Leg is calculated again", async () => {
+    const { tripId, leg } = await uncalculated();
+    await setDuration(tripId, leg!.id, 25);
+    noRoute = false;
+    const changed = await (await send("PATCH", `/api/trips/${tripId}/legs/${leg!.id}`, { mode: "walk" })).json();
+    expect(changed).toMatchObject({ mode: "walk", manual: false });
+    expect(changed.durationMinutes).not.toBeNull();
+    expect(changed.distanceMeters).not.toBeNull();
+  });
+
+  it("is kept when the mode it already has is asked for again", async () => {
+    const { tripId, leg } = await uncalculated();
+    await setDuration(tripId, leg!.id, 25);
+    noRoute = false;
+    const same = await (await send("PATCH", `/api/trips/${tripId}/legs/${leg!.id}`, { mode: "transit" })).json();
+    expect(same).toMatchObject({ durationMinutes: 25, manual: true });
+  });
+
+  it("is dropped when an Event's place changes", async () => {
+    const { tripId, a, leg } = await uncalculated();
+    await setDuration(tripId, leg!.id, 25);
+    noRoute = false;
+    await send("PATCH", `/api/trips/${tripId}/events/${a.id}`, { placeId: NISHIKI });
+    const [changed] = await legsOf(tripId);
+    expect(changed).toMatchObject({ id: leg!.id, manual: false });
+    expect(changed!.durationMinutes).not.toBe(25);
+  });
+
+  it("is kept when only an Event's time changes, without asking the provider", async () => {
+    const { tripId, a, leg } = await uncalculated();
+    await setDuration(tripId, leg!.id, 25);
+    const before = calls.estimate;
+    await send("PATCH", `/api/trips/${tripId}/events/${a.id}`, { startMinute: 600 });
+    expect(await legsOf(tripId)).toEqual([{ ...leg, durationMinutes: 25, distanceMeters: null, manual: true }]);
+    expect(calls.estimate).toBe(before);
   });
 });
 

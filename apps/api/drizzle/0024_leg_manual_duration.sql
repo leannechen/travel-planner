@@ -1,0 +1,1 @@
+ALTER TABLE "legs" ADD COLUMN "manual" boolean DEFAULT false NOT NULL;

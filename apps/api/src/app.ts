@@ -36,7 +36,7 @@ import { users } from "./db/schema";
 import { acceptInvitation, getSharing, identityAdminFromEnv, IdentityAdminError, inviteEditor, logInvitationMailer, previewInvitation, removeEditor, revokeInvitation, setShareLink, type IdentityAdmin, type InvitationMailer } from "./sharing";
 import { authenticate, GUEST_HEADER, mergeGuest, verifierFromEnv, type TokenVerifier } from "./auth";
 import { createLiveHub } from "./live";
-import { createLeg, deleteLeg, isProviderError, listLegs, setLegMode, syncLegs, type LegDeps } from "./legs";
+import { createLeg, deleteLeg, isProviderError, listLegs, setLegDuration, setLegMode, syncLegs, type LegDeps } from "./legs";
 import { exportBackup } from "./backup";
 import { openSampleTrip } from "./sample-trip";
 import { seedLookupCost, SeedImageError, writeTripSeed } from "./trip-seed";
@@ -738,14 +738,18 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
 
   app.patch("/api/trips/:tripId/legs/:legId", async (req, res) => {
     const { tripId, legId } = legParamsSchema.parse(req.params);
-    const { mode } = updateLegInputSchema.parse(req.body);
+    const input = updateLegInputSchema.parse(req.body);
     if (!(await canEditTrip(db, res.locals.userId, tripId))) {
       res.status(404).json({ error: "Trip not found" });
       return;
     }
-    const result = await setLegMode(db, depsFor(req, res), tripId, legId, mode);
+    const result = "mode" in input ? await setLegMode(db, depsFor(req, res), tripId, legId, input.mode) : await setLegDuration(db, tripId, legId, input.durationMinutes);
     if (!result) {
       res.status(404).json({ error: "Leg not found" });
+      return;
+    }
+    if (result === "not-allowed") {
+      res.status(409).json({ error: "Only a Leg between two places whose duration cannot be calculated takes a duration by hand", code: "leg_calculated" });
       return;
     }
     res.json(result);

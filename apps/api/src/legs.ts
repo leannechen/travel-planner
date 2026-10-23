@@ -6,7 +6,7 @@ import {
   type Place,
   type TravelMode,
 } from "@travel-planner/shared";
-import { and, eq, inArray, isNotNull, ne, sql } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull, ne, or, sql } from "drizzle-orm";
 import type { Db } from "./db/client";
 import { days, events, legs, trips } from "./db/schema";
 import { getPlaces, PlaceProviderError, type PlaceProvider } from "./places";
@@ -26,6 +26,7 @@ const toLeg = (row: typeof legs.$inferSelect): Leg => ({
   mode: row.mode,
   durationMinutes: row.durationMinutes,
   distanceMeters: row.distanceMeters,
+  manual: row.manual,
 });
 
 export async function listLegs(db: Db, tripId: string): Promise<Leg[]> {
@@ -163,8 +164,27 @@ export async function createLeg(db: Db, deps: LegDeps, tripId: string, input: Cr
   });
 }
 
-// Changes a Leg's travel mode and calculates it again, from where its Events are now.
+// Changes a Leg's travel mode and calculates it again, from where its Events are now. Asking for the
+// mode it already has keeps a duration entered by hand: only a change of mode drops it (ADR 0009).
 export async function setLegMode(db: Db, deps: LegDeps, tripId: string, legId: string, mode: TravelMode): Promise<Leg | undefined> {
+  const [row] = await db.select().from(legs).where(and(eq(legs.id, legId), eq(legs.tripId, tripId)));
+  if (!row) return undefined;
+  if (row.manual && row.mode === mode) return toLeg(row);
+  const onDays = await dayEvents(db, tripId);
+  const from = onDays.find((e) => e.id === row.fromEventId);
+  const to = onDays.find((e) => e.id === row.toEventId);
+  if (!from || !to) return undefined;
+  const { fromPlaceId, toPlaceId } = legEndpoints(from, to);
+  const result = await calculate(db, deps, mode, fromPlaceId, toPlaceId, from);
+  const [updated] = await db.update(legs).set({ mode, ...result, manual: false, fromPlaceId, toPlaceId }).where(eq(legs.id, legId)).returning();
+  return updated && toLeg(updated);
+}
+
+// Gives a Leg a duration entered by hand, or clears it (`null`), for a Leg between two places whose
+// duration could not be calculated (ADR 0009). "not-allowed" for a Leg that is calculated or lacks a
+// place, also when it was calculated meanwhile. The Leg keeps the places it is for, so a later sync drops
+// the duration when they change.
+export async function setLegDuration(db: Db, tripId: string, legId: string, durationMinutes: number | null): Promise<Leg | "not-allowed" | undefined> {
   const [row] = await db.select().from(legs).where(and(eq(legs.id, legId), eq(legs.tripId, tripId)));
   if (!row) return undefined;
   const onDays = await dayEvents(db, tripId);
@@ -172,9 +192,13 @@ export async function setLegMode(db: Db, deps: LegDeps, tripId: string, legId: s
   const to = onDays.find((e) => e.id === row.toEventId);
   if (!from || !to) return undefined;
   const { fromPlaceId, toPlaceId } = legEndpoints(from, to);
-  const result = await calculate(db, deps, mode, fromPlaceId, toPlaceId, from);
-  const [updated] = await db.update(legs).set({ mode, ...result, fromPlaceId, toPlaceId }).where(eq(legs.id, legId)).returning();
-  return updated && toLeg(updated);
+  if (!fromPlaceId || !toPlaceId || (!row.manual && row.durationMinutes !== null)) return "not-allowed";
+  const [updated] = await db
+    .update(legs)
+    .set({ durationMinutes, distanceMeters: null, manual: durationMinutes !== null, fromPlaceId, toPlaceId })
+    .where(and(eq(legs.id, legId), or(eq(legs.manual, true), isNull(legs.durationMinutes))))
+    .returning();
+  return updated ? toLeg(updated) : "not-allowed";
 }
 
 export async function deleteLeg(db: Db, tripId: string, legId: string): Promise<boolean> {
@@ -209,12 +233,12 @@ export async function syncLegs(db: Db, deps: LegDeps, tripId: string): Promise<v
     if (fromPlaceId === leg.fromPlaceId && toPlaceId === leg.toPlaceId) continue;
     try {
       const result = await calculate(db, deps, leg.mode, fromPlaceId, toPlaceId, from);
-      await db.update(legs).set({ ...result, fromPlaceId, toPlaceId }).where(eq(legs.id, leg.id));
+      await db.update(legs).set({ ...result, manual: false, fromPlaceId, toPlaceId }).where(eq(legs.id, leg.id));
     } catch (err) {
       if (!isProviderError(err)) throw err;
       // Unknown places mark the Leg as stale: whatever the Events look like at the next sync, it
       // is calculated again.
-      await db.update(legs).set({ ...CANNOT_CALCULATE, fromPlaceId: null, toPlaceId: null }).where(eq(legs.id, leg.id));
+      await db.update(legs).set({ ...CANNOT_CALCULATE, manual: false, fromPlaceId: null, toPlaceId: null }).where(eq(legs.id, leg.id));
     }
   }
 }

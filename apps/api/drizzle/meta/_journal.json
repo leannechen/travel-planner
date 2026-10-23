@@ -169,6 +169,13 @@
       "when": 1792763635860,
       "tag": "0023_usage_counts",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1792765324811,
+      "tag": "0024_leg_manual_duration",
+      "breakpoints": true
     }
   ]
 }

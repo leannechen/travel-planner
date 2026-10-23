@@ -166,7 +166,7 @@ export async function listTrips(db: Db, userId: string, only?: string): Promise<
       },
       legs: {
         orderBy: asc(legs.id),
-        columns: { id: true, dayId: true, fromEventId: true, toEventId: true, mode: true, durationMinutes: true, distanceMeters: true },
+        columns: { id: true, dayId: true, fromEventId: true, toEventId: true, mode: true, durationMinutes: true, distanceMeters: true, manual: true },
       },
     },
   });
@@ -194,7 +194,7 @@ export async function getSharedTrip(db: Db, token: string): Promise<Trip | "off"
       events: { where: eq(events.holding, "backlog"), orderBy: arrivalOrder, columns: eventColumns },
       legs: {
         orderBy: asc(legs.id),
-        columns: { id: true, dayId: true, fromEventId: true, toEventId: true, mode: true, durationMinutes: true, distanceMeters: true },
+        columns: { id: true, dayId: true, fromEventId: true, toEventId: true, mode: true, durationMinutes: true, distanceMeters: true, manual: true },
       },
     },
   });

@@ -245,6 +245,9 @@ export const legs = pgTable(
     // Null while the Leg cannot be calculated.
     durationMinutes: integer(),
     distanceMeters: integer(),
+    // The duration was entered by the user, for a Leg that could not be calculated (ADR 0009); it then
+    // has no distance, and is dropped when the mode or a place changes.
+    manual: boolean().notNull().default(false),
     fromPlaceId: text(),
     toPlaceId: text(),
   },

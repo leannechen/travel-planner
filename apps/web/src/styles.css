@@ -528,6 +528,28 @@ main.has-panel .topbar {
     overflow-y: auto;
   }
 
+  /* A collapsed panel leaves a strip; the Days take the rest. */
+  .trip-layout:has(.holding-areas.strip) {
+    grid-template-columns: 56px minmax(0, 1fr) 272px;
+  }
+
+  .trip-layout:has(.todos-panel.strip) {
+    grid-template-columns: 264px minmax(0, 1fr) 56px;
+  }
+
+  .trip-layout:has(.holding-areas.strip):has(.todos-panel.strip) {
+    grid-template-columns: 56px minmax(0, 1fr) 56px;
+  }
+
+  /* The open Event panel (26rem) covers a 56px Todos strip and part of the Days. */
+  main.has-panel:has(.todos-panel.strip) {
+    margin-right: calc(26rem - 56px);
+  }
+
+  main.has-panel:has(.todos-panel.strip) .topbar {
+    padding-right: calc(56px + 16px);
+  }
+
   .days-grid {
     overflow: auto;
   }
@@ -844,7 +866,8 @@ main.has-panel .topbar {
   flex-direction: column;
   min-height: 0;
   border-right: 1px solid var(--border);
-  background: var(--surface);
+  /* A shade off the Days' surface, so the side columns read as separate panels. */
+  background: var(--bg);
 }
 
 .holding-area {
@@ -857,6 +880,7 @@ main.has-panel .topbar {
 }
 
 .holding-area summary {
+  list-style: none;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1907,10 +1931,71 @@ main.has-panel .topbar {
 }
 
 
+/* ---------- Collapsed side panels (desktop) ---------- */
+.holding-areas.strip,
+.todos-panel.strip {
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0;
+}
+
+.todos-panel.strip {
+  display: flex;
+  flex-direction: column;
+}
+
+.holding-areas.strip {
+  width: 56px;
+}
+
+.strip-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--text);
+}
+
+.strip-icon.drop-target {
+  border-color: var(--pri);
+  background: var(--pri-tint);
+}
+
+.strip-icon .count {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+}
+
+.holding-areas.strip .sidebar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+  padding: 8px 0 0;
+  width: 100%;
+}
+
+.holding-area summary .ib,
+.todos-panel .panel-toggle {
+  flex: none;
+}
+
+.todos-panel .panel-toggle {
+  margin-left: auto;
+}
+
 /* ---------- Todos ---------- */
 .todos-panel {
   border-left: 1px solid var(--border);
-  background: var(--surface);
+  background: var(--bg);
 }
 
 .todos-panel > h3 {

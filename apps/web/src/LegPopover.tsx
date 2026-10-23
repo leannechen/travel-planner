@@ -190,6 +190,7 @@ export function LegPopover({ anchor, from, to, leg, defaultMode, onCreate, onCha
               <span>{t("leg.tooShort", { duration: formatDuration(leg.durationMinutes!, t) })}</span>
             </p>
           )}
+          {/* https://developers.google.com/maps/faq#transit_directions_countries */}
           {!calculated && <p className="leg-note">{noLocation ? t("leg.noLocation") : mode === "transit" ? t("leg.noTransit") : t("leg.noRoute")}</p>}
           {error && <p role="alert" className="leg-error">{error}</p>}
           {mapLink && (

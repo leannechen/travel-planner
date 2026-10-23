@@ -71,7 +71,7 @@ Layout, left to right:
 - A distinct, lighter block between two Events, showing travel-mode icon and duration.
 - Shown only after the user clicks the slot between the two Events; the click opens a small chooser for the travel mode.
 - Warning state when the gap is too short.
-- Clicking an existing Leg opens a small popover (a bottom sheet on phone) with: the two Event names (read-only), travel mode selector, duration and distance (read-only), the current gap (emphasized only when too short), "Open in Google Maps", and delete. No Description or notes field, and no transit route details.
+- Clicking an existing Leg opens a small popover (a bottom sheet on phone) with: the two Event names (read-only), travel mode selector, duration and distance (read-only; for a Leg Google cannot calculate, a minutes field and an "Entered by you" label, proposed, not drawn in any board), the current gap (emphasized only when too short), "Open in Google Maps", and delete. No Description or notes field, and no transit route details.
 
 ### 3.3 Event edit panel
 - A side panel on desktop (Expand turns it into a modal), a bottom sheet on phone.

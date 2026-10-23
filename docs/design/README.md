@@ -57,9 +57,9 @@ All images in `png/` are exported at **2x** (twice the CSS pixel width and heigh
 | 16d | `png/16d-landing-logged-in-empty.webp` | `source/LandingLoggedInEmpty.dc.html` | 2300x1000 | Landing — logged in, no Trips (Open a sample Trip only, avatar top right) |
 | 17 | `png/17-notes-panel.png` | `source/NotesPanel.dc.html` | 3040x1200 | Notes panel — open on Schedule and Map, movable, states, phone sheet |
 | 18 | `png/18-viewer-mode.png` | `source/Viewer.dc.html` | 2040x900 | Viewer mode — read-only workspace and Event details |
-| 19 | `png/19-dialogs.png` | `source/Dialogs.dc.html` | 2380x900 | Dialogs — Share (on / off), Export, Trip settings |
+| 19 | `png/19-dialogs.png` | `source/Dialogs.dc.html` | 2380x900 | Dialogs — Share (on / off), Export, Trip settings. Export: build the backup option only (document and image export were dropped) |
 | 20 | `png/20-confirm-archive-delete.png` | `source/ConfirmEvent.dc.html` | 2000x880 | Archive and delete confirmations, toasts, phone |
-| 21 | `png/21-export-image.png` | `source/ExportImage.dc.html` | 1960x1120 | Exported image — poster |
+| 21 | `png/21-export-image.png` | `source/ExportImage.dc.html` | 1960x1120 | Exported image — poster. Not built: image export was dropped on 2026-10-23 |
 | 22 | `png/22-states-empty-loading.png` | `source/StatesEmpty.dc.html` | 2000x1000 | States — empty Trip, Day, Backlog and Archive; loading |
 | 23 | `png/23-states-errors.png` | `source/StatesErrors.dc.html` | 2000x1180 | States — errors and limit reached |
 | 24 | `png/24-trip-list.png` | `source/TripList.dc.html` | 4660x920 | Trip list — sidebar, item menu, New Trip (Blank / Generate with AI), Delete Trip, phone |

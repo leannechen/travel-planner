@@ -2,7 +2,7 @@
 
 An Event stores the place provider's id of its place (and, for a Transport event, of its destination), nothing else. The name, address and coordinates are read through the server, which keeps them in a `places` table as a cache and fetches them again when they are older than 30 days. Searching fills the cache, so choosing a result needs no second lookup.
 
-Google's Places policies allow storing place ids indefinitely but not the rest of the place content beyond a limited caching time. Keeping an id on the Event follows that rule by construction: nothing in a Trip, a backup or an export holds Google content that could go stale or be kept too long. It also keeps the provider swappable: step 14 shipped with a fake provider that needs no key, and Google is used when `GOOGLE_MAPS_API_KEY` is set.
+Google's Places policies allow storing place ids indefinitely but not the rest of the place content beyond a limited caching time. Keeping an id on the Event follows that rule by construction: nothing in a Trip or a backup holds Google content that could go stale or be kept too long. It also keeps the provider swappable: step 14 shipped with a fake provider that needs no key, and Google is used when `GOOGLE_MAPS_API_KEY` is set.
 
 The cost is one extra lookup before a place can be shown (the web app keeps looked-up places for the session) and a place that Google no longer knows simply disappears from the cache; the Event keeps the id and shows no place data.
 

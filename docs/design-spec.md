@@ -54,7 +54,7 @@ Layout, left to right:
 
 ### 2.5 Share, Export and Settings dialogs
 - Share: link on/off, copy link, invite Editors by email, list and remove Editors.
-- Export: three options (document, backup, image) with a short description each.
+- Export: the full backup only (PRD §9); document and image export were dropped on 2026-10-23.
 - Trip settings: title, dates, default travel mode, delete Trip. Language is not here; it is a switch at the bottom of the left sidebar.
 
 ## 3. Components
@@ -128,8 +128,7 @@ Layout, left to right:
 
 ## 7. Export visuals
 
-- **Image**: a poster-style layout with Days side by side, Event blocks in their kind colors, Leg duration and mode between them, Trip title and date range in a header. Must remain legible when exported with many Days.
-- **Document**: simple, printable, one section per Day.
+None: the only export is the full backup, a file with no visual design. The document and the poster-style image were dropped on 2026-10-23 (PRD §2.3).
 
 ## 8. Final design
 

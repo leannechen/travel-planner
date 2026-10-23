@@ -20,7 +20,7 @@ People who plan trips on a desktop or phone juggle places, restaurants, lodging 
 4. Map View (§6)
 5. AI-generated Trips (§7)
 6. Accounts, sharing and lightweight collaboration (§8)
-7. Export (§9)
+7. Full backup and import (§9)
 8. Desktop and phone experiences (§10)
 9. Notes (§5.1)
 10. Keyboard operation and interface language (§13, §14)
@@ -41,6 +41,7 @@ Each non-goal is listed with its reason, so it is not reopened without new infor
 | Manually editing a Leg's duration | Avoids users fighting the computed value; they can change the travel mode instead |
 | Offline editing | Needs conflict handling that interacts with collaboration |
 | Live cursors and merging simultaneous edits to one field | Cost far exceeds value for this domain (ADR 0003) |
+| Exporting a Trip as a document or an image | Not needed (decided 2026-10-23); the full backup is the only export |
 
 ## 3. Trip planning
 
@@ -85,7 +86,7 @@ Only the title is required.
 - **Preview image** defaults to the Google place photo when the Event has a location; the user may upload a replacement. Without an image, the kind's icon is shown.
   - **Replace** uploads the user's own image. **Remove** means "no image for this Event": the Google photo is no longer shown and the kind's icon is used. If the Event has a location, the image area then offers "Use place photo" to bring the default back.
   - Changing the location swaps the default Google photo to the new place's photo, but never replaces an image the user uploaded.
-  - Google's terms for place photos were checked in plan step 14: photos may not be stored, the author must be credited (the name, with the avatar and profile link when space allows, and a larger view may carry it for thumbnails), and the place must be reachable on Google Maps. They are stricter than §9 assumed, so Google photos are fetched only when shown, are never stored or backed up, and are left out of every export. The Image export shows only photos the user uploaded.
+  - Google's terms for place photos were checked in plan step 14: photos may not be stored, the author must be credited (the name, with the avatar and profile link when space allows, and a larger view may carry it for thumbnails), and the place must be reachable on Google Maps. They are stricter than §9 assumed, so Google photos are fetched only when shown, are never stored, and are left out of the backup.
 - **Lodging** appears as a thin banner at the top of each Day whose night it covers, and also on the check-out Day, labelled with the check-out time. It is the default start point for that Day's first Leg. Three nights from Day 1 cover Days 1 to 3 and check out on Day 4.
 - **Lodging is tied to Day positions, not to the Days' contents.** Reordering Days never changes a Lodging; the user adjusts it themselves if needed, so there are no surprising side effects. Inserting or deleting a Day adjusts a Lodging like a range: inserting before its check-in Day shifts it, inserting inside it adds a night, inserting after it changes nothing; deleting a Day inside it removes a night, and a Lodging left with no nights moves to the Backlog.
 - **Saving the Event panel**: typed fields are saved by the **Save** button (or Enter), which also closes the panel; a **Cancel** button next to it (reading **Close** while nothing is typed) closes the panel and discards the typed changes. Closing any other way with unsaved changes (the close button, Esc, a tap outside on phone, selecting another Event or starting a new one) asks whether to save, discard or keep editing. A new Event is created by saving it with a title; closing a new Event with nothing typed asks nothing, and saving one that has other fields but no title says a title is needed. Every field, including the Day (phone only; on desktop Events change Day by dragging), kind, Transport type and location, waits for Save. Only changes made by dragging, resizing or the keyboard on the time axis, and the actions in the footer menu below (which also save what was typed), save at once.
@@ -138,7 +139,7 @@ Opening hours are a hint, not a fact. Google gives only the usual weekly hours f
 - **Display**: one line when the hours are the same every day ("Daily 11:00 – 20:00", "Open 24 hours"); otherwise the hours of the Event's weekday when it is in a dated Day, and the whole week one click away. In a Trip without a start date the week is shown and nothing is checked; a short note says dates are needed for the check.
 - **Check**: for an Attraction or Meal with opening hours on, placed in a Day of a Trip with a start date. The Day's date is the start date plus its position, and its weekday picks the hours. Event times are read as local time at the place; hours that run past midnight cover the early hours of the next day, and an Event running past midnight is checked up to midnight. A conflict exists when any part of the Event lies outside the hours, or the place is closed that day or reported by Google as closed. Events in the Backlog or Archive are not checked.
 - **Warning**: one general label, "Opening hours may conflict" (no detail about which hour or day), as an amber label on the Event card, with an amber card border, and the same text beside the hours in the Event panel, so it is also seen on phone where the sheet covers the card. It is worked out from the Event, its Day's date and the hours every time they are shown, so changing the start time, duration or Day, reordering Days, changing the Trip's start date, or refreshed hours update it at once; it comes back when the problem comes back and there is nothing to dismiss. A user who does not want it uses "Remove opening hours". If the hours cannot be fetched or refreshed, the Event shows no hours and no label until the next try.
-- Warnings are not part of any export.
+- Warnings are not part of the backup.
 
 ## 4. Holding areas
 
@@ -218,13 +219,11 @@ Opening hours are a hint, not a fact. Google gives only the usual weekly hours f
 - **Import backup** creates a new Trip from a full-backup file (§9).
 - Search, folders, favorites and reordering Trips are not in v1.
 
-## 9. Export
+## 9. Backup and import
 
-| Format | Content | Purpose |
-|---|---|---|
-| Document (openable in Google Docs) | Each Day's schedule with Event details; no Todos, no Archive, no images | Print or send to companions |
-| Full backup (this app's format) | Everything: Todos, Notes, Backlog, Archive, and images the user uploaded (not Google photos); an Event's place is kept as its place id, so importing needs the place provider to show it; importing creates a new Trip | Clone or restore a Trip |
-| Image | One image for the whole Trip, Days side by side, with Leg durations and travel-mode icons and Event images where Google's terms allow; no map | Sharing in chats |
+- **Export** means one format: a full backup of the Trip in this app's own format, to clone or restore it. There is no document or image export (§2.3).
+- The backup holds everything: Days, Events, Backlog, Archive, Todos, Notes and the images the user uploaded (not Google photos). An Event's place is kept as its place id, so importing needs the place provider to show it.
+- **Import backup** (§8.1) always creates a new Trip; it never changes an existing one.
 
 ## 10. Devices
 
@@ -252,7 +251,7 @@ The product uses the terms in `CONTEXT.md`. In the Traditional Chinese interface
 ## 14. Interface language and theme
 
 - The default interface language is English; the user can switch to Traditional Chinese.
-- The switch applies to interface text. AI generation uses the current interface language. Fixed labels in exports (such as "Day 1" and date formats) follow the interface language. Text the user typed is never translated.
+- The switch applies to interface text. AI generation uses the current interface language. Text the user typed is never translated.
 - The language switch and the theme switch (light or dark) sit at the bottom of the left sidebar on desktop, together with Share and Export, and in the account sheet on phone (the avatar at the top right); on pages without the sidebar (Landing, invitation) they sit in the top right; there is no separate preferences screen. The theme follows the system setting by default and the user's choice overrides it.
 - Logged-in users keep the setting on their account; guests keep it in the browser. A Viewer sees the interface in the language of their own browser, defaulting to English.
 

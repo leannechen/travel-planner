@@ -23,8 +23,8 @@ Trip, Day, Event (kinds: Attraction, Meal, Lodging, Transport event), Leg (trave
 5. **Event edit panel** (popover on desktop, bottom sheet on phone): kind and title, Day and start time, duration, place search, Markdown Description, contact, opening hours, image, Event Todos.
 6. **Floating Notes panel**: opens from anywhere with a shortcut, new Note field focused, pinned Notes first, Markdown editing in place.
 7. **Map View**: markers colored by Day, Day filter, gray markers for Backlog Events, clicking a marker opens the edit panel.
-8. **Dialogs**: Share (link on/off, invite Editors by email), Export (document, backup, whole-Trip image), Trip settings, confirmation when archiving or deleting an Event that has Todos (states the count), deletion toast with Undo.
-9. **Exported image**: poster-style, all Days side by side with Leg durations, no map.
+8. **Dialogs**: Share (link on/off, invite Editors by email), Export (full backup), Trip settings, confirmation when archiving or deleting an Event that has Todos (states the count), deletion toast with Undo.
+9. ~~**Exported image**~~: dropped on 2026-10-23 with document export; the full backup is the only export (PRD §9).
 10. **States**: empty Trip, empty Day, empty Backlog; loading; errors; Viewer (read-only) mode; limits reached.
 
 ## Interaction rules that shape the design

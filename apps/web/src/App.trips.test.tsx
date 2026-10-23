@@ -149,3 +149,41 @@ describe("one Trip at a time", () => {
     });
   });
 });
+
+describe("pinned Trip list", () => {
+  // A wide desktop window: the min-width query matches, the phone query does not.
+  const wide = () =>
+    vi.stubGlobal("matchMedia", (query: string) => ({ matches: query.includes("min-width"), media: query, addEventListener: () => undefined, removeEventListener: () => undefined }));
+
+  it("pins from the drawer into a column that stays open when a Trip is chosen, and unpins", async () => {
+    wide();
+    renderApp(<App />);
+    await screen.findByRole("button", { name: "Kyoto" });
+    await openList();
+    await userEvent.click(await screen.findByRole("button", { name: "Keep the Trip list open" }));
+    expect(localStorage.getItem("travel-planner.trip-list-pinned")).toBe("1");
+    expect(document.querySelector("dialog.trip-list-drawer")).toBeNull();
+    expect(document.querySelector(".trip-list-pinned")).not.toBeNull();
+
+    await userEvent.click(screen.getByRole("button", { name: /^Taipei/ }));
+    await waitFor(() => expect(screen.getByRole("heading", { level: 2, name: "Taipei" })).toBeTruthy());
+    expect(document.querySelector(".trip-list-pinned")).not.toBeNull();
+
+    await userEvent.click(screen.getByRole("button", { name: "Unpin the Trip list" }));
+    expect(localStorage.getItem("travel-planner.trip-list-pinned")).toBe("0");
+    expect(document.querySelector(".trip-list-pinned")).toBeNull();
+  });
+
+  it("starts pinned when it was pinned before, and not in a narrow window", async () => {
+    localStorage.setItem("travel-planner.trip-list-pinned", "1");
+    wide();
+    renderApp(<App />);
+    await screen.findByRole("button", { name: /^Taipei/ });
+    expect(document.querySelector(".trip-list-pinned")).not.toBeNull();
+    cleanup();
+    setPhone(false);
+    renderApp(<App />);
+    await screen.findByRole("button", { name: "Kyoto" });
+    expect(document.querySelector(".trip-list-pinned")).toBeNull();
+  });
+});

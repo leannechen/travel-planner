@@ -77,6 +77,8 @@ type Props = {
   // Who else has the Trip open, before the account spot.
   collaborators?: ReactNode;
   banner?: ReactNode;
+  // The Trip list pinned open (design 27, C): a column left of the Backlog and the Days, desktop only.
+  sidebar?: ReactNode;
   // The session ended: the Trip stays on screen but nothing in it can be changed.
   readOnly?: boolean;
   // A Viewer, who opened the Trip through its share link (PRD §8): everything is read-only, Events can
@@ -104,7 +106,7 @@ function dropTargetAt(root: HTMLElement, x: number, y: number, draggedId: string
   return undefined;
 }
 
-export function TripCard({ trip, onOpenSettings, onOpenTripList, onShare, onDaysChange, selectedEventId, draft, onSelectEvent: selectEventProp, onCreateAt: createAtProp, onAddToBacklog: addToBacklogProp, onMove: moveProp, onCreateLeg, onChangeLegMode, onDeleteLeg, onToast, notesOpen, onToggleNotes, onShowShortcuts, footer, onAddTodo, onToggleTodo, onDeleteTodo, account, collaborators, banner, readOnly: readOnlyProp = false, viewer = false }: Props) {
+export function TripCard({ trip, onOpenSettings, onOpenTripList, onShare, onDaysChange, selectedEventId, draft, onSelectEvent: selectEventProp, onCreateAt: createAtProp, onAddToBacklog: addToBacklogProp, onMove: moveProp, onCreateLeg, onChangeLegMode, onDeleteLeg, onToast, notesOpen, onToggleNotes, onShowShortcuts, footer, onAddTodo, onToggleTodo, onDeleteTodo, account, collaborators, banner, sidebar, readOnly: readOnlyProp = false, viewer = false }: Props) {
   const t = useT();
   const { language } = usePreferences();
   const readOnly = readOnlyProp || viewer;
@@ -397,6 +399,8 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onShare, onDays
           </button>
         </nav>
       )}
+      <div className={`workspace-body${sidebar && !phone ? " has-sidebar" : ""}`}>
+      {!phone && sidebar}
       {view === "map" ? (
         <MapView trip={trip} selectedEventId={selectedEventId} panelOpen={!phone && !!(selectedEventId || draft)} onSelectEvent={onSelectEvent} footer={phone ? undefined : footer} />
       ) : (
@@ -561,6 +565,7 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onShare, onDays
         </div>
       </DragDropProvider>
       )}
+      </div>
       {view === "schedule" && legUi && legFrom && legTo && !legLost && (
         <LegPopover
           anchor={legUi.anchor}

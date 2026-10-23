@@ -18,7 +18,7 @@ const kyoto = makeTrip({ title: "Kyoto & Osaka" });
 const taipei = makeTrip({ title: "Taipei weekend" });
 const seoul = makeTrip({ title: "Seoul with Mei", role: "editor" });
 
-function setup(trips = [kyoto, taipei], extra: { readOnly?: boolean } = {}) {
+function setup(trips = [kyoto, taipei], extra: { readOnly?: boolean; pinned?: boolean } = {}) {
   const handlers = {
     onSwitch: vi.fn(),
     onCreate: vi.fn(async () => undefined),
@@ -29,6 +29,7 @@ function setup(trips = [kyoto, taipei], extra: { readOnly?: boolean } = {}) {
     onImport: vi.fn(async () => undefined),
     onOpenSettings: vi.fn(),
     onShare: vi.fn(),
+    onTogglePin: vi.fn(),
   };
   renderApp(<TripListDrawer trips={trips} currentId={kyoto.id} {...handlers} {...extra} />);
   return handlers;
@@ -240,5 +241,30 @@ describe("Backup", () => {
     await openMenu("Kyoto & Osaka");
     await userEvent.click(screen.getByRole("button", { name: "Delete Trip…" }));
     expect(screen.getByText("Tip: export a full backup first.")).toBeTruthy();
+  });
+});
+
+describe("Pinning", () => {
+  it("offers to keep the list open, and to unpin it when it is pinned", async () => {
+    const { onTogglePin } = setup();
+    await userEvent.click(screen.getByRole("button", { name: "Keep the Trip list open" }));
+    expect(onTogglePin).toHaveBeenCalledTimes(1);
+    cleanup();
+    setup([kyoto, taipei], { pinned: true });
+    expect(screen.getByRole("button", { name: "Unpin the Trip list" }).getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("is a column without a Close button when pinned, and still switches Trips", async () => {
+    const { onSwitch } = setup([kyoto, taipei], { pinned: true });
+    expect(screen.queryByRole("button", { name: "Close" })).toBeNull();
+    expect(document.querySelector("dialog")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: /^Taipei weekend/ }));
+    expect(onSwitch).toHaveBeenCalledWith(taipei.id);
+  });
+
+  it("has no pin on a phone", () => {
+    setPhone(true);
+    setup();
+    expect(screen.queryByRole("button", { name: "Keep the Trip list open" })).toBeNull();
   });
 });

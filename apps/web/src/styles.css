@@ -2125,6 +2125,31 @@ main.has-panel .topbar {
   color: var(--text);
 }
 
+.workspace-body {
+  display: contents;
+}
+
+.trip-list-pinned {
+  flex: none;
+  width: 17rem;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+}
+
+@media (min-width: 64rem) {
+  .workspace-body.has-sidebar {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .workspace-body.has-sidebar > :not(.trip-list-pinned) {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
 .trip-list-body {
   box-sizing: border-box;
   min-height: 100%;
@@ -2154,7 +2179,8 @@ main.has-panel .topbar {
   justify-content: center;
 }
 
-.trip-list-drawer ul {
+.trip-list-drawer ul,
+.trip-list-pinned ul {
   margin: 0;
   padding: 0;
   list-style: none;

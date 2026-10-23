@@ -1,5 +1,5 @@
 import { MAX_BACKUP_BYTES, type CreateTripInput, type Trip } from "@travel-planner/shared";
-import { Download, Ellipsis, Map as MapIcon, Plus, Trash2, Upload, X } from "lucide-react";
+import { Download, Ellipsis, Map as MapIcon, Pin, PinOff, Plus, Trash2, Upload, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { ApiError } from "./api";
 import { DeleteTripDialog } from "./DeleteTripDialog";
@@ -28,12 +28,15 @@ type Props = {
   readOnly?: boolean;
   // AI generation for a logged-in user (step 23); New Trip then offers it first.
   generation?: TripGeneration;
+  // Pinned open as a column beside the Days (desktop, design 27 C) instead of a drawer over the Backlog.
+  pinned?: boolean;
+  onTogglePin?: () => void;
 };
 
 // The Trip list (design 24, 27): a drawer over the Backlog opened from the Trip title, a full screen
 // on a phone. Pick a Trip to show it, start a new one, or use a Trip's "⋯" menu. Escape, the close
-// button or a click outside closes it. Pinning the drawer open (design 27, C) is not done.
-export function TripListDrawer({ trips, currentId, onSwitch, onCreate, onRename, onDelete, onExport, onImport, onOpenSettings, onShare, onClose, readOnly, generation }: Props) {
+// button or a click outside closes it. Pinned (desktop, wide window), it is a column beside the Days that stays open instead.
+export function TripListDrawer({ trips, currentId, onSwitch, onCreate, onRename, onDelete, onExport, onImport, onOpenSettings, onShare, onClose, readOnly, generation, pinned = false, onTogglePin }: Props) {
   const t = useT();
   const phone = useIsPhone();
   const dialog = useRef<HTMLDialogElement>(null);
@@ -151,20 +154,7 @@ export function TripListDrawer({ trips, currentId, onSwitch, onCreate, onRename,
     );
   };
 
-  return (
-    <>
-      <dialog
-        ref={dialog}
-        className="trip-list-drawer"
-        aria-labelledby="trip-list-title"
-        onCancel={(e) => {
-          e.preventDefault();
-          onClose();
-        }}
-        onClose={onClose}
-        // The content fills the dialog, so a click on the dialog element itself is on the backdrop.
-        onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-      >
+  const content = (
         <div className="trip-list-body">
         {phone && <div className="sheet-handle" aria-hidden="true" />}
         <div className="trip-list-head">
@@ -175,9 +165,16 @@ export function TripListDrawer({ trips, currentId, onSwitch, onCreate, onRename,
               {t("tripList.newShort")}
             </button>
           )}
-          <button type="button" className="ib" aria-label={t("generic.close")} title={t("generic.closeEsc")} onClick={onClose}>
-            <X size={16} aria-hidden="true" />
-          </button>
+          {onTogglePin && !phone && (
+            <button type="button" className="ib" aria-pressed={pinned} aria-label={t(pinned ? "tripList.unpin" : "tripList.pin")} title={t(pinned ? "tripList.unpin" : "tripList.pin")} onClick={onTogglePin}>
+              {pinned ? <PinOff size={16} aria-hidden="true" /> : <Pin size={16} aria-hidden="true" />}
+            </button>
+          )}
+          {!pinned && (
+            <button type="button" className="ib" aria-label={t("generic.close")} title={t("generic.closeEsc")} onClick={onClose}>
+              <X size={16} aria-hidden="true" />
+            </button>
+          )}
         </div>
         {!phone && !readOnly && (
           <button type="button" className="btn primary trip-list-new" onClick={() => setCreating(true)}>
@@ -220,7 +217,30 @@ export function TripListDrawer({ trips, currentId, onSwitch, onCreate, onRename,
         )}
         {problem && <p role="alert" className="trip-list-problem">{problem}</p>}
         </div>
+  );
+
+  return (
+    <>
+      {pinned ? (
+        <aside className="trip-list-pinned" aria-labelledby="trip-list-title">
+          {content}
+        </aside>
+      ) : (
+      <dialog
+        ref={dialog}
+        className="trip-list-drawer"
+        aria-labelledby="trip-list-title"
+        onCancel={(e) => {
+          e.preventDefault();
+          onClose();
+        }}
+        onClose={onClose}
+        // The content fills the dialog, so a click on the dialog element itself is on the backdrop.
+        onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      >
+        {content}
       </dialog>
+      )}
       {renaming && <RenameTripDialog title={renaming.title} onClose={() => setRenaming(undefined)} onRename={(title) => onRename(renaming.id, title)} />}
       {creating && <NewTripDialog generation={generation} onCancel={() => setCreating(false)} onCreate={async (input) => { await onCreate(input); setCreating(false); }} />}
       {deleting && (

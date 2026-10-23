@@ -159,12 +159,6 @@ export function TripListDrawer({ trips, currentId, onSwitch, onCreate, onRename,
         {phone && <div className="sheet-handle" aria-hidden="true" />}
         <div className="trip-list-head">
           <h2 id="trip-list-title">{t("tripList.title")}</h2>
-          {phone && !readOnly && (
-            <button type="button" className="btn primary sm" onClick={() => setCreating(true)}>
-              <Plus size={14} aria-hidden="true" />
-              {t("tripList.newShort")}
-            </button>
-          )}
           {onTogglePin && !phone && (
             <button type="button" className="ib" aria-pressed={pinned} aria-label={t(pinned ? "tripList.unpin" : "tripList.pin")} title={t(pinned ? "tripList.unpin" : "tripList.pin")} onClick={onTogglePin}>
               {pinned ? <PinOff size={16} aria-hidden="true" /> : <Pin size={16} aria-hidden="true" />}
@@ -196,6 +190,12 @@ export function TripListDrawer({ trips, currentId, onSwitch, onCreate, onRename,
         )}
         {!readOnly && (
           <div className="trip-list-foot">
+            {phone && (
+              <button type="button" className="btn primary" onClick={() => setCreating(true)}>
+                <Plus size={14} aria-hidden="true" />
+                {t("tripList.new")}
+              </button>
+            )}
             <input
               ref={fileInput}
               type="file"
@@ -212,7 +212,7 @@ export function TripListDrawer({ trips, currentId, onSwitch, onCreate, onRename,
               <Upload size={14} aria-hidden="true" />
               {importing ? t("tripList.importing") : t("tripList.import")}
             </button>
-            <p className="trip-list-hint">{t("tripList.importHint")}</p>
+            {!phone && <p className="trip-list-hint">{t("tripList.importHint")}</p>}
           </div>
         )}
         {problem && <p role="alert" className="trip-list-problem">{problem}</p>}

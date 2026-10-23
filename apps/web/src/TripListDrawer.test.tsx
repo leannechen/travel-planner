@@ -184,7 +184,9 @@ describe("Trip list", () => {
   it("closes with a click on the dimmed page behind the sheet on a phone", async () => {
     setPhone(true);
     const { onClose } = setup();
-    expect(screen.getByRole("button", { name: "New" })).toBeTruthy();
+    // Create and Import are the last two buttons of the sheet, Create first.
+    const buttons = screen.getAllByRole("button").map((b) => b.textContent);
+    expect(buttons.slice(-2)).toEqual(["New Trip", "Import backup…"]);
     // The sheet fills the dialog element; a click on the element itself is a click on the backdrop.
     await userEvent.click(document.querySelector("dialog.trip-list-drawer")!);
     expect(onClose).toHaveBeenCalled();

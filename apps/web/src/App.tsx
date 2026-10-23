@@ -381,15 +381,17 @@ function Workspace({ joinedMessage }: { joinedMessage?: string }) {
         onDelete={handleDeleteTrip}
         onExport={handleExportTrip}
         onImport={handleImportBackup}
-        onOpenSettings={(tripId) => { setTripListOpen(false); setSettingsTripId(tripId); }}
-        onShare={(tripId) => { setTripListOpen(false); if (auth.status === "guest") void auth.login(); else setShareTripId(tripId); }}
+        // These open on top of the list, so Cancel leaves the list as it was.
+        onOpenSettings={setSettingsTripId}
+        onShare={(tripId) => { if (auth.status === "guest") void auth.login(); else setShareTripId(tripId); }}
         onClose={() => setTripListOpen(false)}
         pinned={pinned}
         onTogglePin={!roomForPin ? undefined : () => {
           const next = !listPinned;
           setListPinned(next);
           saveListPinned(next);
-          setTripListOpen(false);
+          // Pinning turns the drawer into the column; unpinning turns the column back into the drawer.
+          setTripListOpen(!next);
         }}
       />
     );

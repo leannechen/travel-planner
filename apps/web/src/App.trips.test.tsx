@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, screen, waitFor } from "@testing-library/react";
+import { cleanup, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
@@ -172,6 +172,8 @@ describe("pinned Trip list", () => {
     await userEvent.click(screen.getByRole("button", { name: "Unpin the Trip list" }));
     expect(localStorage.getItem("travel-planner.trip-list-pinned")).toBe("0");
     expect(document.querySelector(".trip-list-pinned")).toBeNull();
+    // Unpinning turns the column back into the open drawer.
+    expect(document.querySelector("dialog.trip-list-drawer")).not.toBeNull();
   });
 
   it("starts pinned when it was pinned before, and not in a narrow window", async () => {
@@ -185,5 +187,17 @@ describe("pinned Trip list", () => {
     renderApp(<App />);
     await screen.findByRole("button", { name: "Kyoto" });
     expect(document.querySelector(".trip-list-pinned")).toBeNull();
+  });
+});
+
+describe("Trip list and its dialogs", () => {
+  it("stays open under Trip settings after Cancel", async () => {
+    renderApp(<App />);
+    await screen.findByRole("button", { name: "Kyoto" });
+    await openList();
+    await userEvent.click(await screen.findByRole("button", { name: "Actions for Kyoto" }));
+    await userEvent.click(within(document.querySelector<HTMLElement>(".trip-menu")!).getByRole("button", { name: "Trip settings" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Cancel" }));
+    expect(document.querySelector("dialog.trip-list-drawer")).not.toBeNull();
   });
 });

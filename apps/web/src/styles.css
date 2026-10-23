@@ -866,7 +866,8 @@ main.has-panel .topbar {
   flex-direction: column;
   min-height: 0;
   border-right: 1px solid var(--border);
-  background: var(--surface);
+  /* A shade off the Days' surface, so the side columns read as separate panels. */
+  background: var(--bg);
 }
 
 .holding-area {
@@ -1973,27 +1974,13 @@ main.has-panel .topbar {
 }
 
 .holding-areas.strip .sidebar {
-  margin-top: auto;
-  padding: 8px 4px;
-  width: 100%;
-}
-
-.holding-areas.strip .theme-switch {
+  display: flex;
   flex-direction: column;
-  height: auto;
-}
-
-.holding-areas.strip .theme-switch button {
-  height: 28px;
-}
-
-.holding-areas.strip .sidebar-shortcuts span {
-  display: none;
-}
-
-.holding-areas.strip .sidebar-shortcuts {
-  justify-content: center;
-  padding: 0;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+  padding: 8px 0 0;
+  width: 100%;
 }
 
 .holding-area summary .ib,
@@ -2008,7 +1995,7 @@ main.has-panel .topbar {
 /* ---------- Todos ---------- */
 .todos-panel {
   border-left: 1px solid var(--border);
-  background: var(--surface);
+  background: var(--bg);
 }
 
 .todos-panel > h3 {

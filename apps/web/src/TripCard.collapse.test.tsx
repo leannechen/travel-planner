@@ -2,6 +2,7 @@
 import { cleanup, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { Sidebar } from "./Sidebar";
 import { TripCard } from "./TripCard";
 import { makeDay, makeEvent, makeTrip, renderApp, setPhone } from "./test-helpers";
 
@@ -33,6 +34,7 @@ function setup() {
       notesOpen={false}
       onToggleNotes={fn}
       onShowShortcuts={fn}
+      footer={<Sidebar onShowShortcuts={fn} />}
       onAddTodo={fn}
       onToggleTodo={fn}
       onDeleteTodo={fn}
@@ -64,6 +66,16 @@ describe("collapsible side panels", () => {
     await user.click(screen.getByRole("button", { name: "Backlog 1" }));
     expect(screen.getByText("Dinner idea")).toBeTruthy();
     expect(localStorage.getItem("travel-planner.collapsed.backlog")).toBe("0");
+  });
+
+  it("shows the language and theme switches as single icon buttons in the strip", async () => {
+    const user = userEvent.setup();
+    setup();
+    await user.click(within(screen.getByRole("complementary", { name: "Holding areas" })).getByRole("button", { name: "Collapse panel" }));
+    const strip = within(screen.getByRole("complementary", { name: "Holding areas" }));
+    expect(strip.queryByRole("combobox")).toBeNull();
+    await user.click(strip.getByRole("button", { name: "Theme" }));
+    expect(localStorage.getItem("travel-planner.theme")).not.toBeNull();
   });
 
   it("does not collapse the Backlog when an Event is added to it", async () => {

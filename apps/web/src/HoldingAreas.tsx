@@ -2,6 +2,7 @@ import { useDraggable } from "@dnd-kit/react";
 import type { Event, HoldingArea } from "@travel-planner/shared";
 import { Archive, Bookmark, ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react";
 import { useCollapsed } from "./collapsed";
+import { CompactSidebarContext } from "./Sidebar";
 import { KindIcon } from "./kinds";
 import { gestureJustEnded } from "./gesture";
 import { useT } from "./preferences";
@@ -110,7 +111,7 @@ export function HoldingAreas({ backlog, archive, selectedEventId, dropTarget, on
             <span className="count">{archive.length}</span>
           </button>
         )}
-        {footer}
+        <CompactSidebarContext.Provider value={true}>{footer}</CompactSidebarContext.Provider>
       </aside>
     );
   }

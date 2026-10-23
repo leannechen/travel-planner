@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Editing a Leg duration entered by hand</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="hf.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Nunito:wght@700;800&amp;family=Noto+Sans+TC:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.pop{position:absolute;background:var(--surface);border:1px solid var(--muted);border-radius:var(--r-xl);box-shadow:var(--sh-pop);padding:12px 14px;width:280px}
+.pop h3{margin:0 0 8px;font-size:14px;display:flex;align-items:center;gap:8px}
+.sg{display:flex;border:1px solid var(--border2);border-radius:var(--r-md);overflow:hidden}
+.sg span{flex:1;height:34px;display:flex;align-items:center;justify-content:center;gap:6px}
+.sg span.on{background:var(--text);color:var(--surface)}
+.row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-top:1px solid var(--grid);font-size:12px}
+.row b{white-space:nowrap}
+.sheet{position:absolute;width:390px;height:640px;background:var(--surface);border:1px solid var(--muted);border-radius:20px;box-shadow:var(--sh-pop);padding:10px 16px 16px;overflow:hidden}
+.num{min-width:0;width:auto;margin:0;padding:0 10px;border:1px solid var(--border2);border-radius:var(--r-md);background:var(--surface);font-size:13px;appearance:none}
+.num.foc{border-color:var(--pri);box-shadow:var(--focus)}
+.info{position:relative;display:inline-flex;align-items:center;justify-content:center;border:0;background:none;padding:0;color:var(--muted);cursor:help}.src{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--muted)}
+.lk{color:var(--pri-ink);text-decoration:underline}
+.hint{font-size:12px;color:var(--muted);margin-top:4px}
+.wfroot{width:1520px;height:760px}
+</style>
+</helmet>
+<div class="hf wfroot">
+
+<div class="cap" style="left:40px;top:20px">1 · Resting: number and Edit</div>
+<div class="pop" style="left:40px;top:48px"><h3><svg class="i" style="width:16px;height:16px;" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="14" rx="3"></rect><path d="M5 11h14"></path><path d="M9 21l2-4M15 21l-2-4"></path></svg>Leg · 25 min</h3><div class="row" style="border-top:0"><span class="muted">From</span><b>Nishiki Market</b></div><div class="row"><span class="muted">To</span><b>Kiyomizu-dera</b></div><span class="lbl" style="margin-top:10px">Travel mode</span><div class="sg" role="radiogroup" aria-label="Travel mode"><span style="height:34px">Drive</span><span class="on" style="height:34px">Transit</span><span style="height:34px">Walk</span></div><div class="row" style="margin-top:8px"><span class="muted" style="display:inline-flex;align-items:center;gap:4px">Duration<button class="info" aria-label="Entered by you"><svg class="i" style="width:14px;height:14px;" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5"></path><path d="M12 7.5v.01"></path></svg></button></span><span style="display:flex;gap:8px;align-items:center"><b>25 min</b><button class="btn sm">Edit</button></span></div><div class="row"><span class="muted">Distance</span><span class="muted">—</span></div><div class="row"><span class="muted">Gap between Events</span><span>60 min</span></div><div style="margin-top:8px;font-size:12px"><u class="lk">Open in Google Maps</u></div><div style="margin-top:12px"><button class="btn sm" style="color:var(--danger)">Delete Leg</button></div></div>
+
+<div class="cap" style="left:360px;top:20px">2 · After clicking Edit</div>
+<div class="pop" style="left:360px;top:48px"><h3><svg class="i" style="width:16px;height:16px;" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="14" rx="3"></rect><path d="M5 11h14"></path><path d="M9 21l2-4M15 21l-2-4"></path></svg>Leg · 25 min</h3><div class="row" style="border-top:0"><span class="muted">From</span><b>Nishiki Market</b></div><div class="row"><span class="muted">To</span><b>Kiyomizu-dera</b></div><span class="lbl" style="margin-top:10px">Travel mode</span><div class="sg" role="radiogroup" aria-label="Travel mode"><span style="height:34px">Drive</span><span class="on" style="height:34px">Transit</span><span style="height:34px">Walk</span></div><label class="lbl" for="a2" style="margin-top:12px">Duration (minutes)</label><div style="display:flex;gap:8px"><input id="a2" class="num foc" type="text" inputmode="numeric" value="25" style="flex:1;height:34px"><button class="btn sm pri" style="height:34px">Save</button><button class="btn sm" style="height:34px">Cancel</button></div><div class="hint">Whole minutes, 1 to 1,440.</div><div style="margin-top:6px"><button class="btn sm ghost" style="padding:0">Clear duration</button></div><div class="row" style="margin-top:6px"><span class="muted">Distance</span><span class="muted">—</span></div><div class="row"><span class="muted">Gap between Events</span><span>60 min</span></div><div style="margin-top:8px;font-size:12px"><u class="lk">Open in Google Maps</u></div><div style="margin-top:12px"><button class="btn sm" style="color:var(--danger)">Delete Leg</button></div></div>
+
+<div class="cap" style="left:680px;top:20px">3 · Phone, editing</div>
+<section class="sheet" style="left:680px;top:48px"><div style="width:40px;height:4px;border-radius:2px;background:var(--border2);margin:0 auto 12px"></div><h3 style="margin:0 0 8px;font-size:16px;display:flex;gap:8px;align-items:center"><svg class="i" style="width:18px;height:18px;" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="14" rx="3"></rect><path d="M5 11h14"></path><path d="M9 21l2-4M15 21l-2-4"></path></svg>Leg · 25 min</h3><div class="row" style="border-top:0"><span class="muted">From</span><b>Nishiki Market</b></div><div class="row"><span class="muted">To</span><b>Kiyomizu-dera</b></div><span class="lbl" style="margin-top:12px">Travel mode</span><div class="sg" role="radiogroup" aria-label="Travel mode"><span style="height:44px">Drive</span><span class="on" style="height:44px">Transit</span><span style="height:44px">Walk</span></div><label class="lbl" for="a3" style="margin-top:14px">Duration (minutes)</label><div style="display:flex;gap:8px"><input id="a3" class="num foc" type="text" inputmode="numeric" value="25" style="flex:1;height:44px;font-size:16px"><button class="btn pri" style="height:44px;padding:0 18px">Save</button><button class="btn" style="height:44px;padding:0 14px">Cancel</button></div><div class="hint">Whole minutes, 1 to 1,440.</div><button class="btn ghost" style="height:44px;padding:0;margin-top:4px">Clear duration</button><div class="row" style="margin-top:6px"><span class="muted">Distance</span><span class="muted">—</span></div><div class="row"><span class="muted">Gap between Events</span><span>60 min</span></div><div style="margin-top:10px;font-size:14px"><u class="lk">Open in Google Maps</u></div><button class="btn" style="width:100%;height:44px;justify-content:center;margin-top:16px;color:var(--danger)">Delete Leg</button></section>
+
+<aside class="mc" style="position:absolute;left:1130px;top:48px;width:310px"><h4>Design notes · editing a duration</h4>
+<div>The field is shown only while the duration is empty (board 25b, frame 1). Once there is a value, the popover shows “25 min” with an Edit button and an (i) icon next to “Duration”; its tooltip says “Entered by you” (board 25b, frame 2).</div>
+<div>Edit shows the field with the current number. Save stores it; Cancel or Esc goes back without a change. A number outside 1 to 1,440 shows an error under the field and keeps the old value.</div>
+<div>Clear duration is only in edit mode, so it is not hit by accident. It returns the Leg to “can’t calculate”.</div>
+<div>Phone: the same, with 44 px targets.</div>
+<div>Decided 2026-10-23: Edit button rather than clicking the number to edit with autosave on blur. A change stays deliberate, and the field behaves like the empty state.</div></aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1520,"height":760}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -2,34 +2,21 @@
   "v": 3,
   "attachments": {},
   "boards": {
-    "LandingGuestTrips.dc.html": {
-      "h": 1000,
-      "title": "#16b · Landing — guest with Trips, desktop and phone · High fidelity",
-      "w": 2300,
-      "x": 10620,
-      "y": 4300
-    },
-    "LandingLoggedIn.dc.html": {
-      "h": 1000,
-      "title": "#16c · Landing — logged in, desktop and phone · High fidelity",
-      "w": 2300,
-      "x": 10620,
-      "y": 5420
-    },
-    "LandingLoggedInEmpty.dc.html": {
-      "h": 1000,
-      "title": "#16d · Landing — logged in, no Trips, desktop and phone · High fidelity",
-      "w": 2300,
-      "x": 10620,
-      "y": 6540
-    },
     "AccountMenu.dc.html": {
       "h": 2266,
+      "page": "page-72j84k",
       "title": "#38 · Account menu — logged out, logged in, open · High fidelity",
       "w": 5780,
       "x": 0,
-      "y": 19158,
-      "page": "page-72j84k"
+      "y": 19158
+    },
+    "AuthStates.dc.html": {
+      "h": 940,
+      "page": "page-72j84k",
+      "title": "#48 · Auth states — invitation (wrong account, verify email, joined), session expired with unsaved edits, account loading · High fidelity",
+      "w": 2300,
+      "x": 0,
+      "y": 10660
     },
     "ConfirmEvent.dc.html": {
       "h": 880,
@@ -158,11 +145,11 @@
     },
     "GuestTooltip.dc.html": {
       "h": 1956,
+      "page": "page-72j84k",
       "title": "#35 · Guest workspace — tooltip on “Log in to save your progress” · High fidelity",
       "w": 2340,
       "x": 0,
-      "y": 12120,
-      "page": "page-72j84k"
+      "y": 12120
     },
     "GuestWorkspace.dc.html": {
       "h": 960,
@@ -173,11 +160,11 @@
     },
     "InviteEditor.dc.html": {
       "h": 1956,
+      "page": "page-72j84k",
       "title": "#41 · Invited Editor from an email link, logged out · High fidelity",
       "w": 2340,
       "x": 0,
-      "y": 25696,
-      "page": "page-72j84k"
+      "y": 25696
     },
     "Landing.dc.html": {
       "h": 1000,
@@ -186,11 +173,46 @@
       "x": 0,
       "y": 4300
     },
+    "LandingGuestTrips.dc.html": {
+      "h": 1000,
+      "title": "#16b · Landing — guest with Trips, desktop and phone · High fidelity",
+      "w": 2300,
+      "x": 10620,
+      "y": 4300
+    },
+    "LandingLoggedIn.dc.html": {
+      "h": 1000,
+      "title": "#16c · Landing — logged in, desktop and phone · High fidelity",
+      "w": 2300,
+      "x": 10620,
+      "y": 5420
+    },
+    "LandingLoggedInEmpty.dc.html": {
+      "h": 1000,
+      "title": "#16d · Landing — logged in, no Trips, desktop and phone · High fidelity",
+      "w": 2300,
+      "x": 10620,
+      "y": 6540
+    },
     "LegDetail.dc.html": {
       "h": 900,
       "title": "#25 · Leg — chooser, detail, warning, cannot calculate, phone sheet · High fidelity",
       "w": 3300,
       "x": 4740,
+      "y": 8900
+    },
+    "LegManual.dc.html": {
+      "h": 900,
+      "title": "#25b · Leg — duration entered by hand (Google cannot calculate, e.g. Japan transit), phone · High fidelity",
+      "w": 3900,
+      "x": 8120,
+      "y": 8900
+    },
+    "LegDuration.dc.html": {
+      "h": 760,
+      "title": "#25c · Leg — editing a duration entered by hand (Edit button) · High fidelity",
+      "w": 1520,
+      "x": 12120,
       "y": 8900
     },
     "LodgingBanner.dc.html": {
@@ -202,27 +224,27 @@
     },
     "LoginHosted.dc.html": {
       "h": 2456,
+      "page": "page-72j84k",
       "title": "#36 · Hosted login page (Auth0, themed) — log in and sign up screens, wrong password; English and 繁中 · High fidelity",
       "w": 5780,
       "x": 0,
-      "y": 14196,
-      "page": "page-72j84k"
+      "y": 14196
     },
     "LoginReturn.dc.html": {
       "h": 2266,
+      "page": "page-72j84k",
       "title": "#37 · Returning to the app after login — Trip added, Trip list, login didn’t complete · High fidelity",
       "w": 5780,
       "x": 0,
-      "y": 16772,
-      "page": "page-72j84k"
+      "y": 16772
     },
     "Logout.dc.html": {
       "h": 1956,
+      "page": "page-72j84k",
       "title": "#39 · Log out — Landing with “You’re logged out” toast · High fidelity",
       "w": 2340,
       "x": 0,
-      "y": 21544,
-      "page": "page-72j84k"
+      "y": 21544
     },
     "Main.dc.html": {
       "expand": "fill",
@@ -307,13 +329,21 @@
       "x": 1520,
       "y": 0
     },
+    "PhoneMenus.dc.html": {
+      "h": 1500,
+      "page": "page-72j84k",
+      "title": "#47 · Phone — account and Trip menus · High fidelity",
+      "w": 1840,
+      "x": 0,
+      "y": 9040
+    },
     "SessionExpired.dc.html": {
       "h": 1956,
+      "page": "page-72j84k",
       "title": "#40 · Session expired while editing — read-only Trip and banner · High fidelity",
       "w": 2340,
       "x": 0,
-      "y": 23620,
-      "page": "page-72j84k"
+      "y": 23620
     },
     "StatesEmpty.dc.html": {
       "h": 1000,
@@ -364,22 +394,6 @@
       "w": 2040,
       "x": 5500,
       "y": 4300
-    },
-    "PhoneMenus.dc.html": {
-      "h": 1500,
-      "page": "page-72j84k",
-      "title": "#47 · Phone — account and Trip menus · High fidelity",
-      "w": 1840,
-      "x": 0,
-      "y": 9040
-    },
-    "AuthStates.dc.html": {
-      "h": 940,
-      "page": "page-72j84k",
-      "title": "#48 · Auth states — invitation (wrong account, verify email, joined), session expired with unsaved edits, account loading · High fidelity",
-      "w": 2300,
-      "x": 0,
-      "y": 10660
     }
   },
   "createdOnFiles": {
@@ -426,11 +440,11 @@
     "t12": {
       "kind": "title1",
       "maxW": 5760,
+      "page": "page-72j84k",
       "text": "Login and account — high fidelity",
       "w": 240,
       "x": 0,
-      "y": 11860,
-      "page": "page-72j84k"
+      "y": 11860
     },
     "t2": {
       "kind": "title1",
@@ -534,6 +548,8 @@
     "StatesErrors.dc.html",
     "TripList.dc.html",
     "LegDetail.dc.html",
+    "LegManual.dc.html",
+    "LegDuration.dc.html",
     "EventImage.dc.html",
     "TripListNav.dc.html",
     "StatesGeneric.dc.html",

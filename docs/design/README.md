@@ -64,6 +64,8 @@ All images in `png/` are exported at **2x** (twice the CSS pixel width and heigh
 | 23 | `png/23-states-errors.png` | `source/StatesErrors.dc.html` | 2000x1180 | States — errors and limit reached |
 | 24 | `png/24-trip-list.png` | `source/TripList.dc.html` | 4660x920 | Trip list — sidebar, item menu, New Trip (Blank / Generate with AI), Delete Trip, phone |
 | 25 | `png/25-leg-detail.png` | `source/LegDetail.dc.html` | 3300x900 | Leg — chooser, detail, warning, cannot calculate, phone sheet |
+| 25b | `png/25b-leg-manual-duration.png` | `source/LegManual.dc.html` | 3900x900 | Leg — duration entered by hand where Google cannot calculate (public transit in Japan): field, entered state, gap warning, toast, phone sheets |
+| 25c | `png/25c-leg-duration-edit.png` | `source/LegDuration.dc.html` | 1520x760 | Leg — editing a duration entered by hand (Edit button): resting, after Edit, phone |
 | 26 | `png/26-event-image.webp` | `source/EventImage.dc.html` | 2340x1060 | Event image — panel states and Event block |
 | 27 | `png/27-trip-list-nav.png` | `source/TripListNav.dc.html` | 4540x940 | Trip list — collapsed rail, drawer, pinned; Backlog/Archive collapse; switching Trips |
 | 28 | `png/28-states-generic.png` | `source/StatesGeneric.dc.html` | 2000x900 | Empty state, loading skeleton and error banner — one generic style each |

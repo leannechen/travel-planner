@@ -1889,20 +1889,33 @@ main.has-panel .topbar {
   color: var(--muted);
 }
 
+/* Dark, below the (i), with an arrow pointing at it (design 25b, frame 2). */
 .leg-tip {
   position: absolute;
-  bottom: calc(100% + 4px);
-  left: 50%;
+  top: calc(100% + 6px);
+  left: -6px;
   z-index: 1;
   display: none;
-  padding: 3px 8px;
-  border-radius: var(--r-xs);
-  background: var(--pri-strong);
-  color: var(--onpri);
-  font-size: 11px;
+  padding: 7px 9px;
+  border-radius: var(--r-md);
+  background: var(--text);
+  box-shadow: var(--sh-pop);
+  color: var(--surface);
+  font-size: 12px;
   font-weight: 500;
+  line-height: 1;
   white-space: nowrap;
-  transform: translateX(-50%);
+}
+
+.leg-tip::before {
+  position: absolute;
+  top: -4px;
+  left: 10px;
+  width: 8px;
+  height: 8px;
+  background: var(--text);
+  content: "";
+  transform: rotate(45deg);
 }
 
 .leg-info:hover .leg-tip,
@@ -1918,8 +1931,12 @@ main.has-panel .topbar {
   gap: 8px;
 }
 
+/* The minutes field stands apart from the facts around it. */
 .leg-duration {
   margin: 0 0 10px;
+  padding: 10px;
+  border-radius: var(--r-md);
+  background: var(--surface2);
 }
 
 .leg-duration-row {
@@ -1969,14 +1986,17 @@ main.has-panel .topbar {
   color: var(--danger);
 }
 
+.leg-popover .btn.ghost {
+  border-color: transparent;
+  background: transparent;
+}
+
+.leg-popover .btn.ghost:hover:not(:disabled) {
+  background: var(--surface);
+}
+
 .leg-clear {
-  margin-top: 8px;
-  padding: 4px 0;
-  border: 0;
-  background: none;
-  color: var(--text);
-  font: inherit;
-  font-weight: 500;
+  margin: 6px 0 0 -8px;
 }
 
 @media (max-width: 40rem) {

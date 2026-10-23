@@ -229,7 +229,7 @@ export function LegPopover({ anchor, from, to, leg, defaultMode, onCreate, onCha
         {editingEntered && (
           <button
             type="button"
-            className="leg-clear"
+            className="btn sm ghost leg-clear"
             disabled={busy}
             onClick={() =>
               void run(async () => {

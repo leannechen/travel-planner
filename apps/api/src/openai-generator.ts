@@ -84,7 +84,11 @@ export function itineraryGeneratorFromEnv(
   env: NodeJS.ProcessEnv = process.env,
   makeClient: (apiKey: string) => ResponsesClient = (apiKey) => new OpenAI({ apiKey }),
 ): ItineraryGenerator {
-  if (env.OPENAI_API_KEY) return openAiItineraryGenerator(makeClient(env.OPENAI_API_KEY), env.OPENAI_MODEL || DEFAULT_OPENAI_MODEL);
+  if (env.OPENAI_API_KEY) {
+    const model = env.OPENAI_MODEL || DEFAULT_OPENAI_MODEL;
+    console.log(`AI generation uses OpenAI, model ${model}`);
+    return openAiItineraryGenerator(makeClient(env.OPENAI_API_KEY), model);
+  }
   console.warn("No AI model is set up: AI generation uses the fake generator (development only)");
   return fakeItineraryGenerator({ delayMs: 3000 });
 }

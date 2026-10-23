@@ -99,6 +99,7 @@ describe("the OpenAI generator", () => {
     expect(makeClient).not.toHaveBeenCalled();
     warn.mockRestore();
 
+    vi.spyOn(console, "log").mockImplementation(() => undefined);
     const models = async (env: NodeJS.ProcessEnv) => {
       const { client, parse } = clientAnswering(answer());
       await itineraryGeneratorFromEnv(env, () => client).generate(input);
@@ -106,5 +107,7 @@ describe("the OpenAI generator", () => {
     };
     expect(await models({ OPENAI_API_KEY: "sk-test" })).toBe(DEFAULT_OPENAI_MODEL);
     expect(await models({ OPENAI_API_KEY: "sk-test", OPENAI_MODEL: "gpt-6-luna" })).toBe("gpt-6-luna");
+    expect(console.log).toHaveBeenLastCalledWith("AI generation uses OpenAI, model gpt-6-luna");
+    vi.mocked(console.log).mockRestore();
   });
 });

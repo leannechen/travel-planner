@@ -280,6 +280,7 @@ export * from "./trip-dates";
 export * from "./transport";
 export * from "./map-plan";
 export * from "./itinerary";
+export * from "./backup";
 
 export const createTodoInputSchema = z.object({ text: todoText, eventId: z.uuid().nullable().default(null) });
 export const updateTodoInputSchema = z
@@ -294,6 +295,13 @@ export type UpdateTodoInput = z.infer<typeof updateTodoInputSchema>;
 // backup are each made as a seed and written to the database the same way. Days are in their order,
 // places are provider ids.
 const seedTodoSchema = z.object({ text: todoText, done: z.boolean().default(false) });
+// An Event's uploaded image carried in a seed (a backup): the file as base64. The importer checks
+// that it really is a picture before it keeps it.
+export const seedImageSchema = z.object({ contentType: z.enum(IMAGE_TYPES), data: z.string().max(Math.ceil(MAX_IMAGE_BYTES / 3) * 4) });
+const seedNoteSchema = z.object({
+  body: z.string().max(MAX_NOTE_LENGTH).refine((v) => v.trim() !== "", "A Note needs some text"),
+  pinned: z.boolean().default(false),
+});
 export const seedEventSchema = createEventInputSchema.extend({
   openingHoursOn: z.boolean().default(false),
   todos: z.array(seedTodoSchema).default([]),
@@ -301,11 +309,15 @@ export const seedEventSchema = createEventInputSchema.extend({
   // only when the two are adjacent on the timeline (Lodging is a banner, so it is skipped) and both
   // have a place.
   legToNext: travelModeSchema.nullable().default(null),
+  image: seedImageSchema.nullable().default(null),
 });
 // Bounds on what one seed may hold, so an imported file cannot make an unusable Trip.
 export const MAX_SEED_DAYS = 100;
 export const MAX_SEED_EVENTS = 1000;
 export const MAX_SEED_TODOS = 1000;
+export const MAX_SEED_NOTES = 1000;
+// All images of one seed together, as base64 characters (the size of a backup file).
+export const MAX_SEED_IMAGE_CHARS = 60_000_000;
 export const tripSeedSchema = z
   .object({
     title,
@@ -316,9 +328,13 @@ export const tripSeedSchema = z
     archive: z.array(seedEventSchema).default([]),
     // Trip Todos; an Event's Todos are on the Event.
     todos: z.array(seedTodoSchema).default([]),
+    // In the order the Notes panel shows them: pinned first, then by most recent edit. A Note's
+    // edit time is not kept; the order is.
+    notes: z.array(seedNoteSchema).max(MAX_SEED_NOTES).default([]),
   })
   .superRefine((seed, ctx) => {
     const all = [...seed.days.flat(), ...seed.backlog, ...seed.archive];
+    if (all.reduce((n, e) => n + (e.image?.data.length ?? 0), 0) > MAX_SEED_IMAGE_CHARS) ctx.addIssue({ code: "custom", message: "The images are too large together" });
     if (all.length > MAX_SEED_EVENTS) ctx.addIssue({ code: "custom", message: `At most ${MAX_SEED_EVENTS} Events` });
     if (seed.todos.length + all.reduce((n, e) => n + e.todos.length, 0) > MAX_SEED_TODOS) {
       ctx.addIssue({ code: "custom", message: `At most ${MAX_SEED_TODOS} Todos` });
@@ -340,6 +356,21 @@ export type TripSeedInput = z.input<typeof tripSeedSchema>;
 export type TripSeed = z.infer<typeof tripSeedSchema>;
 export type SeedEventInput = z.input<typeof seedEventSchema>;
 export type SeedEvent = z.infer<typeof seedEventSchema>;
+export type SeedImage = z.infer<typeof seedImageSchema>;
+
+// A full backup of a Trip (PRD §9): a JSON file that holds a Trip seed with its Notes and the images
+// the user uploaded. Importing it writes a new Trip through the same writer as the sample Trip and AI
+// generation. `buildBackup` makes one from a Trip.
+// The largest backup file the API reads: the images plus room for text.
+export const MAX_BACKUP_BYTES = MAX_SEED_IMAGE_CHARS + 64 * 1024 * 1024;
+export const BACKUP_FORMAT = "travel-planner-backup";
+export const BACKUP_VERSION = 1;
+export const backupSchema = z.object({
+  format: z.literal(BACKUP_FORMAT),
+  version: z.literal(BACKUP_VERSION),
+  trip: tripSeedSchema,
+});
+export type Backup = z.infer<typeof backupSchema>;
 
 // AI generation (PRD §7, ADR 0008). A logged-in user may start this many a day (UTC); a generation
 // that failed does not count unless the model answered, but all attempts together are capped too.

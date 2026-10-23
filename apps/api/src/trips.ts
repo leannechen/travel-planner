@@ -126,13 +126,17 @@ const eventColumnsSelect = {
   placePhotoHidden: events.placePhotoHidden,
 };
 
-export async function listTrips(db: Db, userId: string): Promise<Trip[]> {
+// The user's Trips, newest first; with `only`, just that Trip when it is theirs.
+export async function listTrips(db: Db, userId: string, only?: string): Promise<Trip[]> {
   const rows = await db.query.trips.findMany({
     // Written against the query's own table alias, so it cannot reuse `editableBy`.
     where: (t) =>
-      or(
-        eq(t.ownerId, userId),
-        sql`exists (select 1 from trip_members tm where tm."tripId" = ${t.id} and tm."userId" = ${userId})`,
+      and(
+        or(
+          eq(t.ownerId, userId),
+          sql`exists (select 1 from trip_members tm where tm."tripId" = ${t.id} and tm."userId" = ${userId})`,
+        ),
+        only === undefined ? undefined : eq(t.id, only),
       ),
     orderBy: [desc(trips.createdAt), desc(trips.id)],
     columns: { id: true, title: true, travelMode: true, startDate: true, ownerId: true },

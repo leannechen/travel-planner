@@ -13,6 +13,8 @@ import {
   holdingAreaSchema,
   inviteEditorInputSchema,
   MAX_IMAGE_BYTES,
+  MAX_BACKUP_BYTES,
+  backupSchema,
   MAX_PLACE_IDS,
   MAX_PLACE_QUERY_LENGTH,
   placeIdSchema,
@@ -35,7 +37,9 @@ import { acceptInvitation, getSharing, identityAdminFromEnv, IdentityAdminError,
 import { authenticate, GUEST_HEADER, mergeGuest, verifierFromEnv, type TokenVerifier } from "./auth";
 import { createLiveHub } from "./live";
 import { createLeg, deleteLeg, isProviderError, listLegs, setLegMode, syncLegs } from "./legs";
+import { exportBackup } from "./backup";
 import { openSampleTrip } from "./sample-trip";
+import { SeedImageError, writeTripSeed } from "./trip-seed";
 import { generationsSummary, getGeneration, startGeneration } from "./generations";
 import type { ItineraryGenerator } from "./itinerary-generator";
 import { itineraryGeneratorFromEnv } from "./openai-generator";
@@ -76,6 +80,8 @@ import {
   updateTodo,
 } from "./trips";
 
+const IMPORT_PATH = "/api/trips/import";
+
 const invitationParamsSchema = z.object({ token: z.string().min(1).max(200) });
 const editorParamsSchema = z.object({ tripId: z.uuid(), editorId: z.uuid() });
 const invitationIdParamsSchema = z.object({ tripId: z.uuid(), invitationId: z.uuid() });
@@ -115,7 +121,9 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
     return wanted.length > 0 && (await getPlaces(db, provider, wanted)).length !== new Set(wanted).size;
   };
   const app = express();
-  app.use(express.json());
+  // A backup file can be large (it carries images), so its route reads its own body.
+  const jsonBody = express.json();
+  app.use((req, res, next) => (req.path === IMPORT_PATH ? next() : jsonBody(req, res, next)));
   const verifier = options.auth ?? verifierFromEnv();
   const live = createLiveHub(db, verifier);
   app.locals.live = live;
@@ -296,6 +304,34 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
   app.post("/api/trips", async (req, res) => {
     const input = createTripInputSchema.parse(req.body);
     res.status(201).json(await createTrip(db, res.locals.userId, input));
+  });
+
+  // Import backup (PRD §9): always a new Trip, written through the same writer as the sample Trip.
+  app.post(IMPORT_PATH, express.json({ limit: MAX_BACKUP_BYTES }), async (req, res) => {
+    const parsed = backupSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "This is not a valid backup file", code: "invalid_backup" });
+      return;
+    }
+    try {
+      const tripId = (await writeTripSeed(db, legDeps, res.locals.userId, parsed.data.trip, { images }))!;
+      const [trip] = await listTrips(db, res.locals.userId, tripId);
+      res.status(201).json(trip);
+    } catch (err) {
+      if (!(err instanceof SeedImageError)) throw err;
+      res.status(422).json({ error: err.message, code: "invalid_backup" });
+    }
+  });
+
+  // The full backup of a Trip, as a file to save (Owner or Editor; anyone else gets 404).
+  app.get("/api/trips/:tripId/backup", async (req, res) => {
+    const { tripId } = tripParamsSchema.parse(req.params);
+    const backup = await exportBackup(db, images, res.locals.userId, tripId);
+    if (!backup) {
+      res.status(404).json({ error: "Trip not found" });
+      return;
+    }
+    res.json(backup);
   });
 
   // The user's copy of the sample Trip, made on the first request and opened after that (PRD §1).
@@ -830,6 +866,17 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
     if (err instanceof ZodError) {
       res.status(400).json({ error: "Invalid request", issues: err.issues });
       return;
+    }
+    if (req.path === IMPORT_PATH) {
+      const type = (err as { type?: string }).type;
+      if (type === "entity.too.large") {
+        res.status(413).json({ error: "The backup file is too large", code: "backup_too_large" });
+        return;
+      }
+      if (type === "entity.parse.failed") {
+        res.status(400).json({ error: "This is not a backup file", code: "invalid_backup" });
+        return;
+      }
     }
     if ((err as { type?: string }).type === "entity.too.large" && req.path.endsWith("/image")) {
       res.status(413).json({ error: `The picture is larger than ${MAX_IMAGE_BYTES / 1024 / 1024} MB`, code: "image_too_large" });

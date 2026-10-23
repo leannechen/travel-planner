@@ -30,6 +30,7 @@ import {
   type InvitationPreview,
   type HoldingArea,
   type RestoreDayInput,
+  type Trip,
   type Note,
   type PlacePhoto,
   type TravelMode,
@@ -161,6 +162,20 @@ export const openSampleTrip = () => request("/api/sample-trip", sampleTripRespon
 // Trip settings; the answer is the title and start date as saved.
 export const updateTrip = (tripId: string, input: UpdateTripInput) =>
   request(`/api/trips/${tripId}`, z.object({ title: tripSchema.shape.title, startDate: startDateSchema.nullable() }), input, "PATCH");
+
+// The full backup of a Trip, as the file's text.
+export async function exportBackup(tripId: string): Promise<string> {
+  const res = await send(`/api/trips/${tripId}/backup`);
+  if (!res.ok) throw await failure(res);
+  return res.text();
+}
+
+// A new Trip from the text of a backup file; the API says if it is not one (`invalid_backup`).
+export async function importBackup(text: string): Promise<Trip> {
+  const res = await send("/api/trips/import", { method: "POST", headers: { "content-type": "application/json" }, body: text });
+  if (!res.ok) throw await failure(res);
+  return tripSchema.parse(await res.json());
+}
 
 export const deleteTrip = (tripId: string) => requestNothing(`/api/trips/${tripId}`, "DELETE");
 

@@ -46,6 +46,8 @@ import {
   turnOffOpeningHours,
   updateTrip,
   deleteTrip,
+  exportBackup,
+  importBackup,
   turnOnOpeningHours,
   updateEvent,
   updateLegMode,
@@ -82,6 +84,7 @@ import { TitleForm } from "./TitleForm";
 import { chooseTrip, hasTripInAddress, isLandingLocation, openTrip, readWantedTripId, rememberTripId, wantsTripList } from "./currentTrip";
 import { NewTripDialog } from "./NewTripDialog";
 import { TripListDrawer } from "./TripListDrawer";
+import { backupFileName, saveTextFile } from "./backupFile";
 import { useTripGeneration } from "./tripGeneration";
 import { TripCard, type EventMove, type Toasted } from "./TripCard";
 
@@ -320,6 +323,24 @@ function Workspace({ joinedMessage }: { joinedMessage?: string }) {
   async function handleRenameTrip(tripId: string, title: string) {
     const saved = await updateTrip(tripId, { title });
     setTrips((current) => current?.map((trip) => (trip.id === tripId ? { ...trip, title: saved.title } : trip)));
+  }
+
+  // Saves the Trip's full backup as a file (PRD §9).
+  async function handleExportTrip(tripId: string) {
+    if (auth.status === "guest") {
+      setTripListOpen(false);
+      void auth.login();
+      return;
+    }
+    const text = await exportBackup(tripId);
+    saveTextFile(backupFileName(trips?.find((trip) => trip.id === tripId)?.title ?? ""), text);
+  }
+
+  // A new Trip from a backup file; it opens like a Trip just made.
+  async function handleImportBackup(file: File) {
+    const trip = await importBackup(await file.text());
+    setTrips((current) => [trip, ...(current ?? [])]);
+    switchTrip(trip.id);
   }
 
   // The next Trip to show is the first one left; the page's own choice takes care of it.
@@ -1124,6 +1145,8 @@ function Workspace({ joinedMessage }: { joinedMessage?: string }) {
           generation={auth.status === "user" ? generation : undefined}
           onRename={handleRenameTrip}
           onDelete={handleDeleteTrip}
+          onExport={handleExportTrip}
+          onImport={handleImportBackup}
           onOpenSettings={(tripId) => { setTripListOpen(false); setSettingsTripId(tripId); }}
           onShare={(tripId) => { setTripListOpen(false); if (auth.status === "guest") void auth.login(); else setShareTripId(tripId); }}
           onClose={() => setTripListOpen(false)}

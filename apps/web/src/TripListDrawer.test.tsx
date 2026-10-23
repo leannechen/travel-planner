@@ -2,6 +2,7 @@
 import { cleanup, fireEvent, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ApiError } from "./api";
 import { makeTrip, renderApp, setPhone } from "./test-helpers";
 import { TripListDrawer } from "./TripListDrawer";
 
@@ -24,6 +25,8 @@ function setup(trips = [kyoto, taipei], extra: { readOnly?: boolean } = {}) {
     onClose: vi.fn(),
     onRename: vi.fn(async () => undefined),
     onDelete: vi.fn(async () => undefined),
+    onExport: vi.fn(async () => undefined),
+    onImport: vi.fn(async () => undefined),
     onOpenSettings: vi.fn(),
     onShare: vi.fn(),
   };
@@ -191,5 +194,51 @@ describe("Trip list", () => {
     const { onClose } = setup();
     await userEvent.click(screen.getByText("My Trips · 2"));
     expect(onClose).not.toHaveBeenCalled();
+  });
+});
+
+describe("Backup", () => {
+  it("exports the Trip from its menu, for an Editor too", async () => {
+    const { onExport } = setup([kyoto, seoul]);
+    await openMenu("Seoul with Mei");
+    await userEvent.click(screen.getByRole("button", { name: "Export backup" }));
+    expect(onExport).toHaveBeenCalledWith(seoul.id);
+  });
+
+  it("says when the backup could not be saved", async () => {
+    const { onExport } = setup();
+    onExport.mockRejectedValueOnce(new Error("offline"));
+    await openMenu("Kyoto & Osaka");
+    await userEvent.click(screen.getByRole("button", { name: "Export backup" }));
+    expect((await screen.findByRole("alert")).textContent).toBe("The backup could not be saved. Try again.");
+  });
+
+  it("imports the file that is chosen", async () => {
+    const { onImport } = setup();
+    const file = new File(["{}"], "kyoto-backup.json", { type: "application/json" });
+    await userEvent.upload(screen.getByTestId("backup-file"), file);
+    expect(onImport).toHaveBeenCalledWith(file);
+  });
+
+  it("says when the file is not a backup, and lets the user choose another", async () => {
+    const { onImport } = setup();
+    onImport.mockRejectedValueOnce(new ApiError("This is not a valid backup file", "invalid_backup"));
+    await userEvent.upload(screen.getByTestId("backup-file"), new File(["x"], "notes.json", { type: "application/json" }));
+    expect((await screen.findByRole("alert")).textContent).toBe("This file is not a backup this app can read.");
+    expect(screen.getByRole("button", { name: "Import backup…" }).hasAttribute("disabled")).toBe(false);
+  });
+
+  it("offers no import or export when the session has ended", async () => {
+    setup([kyoto], { readOnly: true });
+    expect(screen.queryByRole("button", { name: "Import backup…" })).toBeNull();
+    await openMenu("Kyoto & Osaka");
+    expect(screen.queryByRole("button", { name: "Export backup" })).toBeNull();
+  });
+
+  it("reminds about a backup when deleting", async () => {
+    setup();
+    await openMenu("Kyoto & Osaka");
+    await userEvent.click(screen.getByRole("button", { name: "Delete Trip…" }));
+    expect(screen.getByText("Tip: export a full backup first.")).toBeTruthy();
   });
 });

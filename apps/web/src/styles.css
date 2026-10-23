@@ -2266,6 +2266,28 @@ main.has-panel .topbar {
   color: var(--danger);
 }
 
+.trip-list-foot {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.trip-list-hint,
+.trip-delete-tip {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.trip-list-problem {
+  margin: 8px 0 0;
+  color: var(--danger);
+  font-size: 13px;
+}
+
 .trip-delete-confirm {
   display: grid;
   gap: 4px;

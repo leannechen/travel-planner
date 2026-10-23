@@ -1,6 +1,7 @@
-import type { CreateTripInput, Trip } from "@travel-planner/shared";
-import { Ellipsis, Map as MapIcon, Plus, Trash2, X } from "lucide-react";
+import { MAX_BACKUP_BYTES, type CreateTripInput, type Trip } from "@travel-planner/shared";
+import { Download, Ellipsis, Map as MapIcon, Plus, Trash2, Upload, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { ApiError } from "./api";
 import { DeleteTripDialog } from "./DeleteTripDialog";
 import { NewTripDialog } from "./NewTripDialog";
 import { useIsPhone } from "./phone";
@@ -16,6 +17,10 @@ type Props = {
   // Rename and delete are the Owner's; both reject when the server refused.
   onRename: (tripId: string, title: string) => Promise<void>;
   onDelete: (tripId: string) => Promise<void>;
+  // Saves the Trip's full backup as a file, and makes a new Trip from a backup file (it opens that
+  // Trip); both reject when that failed.
+  onExport: (tripId: string) => Promise<void>;
+  onImport: (file: File) => Promise<void>;
   onOpenSettings: (tripId: string) => void;
   onShare: (tripId: string) => void;
   onClose: () => void;
@@ -28,7 +33,7 @@ type Props = {
 // The Trip list (design 24, 27): a drawer over the Backlog opened from the Trip title, a full screen
 // on a phone. Pick a Trip to show it, start a new one, or use a Trip's "⋯" menu. Escape, the close
 // button or a click outside closes it. Pinning the drawer open (design 27, C) is not done.
-export function TripListDrawer({ trips, currentId, onSwitch, onCreate, onRename, onDelete, onOpenSettings, onShare, onClose, readOnly, generation }: Props) {
+export function TripListDrawer({ trips, currentId, onSwitch, onCreate, onRename, onDelete, onExport, onImport, onOpenSettings, onShare, onClose, readOnly, generation }: Props) {
   const t = useT();
   const phone = useIsPhone();
   const dialog = useRef<HTMLDialogElement>(null);
@@ -43,6 +48,35 @@ export function TripListDrawer({ trips, currentId, onSwitch, onCreate, onRename,
   const [renaming, setRenaming] = useState<Trip | undefined>();
   const [deleting, setDeleting] = useState<Trip | undefined>();
   const [creating, setCreating] = useState(false);
+  // Why the last export or import failed, and whether an import is running.
+  const [problem, setProblem] = useState<string | undefined>();
+  const [importing, setImporting] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  async function exportTrip(trip: Trip) {
+    setProblem(undefined);
+    try {
+      await onExport(trip.id);
+    } catch {
+      setProblem(t("tripList.exportError"));
+    }
+  }
+
+  async function importFile(file: File) {
+    setProblem(undefined);
+    if (file.size > MAX_BACKUP_BYTES) {
+      setProblem(t("tripList.importTooLarge"));
+      return;
+    }
+    setImporting(true);
+    try {
+      await onImport(file);
+    } catch (err) {
+      const code = err instanceof ApiError ? err.code : undefined;
+      setProblem(t(code === "invalid_backup" ? "tripList.importInvalid" : code === "backup_too_large" ? "tripList.importTooLarge" : "tripList.importError"));
+      setImporting(false);
+    }
+  }
 
   // The "⋯" menu closes on Escape (taken first, so the drawer stays) and on a click outside it.
   useEffect(() => {
@@ -94,6 +128,12 @@ export function TripListDrawer({ trips, currentId, onSwitch, onCreate, onRename,
             {owner && !readOnly && (
               <button type="button" onClick={() => { setMenuId(undefined); onShare(trip.id); }}>
                 {t("tripList.share")}
+              </button>
+            )}
+            {!readOnly && (
+              <button type="button" onClick={() => { setMenuId(undefined); void exportTrip(trip); }}>
+                <Download size={14} aria-hidden="true" />
+                {t("tripList.export")}
               </button>
             )}
             {owner && !readOnly && (
@@ -157,6 +197,28 @@ export function TripListDrawer({ trips, currentId, onSwitch, onCreate, onRename,
             <ul>{shared.map(row)}</ul>
           </>
         )}
+        {!readOnly && (
+          <div className="trip-list-foot">
+            <input
+              ref={fileInput}
+              type="file"
+              accept=".json,application/json"
+              hidden
+              data-testid="backup-file"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (file) void importFile(file);
+              }}
+            />
+            <button type="button" className="btn" disabled={importing} onClick={() => fileInput.current?.click()}>
+              <Upload size={14} aria-hidden="true" />
+              {importing ? t("tripList.importing") : t("tripList.import")}
+            </button>
+            <p className="trip-list-hint">{t("tripList.importHint")}</p>
+          </div>
+        )}
+        {problem && <p role="alert" className="trip-list-problem">{problem}</p>}
         </div>
       </dialog>
       {renaming && <RenameTripDialog title={renaming.title} onClose={() => setRenaming(undefined)} onRename={(title) => onRename(renaming.id, title)} />}

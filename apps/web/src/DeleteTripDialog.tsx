@@ -33,6 +33,7 @@ export function DeleteTripDialog({ trip, onDelete, onCancel }: Props) {
   return (
     <ConfirmDialog title={t("tripDelete.title", { title: trip.title })} confirmLabel={t("tripDelete.confirm")} confirmDisabled={!matches || busy} onConfirm={() => void confirm()} onCancel={onCancel}>
       <p>{t("tripDelete.body", { events: t("count.event", { count: allEvents(trip).length }) })}</p>
+      <p className="trip-delete-tip">{t("tripDelete.tip")}</p>
       <label className="trip-delete-confirm">
         {t("tripDelete.type")}
         <input value={typed} autoComplete="off" onChange={(e) => setTyped(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void confirm()} />

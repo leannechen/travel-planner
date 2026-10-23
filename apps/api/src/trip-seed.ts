@@ -1,22 +1,32 @@
 import { adjacentPairs, legEndpoints, tripSeedSchema, type SeedEvent, type TripSeedInput } from "@travel-planner/shared";
 import type { Db } from "./db/client";
-import { days, events, todos, trips } from "./db/schema";
+import { eq } from "drizzle-orm";
+import { days, eventImages, events, notes, todos, trips } from "./db/schema";
+import { prepareImage, type ImageStore, type PreparedImage } from "./images";
 import { createLeg, isProviderError, type LegDeps } from "./legs";
 import { getPlaces } from "./places";
 
 // A seed Event with the id it will have, made before anything is written.
 type SeedEventWithId = SeedEvent & { id: string };
 
+// An image of a seed that is not a JPEG, PNG or WebP picture.
+export class SeedImageError extends Error {
+  constructor(readonly eventTitle: string) {
+    super(`The image of "${eventTitle}" is not a usable picture`);
+  }
+}
+
 // Writes a new Trip from a seed (ADR 0008) and returns its id. With `sampleOf`, a user who already has
 // a copy of that sample gets undefined and nothing is written (the unique index on the owner and
-// the sample). Legs are made after the Trip is written; a provider that cannot be reached leaves a
+// the sample). Images in the seed (a backup) are checked and kept in `options.images`; one that is not
+// a picture throws a SeedImageError before anything is written. Legs are made after the Trip is written; a provider that cannot be reached leaves a
 // Leg out, and the user can add it later.
 export async function writeTripSeed(
   db: Db,
   deps: LegDeps,
   ownerId: string,
   input: TripSeedInput,
-  options: { sampleOf?: string } = {},
+  options: { sampleOf?: string; images?: ImageStore } = {},
 ): Promise<string | undefined> {
   const seed = tripSeedSchema.parse(input);
   // Ids are made here so Todos and Legs can refer to their Events before anything is written.
@@ -25,6 +35,21 @@ export async function writeTripSeed(
   const backlog = withIds(seed.backlog);
   const archive = withIds(seed.archive);
   const all = [...dayLists.flat(), ...backlog, ...archive];
+
+  // Each image is checked like an upload and stored under its own id before the Trip is written; the
+  // files are removed again if the Trip is not.
+  const prepared = new Map<string, PreparedImage & { id: string }>();
+  for (const e of all) {
+    if (!e.image) continue;
+    const image = await prepareImage(Buffer.from(e.image.data, "base64"));
+    if (!image) throw new SeedImageError(e.title);
+    prepared.set(e.id, { ...image, id: crypto.randomUUID() });
+  }
+  if (prepared.size > 0 && !options.images) throw new Error("A seed with images needs an image store");
+  const storeImages = async () => {
+    for (const image of prepared.values()) await options.images!.put(image.id, image.bytes);
+  };
+  const dropImages = () => Promise.allSettled([...prepared.values()].map((image) => options.images!.delete(image.id)));
 
   // Fetched now so the places are in the cache before anything asks for them.
   const placeIds = all.flatMap((e) => [e.placeId, e.destinationId].filter((id): id is string => id !== null));
@@ -38,58 +63,79 @@ export async function writeTripSeed(
   const now = Date.now();
   const stamped = <T,>(rows: T[]) => rows.map((r, i) => ({ ...r, createdAt: new Date(now - rows.length + i) }));
 
-  const tripId = await db.transaction(async (tx) => {
-    const [trip] = await tx
-      .insert(trips)
-      .values({ ownerId, title: seed.title, travelMode: seed.travelMode, startDate: seed.startDate, sampleOf: options.sampleOf ?? null })
-      .onConflictDoNothing()
-      .returning({ id: trips.id });
-    if (!trip) return undefined;
+  let tripId: string | undefined;
+  try {
+    await storeImages();
+    tripId = await db.transaction(async (tx) => {
+      const [trip] = await tx
+        .insert(trips)
+        .values({ ownerId, title: seed.title, travelMode: seed.travelMode, startDate: seed.startDate, sampleOf: options.sampleOf ?? null })
+        .onConflictDoNothing()
+        .returning({ id: trips.id });
+      if (!trip) return undefined;
 
-    const dayRows = await tx
-      .insert(days)
-      .values(dayLists.map((_, i) => ({ tripId: trip.id, position: i + 1 })))
-      .returning({ id: days.id, position: days.position });
-    const dayId = (position: number) => dayRows.find((d) => d.position === position)!.id;
+      const dayRows = await tx
+        .insert(days)
+        .values(dayLists.map((_, i) => ({ tripId: trip.id, position: i + 1 })))
+        .returning({ id: days.id, position: days.position });
+      const dayId = (position: number) => dayRows.find((d) => d.position === position)!.id;
 
-    const row = (e: SeedEventWithId, where: { dayId: string } | { holding: "backlog" | "archive" }) => ({
-      id: e.id,
-      tripId: trip.id,
-      ...where,
-      kind: e.kind,
-      title: e.title,
-      transportLabel: e.transportLabel,
-      nights: e.nights,
-      checkInMinute: e.checkInMinute,
-      checkOutMinute: e.checkOutMinute,
-      description: e.description,
-      phone: e.phone,
-      email: e.email,
-      website: e.website,
-      bookingUrl: e.bookingUrl,
-      placeId: e.placeId,
-      destinationId: e.destinationId,
-      // Only an Event with a place has opening hours to show.
-      openingHoursOn: e.openingHoursOn && e.placeId !== null,
-      placePhotoHidden: e.placePhotoHidden,
-      startMinute: e.startMinute,
-      durationMinutes: e.durationMinutes,
+      const row = (e: SeedEventWithId, where: { dayId: string } | { holding: "backlog" | "archive" }) => ({
+        id: e.id,
+        tripId: trip.id,
+        ...where,
+        kind: e.kind,
+        title: e.title,
+        transportLabel: e.transportLabel,
+        nights: e.nights,
+        checkInMinute: e.checkInMinute,
+        checkOutMinute: e.checkOutMinute,
+        description: e.description,
+        phone: e.phone,
+        email: e.email,
+        website: e.website,
+        bookingUrl: e.bookingUrl,
+        placeId: e.placeId,
+        destinationId: e.destinationId,
+        // Only an Event with a place has opening hours to show.
+        openingHoursOn: e.openingHoursOn && e.placeId !== null,
+        placePhotoHidden: e.placePhotoHidden,
+        startMinute: e.startMinute,
+        durationMinutes: e.durationMinutes,
+      });
+      const eventRows = [
+        ...dayLists.flatMap((list, i) => list.map((e) => row(e, { dayId: dayId(i + 1) }))),
+        ...backlog.map((e) => row(e, { holding: "backlog" })),
+        ...archive.map((e) => row(e, { holding: "archive" })),
+      ];
+      if (eventRows.length > 0) await tx.insert(events).values(stamped(eventRows));
+
+      // The image rows come after the Events they belong to, and the Events then point at them.
+      for (const [eventId, image] of prepared) {
+        await tx.insert(eventImages).values({ id: image.id, eventId, storageKey: image.id, contentType: image.contentType, byteSize: image.bytes.length, createdBy: ownerId });
+        await tx.update(events).set({ imageId: image.id }).where(eq(events.id, eventId));
+      }
+
+      // The Notes panel lists by most recent edit, so the first Note of the seed gets the latest time.
+      if (seed.notes.length > 0) {
+        await tx.insert(notes).values(seed.notes.map((n, i) => ({ tripId: trip.id, ...n, updatedAt: new Date(now - i) })));
+      }
+
+      const todoRows = [
+        ...seed.todos.map((t) => ({ tripId: trip.id, eventId: null, ...t, createdBy: ownerId })),
+        ...all.flatMap((e) => e.todos.map((t) => ({ tripId: trip.id, eventId: e.id, ...t, createdBy: ownerId }))),
+      ];
+      if (todoRows.length > 0) await tx.insert(todos).values(stamped(todoRows));
+      return trip.id;
     });
-    const eventRows = [
-      ...dayLists.flatMap((list, i) => list.map((e) => row(e, { dayId: dayId(i + 1) }))),
-      ...backlog.map((e) => row(e, { holding: "backlog" })),
-      ...archive.map((e) => row(e, { holding: "archive" })),
-    ];
-    if (eventRows.length > 0) await tx.insert(events).values(stamped(eventRows));
-
-    const todoRows = [
-      ...seed.todos.map((t) => ({ tripId: trip.id, eventId: null, ...t, createdBy: ownerId })),
-      ...all.flatMap((e) => e.todos.map((t) => ({ tripId: trip.id, eventId: e.id, ...t, createdBy: ownerId }))),
-    ];
-    if (todoRows.length > 0) await tx.insert(todos).values(stamped(todoRows));
-    return trip.id;
-  });
-  if (!tripId) return undefined;
+  } catch (err) {
+    await dropImages();
+    throw err;
+  }
+  if (!tripId) {
+    await dropImages();
+    return undefined;
+  }
 
   await addLegs(db, deps, tripId, dayLists);
   return tripId;

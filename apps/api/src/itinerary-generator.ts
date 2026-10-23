@@ -79,9 +79,3 @@ export function fakeItineraryGenerator(options: { delayMs?: number } = {}): Itin
     },
   };
 }
-
-// The real generator comes in step 23b; until then the fake one, slowed down so the waiting state shows.
-export function itineraryGeneratorFromEnv(): ItineraryGenerator {
-  console.warn("No AI model is set up: AI generation uses the fake generator (development only)");
-  return fakeItineraryGenerator({ delayMs: 3000 });
-}

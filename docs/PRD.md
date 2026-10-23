@@ -102,7 +102,7 @@ Only the title is required.
 ### 3.3 Legs
 
 - A Leg is created only when the user chooses "Add Travel" in the empty time slot between two adjacent Events, shown on hover or focus, or after a tap on a touch screen, where an "Add Event" at the tapped minute also appears (ADR 0002). The system never creates Legs on its own.
-- Both Events need a location. Its duration is computed from the two locations using the Google Maps API; the user picks the travel mode (drive, public transit, walk). A Trip has a default travel mode, chosen at creation and changeable in Trip settings; each Leg can override it.
+- Both Events need a location. Its duration is computed from the two locations using the Google Maps API, or entered by the user in minutes when Google cannot calculate it (ADR 0009); the user picks the travel mode (drive, public transit, walk). A Trip has a default travel mode, chosen at creation and changeable in Trip settings; each Leg can override it.
 - A Day's Lodging can be the start point of a Leg to the first Event of that Day.
 - If the gap between two Events is shorter than the Leg's duration, a conflict warning is shown. Nothing is moved automatically.
 
@@ -110,7 +110,7 @@ Only the title is required.
 
 - the names of the two Events it connects (read-only);
 - the travel mode, which the user can change;
-- the estimated duration and the distance, computed from Google and read-only;
+- the estimated duration and the distance, computed from Google and read-only; when the Leg cannot be calculated (for example public transit in Japan, where Google has no routes), a field to enter the duration in minutes, which is then marked as entered by hand, has no distance, and can be edited or cleared;
 - the current gap between the two Events, emphasized only when it is too short;
 - a link that opens the route in Google Maps;
 - a delete action.
@@ -122,7 +122,9 @@ A Leg has no Description or notes. Public-transit route details (lines, transfer
 | Situation | Result |
 |---|---|
 | The two Events stop being adjacent (moved, or another Event inserted between) | Leg is removed |
-| An Event's location changes | Leg duration is recalculated |
+| An Event's location changes | Leg duration is recalculated; a duration entered by hand is dropped and the Leg is calculated again |
+| The travel mode changes | Leg duration is recalculated; a duration entered by hand is dropped |
+| An Event's time changes, and the Leg has a duration entered by hand | Nothing is recalculated; a non-blocking toast tells the user the Leg's duration was entered by hand |
 | An Event's location is cleared | Leg stays and shows "cannot calculate" |
 | Either Event leaves the Day (Archive, Backlog, deleted) | Leg is removed |
 

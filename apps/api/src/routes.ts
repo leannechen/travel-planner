@@ -88,6 +88,7 @@ export function googleRouteProvider(apiKey: string, fetchFn: typeof fetch = fetc
         throw new RouteProviderError(`Route lookup failed (${err instanceof Error ? err.message : "unknown error"})`);
       }
       // No route (for example no public transport between the two places) comes back without routes.
+      // Transit is never answered in Japan: https://developers.google.com/maps/faq#transit_directions_countries
       const first = (body as { routes?: unknown[] } | null)?.routes?.[0];
       if (first === undefined) return undefined;
       const parsed = googleRouteSchema.safeParse(first);

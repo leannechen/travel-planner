@@ -112,13 +112,13 @@ export function sampleStartDate(now: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-// The provider's ids of the places, found the first time and kept per provider: the pinned id when
-// the provider knows it, else the first search hit for the name. A place the provider does not know
-// leaves that Event without a place rather than failing the copy.
+// The provider's ids of the places, found the first time and kept per provider (`key`): the pinned
+// id when the provider knows it, else the first search hit for the name. A place the provider does not
+// know leaves that Event without a place rather than failing the copy.
 const found = new WeakMap<object, Map<PlaceKey, string>>();
-async function resolvePlaces(deps: LegDeps): Promise<Map<PlaceKey, string>> {
-  const known = found.get(deps.places) ?? new Map<PlaceKey, string>();
-  found.set(deps.places, known);
+async function resolvePlaces(deps: LegDeps, key: object): Promise<Map<PlaceKey, string>> {
+  const known = found.get(key) ?? new Map<PlaceKey, string>();
+  found.set(key, known);
   const missing = (Object.keys(SAMPLE_PLACES) as PlaceKey[]).filter((key) => !known.has(key));
   const ids = await Promise.all(
     missing.map(async (key) => {
@@ -175,16 +175,19 @@ function sampleSeed(ids: Map<PlaceKey, string>, now: Date): TripSeedInput {
 
 // The user's copy of the sample Trip: the one they already have, else a new one made from the
 // fixture. Two requests at once make one copy (the unique index on the owner and the sample).
+// `providerKey` names the provider the found ids are kept for; the API passes the provider itself,
+// since the one in `deps` is made for each request (to count its calls, plan step 33).
 export async function openSampleTrip(
   db: Db,
   deps: LegDeps,
   userId: string,
   now = new Date(),
+  providerKey: object = deps.places,
 ): Promise<{ tripId: string; created: boolean }> {
   const existing = await existingCopy(db, userId);
   if (existing) return { tripId: existing, created: false };
 
-  const tripId = await writeTripSeed(db, deps, userId, sampleSeed(await resolvePlaces(deps), now), { sampleOf: SAMPLE_KEY });
+  const tripId = await writeTripSeed(db, deps, userId, sampleSeed(await resolvePlaces(deps, providerKey), now), { sampleOf: SAMPLE_KEY });
   // Another request made the copy first.
   if (!tripId) return { tripId: (await existingCopy(db, userId))!, created: false };
   return { tripId, created: true };

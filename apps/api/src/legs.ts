@@ -11,6 +11,7 @@ import type { Db } from "./db/client";
 import { days, events, legs, trips } from "./db/schema";
 import { getPlaces, PlaceProviderError, type PlaceProvider } from "./places";
 import { routeBetween, RouteProviderError, type Departure, type RouteProvider } from "./routes";
+import { UsageLimitError } from "./usage";
 
 export type LegDeps = { places: PlaceProvider; routes: RouteProvider };
 
@@ -94,8 +95,9 @@ async function calculate(
   return (await routeBetween(db, deps.routes, from, to, mode, departure)) ?? CANNOT_CALCULATE;
 }
 
-// Whether the error is the provider being unavailable (as opposed to a bug).
-export const isProviderError = (err: unknown) => err instanceof PlaceProviderError || err instanceof RouteProviderError;
+// Whether the error is the provider being unavailable (as opposed to a bug); a call refused by the
+// usage limits counts too, so it leaves a Leg uncalculated like an unreachable provider does.
+export const isProviderError = (err: unknown) => err instanceof PlaceProviderError || err instanceof RouteProviderError || err instanceof UsageLimitError;
 
 // The Events of each Day, ready for the adjacency check.
 function byDay(all: DayEvent[]): DayEvent[][] {

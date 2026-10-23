@@ -21,6 +21,8 @@ type Props = {
   // Trip); both reject when that failed.
   onExport: (tripId: string) => Promise<void>;
   onImport: (file: File) => Promise<void>;
+  // Only accounts import: for a guest, Import backup… calls this (to log in) instead of asking for a file.
+  onImportLogin?: () => void;
   onOpenSettings: (tripId: string) => void;
   onShare: (tripId: string) => void;
   onClose: () => void;
@@ -36,7 +38,7 @@ type Props = {
 // The Trip list (design 24, 27): a drawer over the Backlog opened from the Trip title, a full screen
 // on a phone. Pick a Trip to show it, start a new one, or use a Trip's "⋯" menu. Escape, the close
 // button or a click outside closes it. Pinned (desktop, wide window), it is a column beside the Days that stays open instead.
-export function TripListDrawer({ trips, currentId, onSwitch, onCreate, onRename, onDelete, onExport, onImport, onOpenSettings, onShare, onClose, readOnly, generation, pinned = false, onTogglePin }: Props) {
+export function TripListDrawer({ trips, currentId, onSwitch, onCreate, onRename, onDelete, onExport, onImport, onImportLogin, onOpenSettings, onShare, onClose, readOnly, generation, pinned = false, onTogglePin }: Props) {
   const t = useT();
   const phone = useIsPhone();
   const dialog = useRef<HTMLDialogElement>(null);
@@ -76,7 +78,9 @@ export function TripListDrawer({ trips, currentId, onSwitch, onCreate, onRename,
       await onImport(file);
     } catch (err) {
       const code = err instanceof ApiError ? err.code : undefined;
-      setProblem(t(code === "invalid_backup" ? "tripList.importInvalid" : code === "backup_too_large" ? "tripList.importTooLarge" : "tripList.importError"));
+      const { needed, remaining } = err instanceof ApiError ? err.detail : {};
+      if (code === "lookup_limit" && typeof needed === "number" && typeof remaining === "number") setProblem(t("tripList.importLookupLimit", { needed, remaining }));
+      else setProblem(t(code === "invalid_backup" ? "tripList.importInvalid" : code === "backup_too_large" ? "tripList.importTooLarge" : code === "import_limit" ? "tripList.importLimit" : "tripList.importError"));
       setImporting(false);
     }
   }
@@ -208,7 +212,7 @@ export function TripListDrawer({ trips, currentId, onSwitch, onCreate, onRename,
                 if (file) void importFile(file);
               }}
             />
-            <button type="button" className="btn" disabled={importing} onClick={() => fileInput.current?.click()}>
+            <button type="button" className="btn" disabled={importing} onClick={() => (onImportLogin ? onImportLogin() : fileInput.current?.click())}>
               <Upload size={14} aria-hidden="true" />
               {importing ? t("tripList.importing") : t("tripList.import")}
             </button>

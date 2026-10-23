@@ -36,10 +36,11 @@ import { users } from "./db/schema";
 import { acceptInvitation, getSharing, identityAdminFromEnv, IdentityAdminError, inviteEditor, logInvitationMailer, previewInvitation, removeEditor, revokeInvitation, setShareLink, type IdentityAdmin, type InvitationMailer } from "./sharing";
 import { authenticate, GUEST_HEADER, mergeGuest, verifierFromEnv, type TokenVerifier } from "./auth";
 import { createLiveHub } from "./live";
-import { createLeg, deleteLeg, isProviderError, listLegs, setLegMode, syncLegs } from "./legs";
+import { createLeg, deleteLeg, isProviderError, listLegs, setLegMode, syncLegs, type LegDeps } from "./legs";
 import { exportBackup } from "./backup";
 import { openSampleTrip } from "./sample-trip";
-import { SeedImageError, writeTripSeed } from "./trip-seed";
+import { seedLookupCost, SeedImageError, writeTripSeed } from "./trip-seed";
+import { clientAddress, giveBackUsage, meteredPlaces, meteredRoutes, remainingUsage, takeUsage, UsageLimitError, type Caller } from "./usage";
 import { generationsSummary, getGeneration, startGeneration } from "./generations";
 import type { ItineraryGenerator } from "./itinerary-generator";
 import { itineraryGeneratorFromEnv } from "./openai-generator";
@@ -104,23 +105,37 @@ const idsQuerySchema = z.object({
     .pipe(z.array(placeIdSchema).max(MAX_PLACE_IDS)),
 });
 
-export function createApp(db: Db, options: { places?: PlaceProvider; routes?: RouteProvider; generator?: ItineraryGenerator; auth?: TokenVerifier; mailer?: InvitationMailer; identityAdmin?: IdentityAdmin; appOrigin?: string; images?: ImageStore } = {}) {
+export function createApp(db: Db, options: { places?: PlaceProvider; routes?: RouteProvider; generator?: ItineraryGenerator; auth?: TokenVerifier; mailer?: InvitationMailer; identityAdmin?: IdentityAdmin; appOrigin?: string; images?: ImageStore; trustProxy?: string } = {}) {
   const images = options.images ?? imageStoreFromEnv();
   const mailer = options.mailer ?? logInvitationMailer();
   const identityAdmin = options.identityAdmin ?? identityAdminFromEnv();
   const appOrigin = options.appOrigin ?? process.env.APP_ORIGIN ?? "http://localhost:5173";
   const provider = options.places ?? placeProviderFromEnv();
-  const legDeps = { places: provider, routes: options.routes ?? routeProviderFromEnv() };
-  const generationDeps = { ...legDeps, generator: options.generator ?? itineraryGeneratorFromEnv() };
+  const routes = options.routes ?? routeProviderFromEnv();
+  // AI generation has its own limits (a few a day, a capped number of places each), so its calls
+  // are not counted against the user's.
+  const generationDeps = { places: provider, routes, generator: options.generator ?? itineraryGeneratorFromEnv() };
+  // Who a request is counted for by the usage limits (plan step 33); before authentication only the
+  // IP address is known.
+  const callerOf = (req: express.Request, res: express.Response): Caller => ({ userId: res.locals.userId, account: Boolean(res.locals.accountId), ip: clientAddress(req.ip ?? "unknown") });
+  // The providers with every call that reaches them counted first by `use`.
+  const metered = (use: (kind: "search" | "lookup") => Promise<void>): LegDeps => ({ places: meteredPlaces(provider, use), routes: meteredRoutes(routes, use) });
+  // The providers as one request uses them: every call counts against the caller's limits, and one
+  // over a limit throws a UsageLimitError instead.
+  const depsFor = (req: express.Request, res: express.Response): LegDeps => metered((kind) => takeUsage(db, callerOf(req, res), kind));
   // After Events or Days change: Legs between Events that are no longer adjacent go, and Legs whose
   // places changed are calculated again.
-  const syncTripLegs = (tripId: string) => syncLegs(db, legDeps, tripId);
+  const syncTripLegs = (req: express.Request, res: express.Response, tripId: string) => syncLegs(db, depsFor(req, res), tripId);
   // The ids an Event refers to must be places the provider knows.
-  const unknownPlace = async (...ids: (string | null | undefined)[]) => {
+  const unknownPlace = async (req: express.Request, res: express.Response, ...ids: (string | null | undefined)[]) => {
     const wanted = ids.filter((id): id is string => Boolean(id));
-    return wanted.length > 0 && (await getPlaces(db, provider, wanted)).length !== new Set(wanted).size;
+    return wanted.length > 0 && (await getPlaces(db, depsFor(req, res).places, wanted)).length !== new Set(wanted).size;
   };
   const app = express();
+  // Behind a proxy (fly.io) the client's address comes from X-Forwarded-For. TRUST_PROXY is Express's
+  // "trust proxy" setting: how many proxies to believe, or which addresses; unset, none are.
+  const trustProxy = options.trustProxy ?? process.env.TRUST_PROXY;
+  if (trustProxy) app.set("trust proxy", /^\d+$/.test(trustProxy) ? Number(trustProxy) : trustProxy);
   // A backup file can be large (it carries images), so its route reads its own body.
   const jsonBody = express.json();
   app.use((req, res, next) => (req.path === IMPORT_PATH ? next() : jsonBody(req, res, next)));
@@ -174,13 +189,13 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
   app.get("/api/shared/:token/places", async (req, res) => {
     const { token } = shareParamsSchema.parse(req.params);
     const { ids } = idsQuerySchema.parse(req.query);
-    res.json({ places: await getPlaces(db, provider, await sharedPlaceIds(db, token, ids)) });
+    res.json({ places: await getPlaces(db, depsFor(req, res).places, await sharedPlaceIds(db, token, ids)) });
   });
 
   app.get("/api/shared/:token/opening-hours", async (req, res) => {
     const { token } = shareParamsSchema.parse(req.params);
     const { ids } = idsQuerySchema.parse(req.query);
-    res.json({ openingHours: Object.fromEntries(await getOpeningHours(db, provider, await sharedPlaceIds(db, token, ids))) });
+    res.json({ openingHours: Object.fromEntries(await getOpeningHours(db, depsFor(req, res).places, await sharedPlaceIds(db, token, ids))) });
   });
 
   app.get("/api/shared/:token/events/:eventId/image", async (req, res) => {
@@ -193,8 +208,8 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
   // place is asked about, so the key cannot be used to look up any place. The address is short-lived.
   // The photo is the default only: an upload comes first and taking the image off hides it, so neither
   // is looked up (which would also cost a Google request for nothing).
-  const sendPlacePhoto = async (res: express.Response, found: { placeId: string | null; imageId: string | null; placePhotoHidden: boolean } | undefined) => {
-    const photo = found?.placeId && !found.imageId && !found.placePhotoHidden ? await getPlacePhoto(db, provider, found.placeId) : undefined;
+  const sendPlacePhoto = async (req: express.Request, res: express.Response, found: { placeId: string | null; imageId: string | null; placePhotoHidden: boolean } | undefined) => {
+    const photo = found?.placeId && !found.imageId && !found.placePhotoHidden ? await getPlacePhoto(db, depsFor(req, res).places, found.placeId) : undefined;
     if (!photo) {
       res.status(404).json({ error: "No place photo", code: "no_place_photo" });
       return;
@@ -206,7 +221,7 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
   app.get("/api/shared/:token/events/:eventId/place-photo", async (req, res) => {
     const { token } = shareParamsSchema.parse(req.params);
     const { eventId } = z.object({ eventId: z.uuid() }).parse(req.params);
-    await sendPlacePhoto(res, await findSharedEventPlace(db, token, eventId));
+    await sendPlacePhoto(req, res, await findSharedEventPlace(db, token, eventId));
   });
 
   app.use("/api", authenticate(db, verifier));
@@ -281,12 +296,12 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
 
   app.get("/api/places/search", async (req, res) => {
     const { q } = searchQuerySchema.parse(req.query);
-    res.json({ places: await searchPlaces(db, provider, q) });
+    res.json({ places: await searchPlaces(db, depsFor(req, res).places, q) });
   });
 
   app.get("/api/places", async (req, res) => {
     const { ids } = idsQuerySchema.parse(req.query);
-    res.json({ places: await getPlaces(db, provider, ids) });
+    res.json({ places: await getPlaces(db, depsFor(req, res).places, ids) });
   });
 
   // The opening hours for these places, for the Events that have them on. A place without hours, or
@@ -294,7 +309,7 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
   app.get("/api/places/opening-hours", async (req, res) => {
     const { ids } = idsQuerySchema.parse(req.query);
     const own = await ownPlaceIds(db, res.locals.userId, ids);
-    res.json({ openingHours: Object.fromEntries(await getOpeningHours(db, provider, own)) });
+    res.json({ openingHours: Object.fromEntries(await getOpeningHours(db, depsFor(req, res).places, own)) });
   });
 
   app.get("/api/trips", async (_req, res) => {
@@ -307,19 +322,48 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
   });
 
   // Import backup (PRD §9): always a new Trip, written through the same writer as the sample Trip.
-  app.post(IMPORT_PATH, express.json({ limit: MAX_BACKUP_BYTES }), async (req, res) => {
+  // For accounts only, and a limited number a day, both checked before the (large) file is read.
+  const importAllowed: express.RequestHandler = async (req, res, next) => {
+    if (!res.locals.accountId) {
+      res.status(403).json({ error: "Log in to import a backup", code: "login_required" });
+      return;
+    }
+    await takeUsage(db, callerOf(req, res), "import");
+    next();
+  };
+  app.post(IMPORT_PATH, importAllowed, express.json({ limit: MAX_BACKUP_BYTES }), async (req, res) => {
     const parsed = backupSchema.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: "This is not a valid backup file", code: "invalid_backup" });
       return;
     }
+    // The whole Trip or nothing: the most lookups writing it can take are counted first, and one that
+    // would need more than are left today is refused rather than written with places or Legs missing.
+    // Writing draws on what was counted, and what it did not use is given back.
+    const caller = callerOf(req, res);
+    const needed = await seedLookupCost(db, parsed.data.trip);
     try {
-      const tripId = (await writeTripSeed(db, legDeps, res.locals.userId, parsed.data.trip, { images }))!;
+      await takeUsage(db, caller, "lookup", needed);
+    } catch (err) {
+      if (!(err instanceof UsageLimitError)) throw err;
+      const remaining = await remainingUsage(db, caller, "lookup");
+      res.status(429).json({ error: `This backup needs ${needed} place and travel time lookups, and ${remaining} are left today`, code: "lookup_limit", needed, remaining });
+      return;
+    }
+    let reserved = needed;
+    const deps = metered(async (kind) => {
+      if (kind === "lookup" && reserved > 0) reserved--;
+      else await takeUsage(db, caller, kind);
+    });
+    try {
+      const tripId = (await writeTripSeed(db, deps, res.locals.userId, parsed.data.trip, { images }))!;
       const [trip] = await listTrips(db, res.locals.userId, tripId);
       res.status(201).json(trip);
     } catch (err) {
       if (!(err instanceof SeedImageError)) throw err;
       res.status(422).json({ error: err.message, code: "invalid_backup" });
+    } finally {
+      await giveBackUsage(db, caller, "lookup", reserved);
     }
   });
 
@@ -336,8 +380,8 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
 
   // The user's copy of the sample Trip, made on the first request and opened after that (PRD §1).
   // Guests too: this is how a new visitor gets a first Trip.
-  app.post("/api/sample-trip", async (_req, res) => {
-    const opened: SampleTripResponse = await openSampleTrip(db, legDeps, res.locals.userId);
+  app.post("/api/sample-trip", async (req, res) => {
+    const opened: SampleTripResponse = await openSampleTrip(db, depsFor(req, res), res.locals.userId, undefined, provider);
     res.status(opened.created ? 201 : 200).json(opened);
   });
 
@@ -480,7 +524,7 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
       res.status(404).json({ error: "Trip not found" });
       return;
     }
-    if (await unknownPlace(input.placeId, input.destinationId)) {
+    if (await unknownPlace(req, res, input.placeId, input.destinationId)) {
       res.status(400).json({ error: UNKNOWN_PLACE });
       return;
     }
@@ -493,7 +537,7 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
       res.status(400).json({ error: LODGING_ERROR });
       return;
     }
-    await syncTripLegs(tripId);
+    await syncTripLegs(req, res, tripId);
     res.status(201).json(event);
   });
 
@@ -504,7 +548,7 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
       res.status(404).json({ error: "Trip not found" });
       return;
     }
-    if (await unknownPlace(input.placeId, input.destinationId)) {
+    if (await unknownPlace(req, res, input.placeId, input.destinationId)) {
       res.status(400).json({ error: UNKNOWN_PLACE });
       return;
     }
@@ -527,7 +571,7 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
       res.status(404).json({ error: "Trip not found" });
       return;
     }
-    if (await unknownPlace(input.placeId, input.destinationId)) {
+    if (await unknownPlace(req, res, input.placeId, input.destinationId)) {
       res.status(400).json({ error: UNKNOWN_PLACE });
       return;
     }
@@ -544,7 +588,7 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
       res.status(400).json({ error: LODGING_ERROR });
       return;
     }
-    await syncTripLegs(tripId);
+    await syncTripLegs(req, res, tripId);
     res.json(result);
   });
 
@@ -561,7 +605,7 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
       res.status(400).json({ error: "Opening hours need an Attraction or Meal with a location" });
       return;
     }
-    const hours = await fetchOpeningHours(db, provider, found.placeId);
+    const hours = await fetchOpeningHours(db, depsFor(req, res).places, found.placeId);
     const event = await setOpeningHours(db, res.locals.userId, tripId, eventId, hours !== undefined, found.placeId);
     if (!event) {
       res.status(404).json({ error: "Event not found" });
@@ -588,7 +632,7 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
       res.status(404).json({ error: "Event not found" });
       return;
     }
-    await sendPlacePhoto(res, found);
+    await sendPlacePhoto(req, res, found);
   });
 
   app.get("/api/trips/:tripId/events/:eventId/image", async (req, res) => {
@@ -636,7 +680,7 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
     }
     // The file goes with the Event; undo brings the Event back without it.
     if (gone.imageKey) await images.delete(gone.imageKey);
-    await syncTripLegs(tripId);
+    await syncTripLegs(req, res, tripId);
     res.json(result);
   });
 
@@ -656,7 +700,7 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
       res.status(400).json({ error: "The Event cannot be restored with these Todos" });
       return;
     }
-    await syncTripLegs(tripId);
+    await syncTripLegs(req, res, tripId);
     res.status(201).json(result);
   });
 
@@ -676,7 +720,7 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
       res.status(404).json({ error: "Trip not found" });
       return;
     }
-    const result = await createLeg(db, legDeps, tripId, input);
+    const result = await createLeg(db, depsFor(req, res), tripId, input);
     if (result === "not-adjacent") {
       res.status(400).json({ error: "The two Events are not next to each other in a Day" });
       return;
@@ -699,7 +743,7 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
       res.status(404).json({ error: "Trip not found" });
       return;
     }
-    const result = await setLegMode(db, legDeps, tripId, legId, mode);
+    const result = await setLegMode(db, depsFor(req, res), tripId, legId, mode);
     if (!result) {
       res.status(404).json({ error: "Leg not found" });
       return;
@@ -838,7 +882,7 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
       res.status(409).json({ error: "A Trip must keep at least one Day" });
       return;
     }
-    await syncTripLegs(tripId);
+    await syncTripLegs(req, res, tripId);
     res.json(result);
   });
 
@@ -858,13 +902,26 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
       res.status(400).json({ error: "The Day cannot be restored with these Events" });
       return;
     }
-    await syncTripLegs(tripId);
+    await syncTripLegs(req, res, tripId);
     res.status(201).json(result);
   });
 
   app.use((err: unknown, req: express.Request, res: express.Response, next: express.NextFunction) => {
     if (err instanceof ZodError) {
       res.status(400).json({ error: "Invalid request", issues: err.issues });
+      return;
+    }
+    // A usage limit (plan step 33); `window` says whether trying again in a minute can help.
+    if (err instanceof UsageLimitError) {
+      const error =
+        err.kind === "import"
+          ? "You have imported many backups today. Try again tomorrow."
+          : err.kind === "search" && err.window === "minute"
+            ? "Too many place searches. Try again in a minute."
+            : err.kind === "search"
+              ? "Today's place searches are used up. Try again tomorrow."
+              : "Today's place and travel time lookups are used up. Try again tomorrow.";
+      res.status(429).json({ error, code: `${err.kind}_limit`, window: err.window });
       return;
     }
     if (req.path === IMPORT_PATH) {

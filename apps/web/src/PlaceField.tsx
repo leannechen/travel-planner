@@ -1,7 +1,7 @@
 import type { Place } from "@travel-planner/shared";
 import { MapPin, Search, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
-import { searchPlaces } from "./api";
+import { ApiError, searchPlaces } from "./api";
 import { rememberPlaces, usePlace } from "./placeCache";
 import { useT } from "./preferences";
 
@@ -27,6 +27,8 @@ export function PlaceField({ label, value, onChange, optional }: Props) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Place[]>([]);
   const [state, setState] = useState<"idle" | "searching" | "error">("idle");
+  // Why the last search failed when it was a usage limit (plan step 33): for a minute, or for today.
+  const [limit, setLimit] = useState<"minute" | "day" | undefined>();
   const [active, setActive] = useState(0);
   const [open, setOpen] = useState(false);
   const listId = useId();
@@ -58,11 +60,12 @@ export function PlaceField({ label, value, onChange, optional }: Props) {
           setActive(0);
           setState("idle");
         })
-        .catch(() => {
+        .catch((err: unknown) => {
           if (stale) return;
           // The old results belong to an earlier text; they must not stay next to the error.
           setResults([]);
           setState("error");
+          setLimit(err instanceof ApiError && err.code === "search_limit" ? (err.detail.window === "minute" ? "minute" : "day") : undefined);
         });
     }, SEARCH_DELAY_MS);
     return () => {
@@ -171,7 +174,7 @@ export function PlaceField({ label, value, onChange, optional }: Props) {
           ))}
         </ul>
         {state === "searching" && results.length === 0 && <p className="place-note" role="status">{t("place.searching")}</p>}
-        {state === "error" && <p className="place-note" role="alert">{t("place.error")}</p>}
+        {state === "error" && <p className="place-note" role="alert">{t(limit === "minute" ? "place.limitMinute" : limit === "day" ? "place.limitDay" : "place.error")}</p>}
         {state === "idle" && results.length === 0 && <p className="place-note" role="status">{t("place.none")}</p>}
         </div>
       )}

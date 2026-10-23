@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { days, eventImages, events, notes, todos, trips } from "./db/schema";
 import { prepareImage, type ImageStore, type PreparedImage } from "./images";
 import { createLeg, isProviderError, type LegDeps } from "./legs";
-import { getPlaces } from "./places";
+import { getPlaces, uncachedPlaceIds } from "./places";
 
 // A seed Event with the id it will have, made before anything is written.
 type SeedEventWithId = SeedEvent & { id: string };
@@ -141,18 +141,35 @@ export async function writeTripSeed(
   return tripId;
 }
 
-// A Leg from every Event that asks for one to the next adjacent Event of its Day, when both have a
-// place. Lodging is a banner, not on the timeline, so it has no Legs.
-async function addLegs(db: Db, deps: LegDeps, tripId: string, dayLists: SeedEventWithId[][]) {
-  for (const list of dayLists) {
-    for (const [from, to] of adjacentPairs(list.filter((e) => e.kind !== "lodging"))) {
+// The Legs a seed asks for: from every Event with `legToNext` to the next adjacent Event of its Day,
+// when both have a place. Lodging is a banner, not on the timeline, so it has no Legs.
+function legsAskedFor(dayLists: SeedEventWithId[][]) {
+  return dayLists.flatMap((list) =>
+    adjacentPairs(list.filter((e) => e.kind !== "lodging")).flatMap(([from, to]) => {
       const { fromPlaceId, toPlaceId } = legEndpoints(from, to);
-      if (!from.legToNext || !fromPlaceId || !toPlaceId) continue;
-      try {
-        await createLeg(db, deps, tripId, { fromEventId: from.id, toEventId: to.id, mode: from.legToNext });
-      } catch (err) {
-        if (!isProviderError(err)) throw err;
-      }
+      return from.legToNext && fromPlaceId && toPlaceId ? [{ input: { fromEventId: from.id, toEventId: to.id, mode: from.legToNext }, placeIds: [fromPlaceId, toPlaceId] }] : [];
+    }),
+  );
+}
+
+async function addLegs(db: Db, deps: LegDeps, tripId: string, dayLists: SeedEventWithId[][]) {
+  for (const leg of legsAskedFor(dayLists)) {
+    try {
+      await createLeg(db, deps, tripId, leg.input);
+    } catch (err) {
+      if (!isProviderError(err)) throw err;
     }
   }
+}
+
+// At most how many provider lookups writing the seed takes (plan step 33): one per place that is not
+// cached, and per Leg one for the travel time (which may be cached) and one for each of its places
+// that is still not cached then (a place the provider does not know is asked about again).
+export async function seedLookupCost(db: Db, input: TripSeedInput): Promise<number> {
+  const seed = tripSeedSchema.parse(input);
+  const all = [...seed.days.flat(), ...seed.backlog, ...seed.archive];
+  const placeIds = all.flatMap((e) => [e.placeId, e.destinationId].filter((id): id is string => id !== null));
+  const dayLists = seed.days.map((list) => list.map((e, i) => ({ ...e, id: String(i) })));
+  const uncached = new Set(await uncachedPlaceIds(db, placeIds));
+  return legsAskedFor(dayLists).reduce((n, leg) => n + 1 + leg.placeIds.filter((id) => uncached.has(id)).length, uncached.size);
 }

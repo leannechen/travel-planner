@@ -4,11 +4,11 @@ import userEvent from "@testing-library/user-event";
 import type { Place } from "@travel-planner/shared";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { getPlaces, searchPlaces } from "./api";
+import { ApiError, getPlaces, searchPlaces } from "./api";
 import { PlaceField } from "./PlaceField";
 import { renderApp } from "./test-helpers";
 
-vi.mock("./api", () => ({ searchPlaces: vi.fn(), getPlaces: vi.fn() }));
+vi.mock("./api", async (importOriginal) => ({ ApiError: (await importOriginal<typeof import("./api")>()).ApiError, searchPlaces: vi.fn(), getPlaces: vi.fn() }));
 
 const kinkaku: Place = { id: "p1", name: "Kinkaku-ji", address: "Kita Ward, Kyoto", area: "Kita Ward, Kyoto", lat: 35, lng: 135 };
 const nara: Place = { id: "p2", name: "Nara Park", address: "Nara", area: "Nara", lat: 34, lng: 135 };
@@ -98,7 +98,18 @@ describe("PlaceField", () => {
     expect(await screen.findByText("No places found")).toBeTruthy();
     vi.mocked(searchPlaces).mockRejectedValueOnce(new Error("down"));
     await user.type(screen.getByRole("combobox"), "z");
-    expect(await screen.findByRole("alert")).toBeTruthy();
+    expect((await screen.findByRole("alert")).textContent).toBe("Places are not available right now");
+  });
+
+  it("says when searches are limited for a minute or for today", async () => {
+    const user = userEvent.setup();
+    vi.mocked(searchPlaces).mockRejectedValueOnce(new ApiError("Too many place searches", "search_limit", { window: "minute" }));
+    renderApp(<Harness onChange={vi.fn()} />);
+    await user.type(screen.getByRole("combobox"), "kyoto");
+    expect((await screen.findByRole("alert")).textContent).toBe("Too many searches. Try again in a minute.");
+    vi.mocked(searchPlaces).mockRejectedValueOnce(new ApiError("Used up", "search_limit", { window: "day" }));
+    await user.type(screen.getByRole("combobox"), "s");
+    expect(await screen.findByText("Today's place searches are used up. Try again tomorrow.")).toBeTruthy();
   });
 
   it("shows a place chosen earlier by looking it up by id, and removes it", async () => {

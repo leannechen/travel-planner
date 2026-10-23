@@ -193,7 +193,7 @@ Opening hours are a hint, not a fact. Google gives only the usual weekly hours f
 
 ## 8. Accounts, sharing and collaboration
 
-- **Login**: email and password, on a login page hosted by Auth0 (ADR 0006). Google login is a next-phase item. One page serves both login and sign-up. Every entry point (the Landing page link, the guest save button, Share, Export, New Trip) goes straight to that page, with no extra prompt in between.
+- **Login**: email and password, on a login page hosted by Auth0 (ADR 0006). Google login is a next-phase item. One page serves both login and sign-up. Every entry point (the Landing page link, the guest save button, Share, Export, Import backup, New Trip) goes straight to that page, with no extra prompt in between.
 - **Hosted page limits**: only branding (logo, colors, font, background) can be customized. Log in and sign up are two linked Auth0 screens, not tabs. The page has no dark version: it stays light whatever the app theme is. The interface language is passed to it (`ui_locales`; Traditional Chinese is `zh-TW` and must be enabled in the Auth0 tenant).
 - **After login**: a user with guest Trips sees a confirmation that they were added to the account and lands in the Trip; a user without lands on the Trip list. If Auth0 returns an error, the user returns to where they were with a dismissible message. The hosted page has no Cancel; a user who goes back from it returns to the page as it was, with no message. Login is never blocked for an unverified email.
 - **Account menu**: top right, shows the user's email, "My Trips" and "Log out". There is no profile or preferences screen. Logging out returns to the Landing page.
@@ -225,7 +225,7 @@ Opening hours are a hint, not a fact. Google gives only the usual weekly hours f
 
 - **Export** means one format: a full backup of the Trip in this app's own format, to clone or restore it. There is no document or image export (§2.3).
 - The backup holds everything: Days, Events, Backlog, Archive, Todos, Notes and the images the user uploaded (not Google photos). An Event's place is kept as its place id, so importing needs the place provider to show it.
-- **Import backup** (§8.1) always creates a new Trip; it never changes an existing one.
+- **Import backup** (§8.1) always creates a new Trip; it never changes an existing one. It is for logged-in users (a guest is sent to log in), a limited number a day. A backup whose places and Legs need more place and travel time lookups than the user has left today is refused whole, saying how many it needs; it is never imported with places or Legs missing.
 
 ## 10. Devices
 
@@ -234,7 +234,7 @@ Opening hours are a hint, not a fact. Google gives only the usual weekly hours f
 
 ## 11. Constraints
 
-- **Google Maps cost control**: Legs are created by user action and recalculated only when their two locations or travel mode change; place search results and Leg durations are cached on the server per pair of points and mode; AI generation is limited to logged-in users and rate-limited per user.
+- **Google Maps cost control**: Legs are created by user action and recalculated only when their two locations or travel mode change; place search results and Leg durations are cached on the server per pair of points and mode; AI generation is limited to logged-in users and rate-limited per user. Every other call to Google counts against a daily share per user (smaller for a guest) and per IP address, with place searches (typed in the Location field) and lookups (place details, opening hours, photos, travel times) counted apart and searches also per minute; past a share the app says so and to try again later. Saving an Event does not wait for its Legs: a Leg that could not be calculated is calculated again at a later change.
 - **Collaboration limits**: v1 does not provide merge of simultaneous edits to one field.
 - **Data safety**: deleting Todos along with an Event is irreversible after confirmation, so the confirmation must state the count.
 

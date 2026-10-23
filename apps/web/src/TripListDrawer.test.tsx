@@ -18,7 +18,7 @@ const kyoto = makeTrip({ title: "Kyoto & Osaka" });
 const taipei = makeTrip({ title: "Taipei weekend" });
 const seoul = makeTrip({ title: "Seoul with Mei", role: "editor" });
 
-function setup(trips = [kyoto, taipei], extra: { readOnly?: boolean; pinned?: boolean } = {}) {
+function setup(trips = [kyoto, taipei], extra: { readOnly?: boolean; pinned?: boolean; onImportLogin?: () => void } = {}) {
   const handlers = {
     onSwitch: vi.fn(),
     onCreate: vi.fn(async () => undefined),
@@ -229,6 +229,24 @@ describe("Backup", () => {
     await userEvent.upload(screen.getByTestId("backup-file"), new File(["x"], "notes.json", { type: "application/json" }));
     expect((await screen.findByRole("alert")).textContent).toBe("This file is not a backup this app can read.");
     expect(screen.getByRole("button", { name: "Import backup…" }).hasAttribute("disabled")).toBe(false);
+  });
+
+  it("says how many lookups a backup needs when more are needed than are left today", async () => {
+    const { onImport } = setup();
+    onImport.mockRejectedValueOnce(new ApiError("Too many", "lookup_limit", { needed: 240, remaining: 75 }));
+    await userEvent.upload(screen.getByTestId("backup-file"), new File(["{}"], "kyoto-backup.json", { type: "application/json" }));
+    expect((await screen.findByRole("alert")).textContent).toBe("This backup needs 240 place and travel time lookups, and 75 are left today. Try again tomorrow.");
+  });
+
+  it("sends a guest to log in instead of asking for a file", async () => {
+    const onImportLogin = vi.fn();
+    const { onImport } = setup([kyoto], { onImportLogin });
+    const click = vi.spyOn(HTMLInputElement.prototype, "click");
+    await userEvent.click(screen.getByRole("button", { name: "Import backup…" }));
+    expect(onImportLogin).toHaveBeenCalled();
+    expect(click).not.toHaveBeenCalled();
+    expect(onImport).not.toHaveBeenCalled();
+    click.mockRestore();
   });
 
   it("offers no import or export when the session has ended", async () => {

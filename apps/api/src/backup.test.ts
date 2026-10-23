@@ -1,7 +1,11 @@
 import { backupSchema, eventSchema, tripSchema, type Backup } from "@travel-planner/shared";
+import { eq } from "drizzle-orm";
 import sharp from "sharp";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { startTestApp } from "../test/test-app";
+import { GUEST_HEADER } from "./auth";
+import { users } from "./db/schema";
+import { remainingUsage, takeUsage } from "./usage";
 
 let app: Awaited<ReturnType<typeof startTestApp>>;
 
@@ -118,5 +122,45 @@ describe("importing a backup", () => {
     expect(await json(res)).toMatchObject({ code: "invalid_backup" });
     expect(await listTrips()).toHaveLength(1);
     expect(app.images.keys()).toHaveLength(1);
+  });
+
+  it("is for accounts: a guest is asked to log in, and nothing is written", async () => {
+    const { trip } = await fullTrip();
+    const backup = await backupOf(trip.id);
+    const guestId = crypto.randomUUID();
+    const res = await fetch(`${app.baseUrl}/api/trips/import`, { method: "POST", headers: { [GUEST_HEADER]: guestId, "content-type": "application/json" }, body: JSON.stringify(backup) });
+    expect(res.status).toBe(403);
+    expect(await json(res)).toMatchObject({ code: "login_required" });
+    const guestTrips = await fetch(`${app.baseUrl}/api/trips`, { headers: { [GUEST_HEADER]: guestId } });
+    expect(await json(guestTrips)).toEqual([]);
+  });
+
+  it("is refused whole, saying how many lookups it needs, when more are needed than are left today", async () => {
+    const { trip } = await fullTrip();
+    const backup: Backup = structuredClone(await backupOf(trip.id));
+    // Two places that are not cached, and the walk between the first two Events.
+    backup.trip.backlog.push({ ...backup.trip.backlog[0]!, title: "Nara Park", placeId: "fake:nara-park" }, { ...backup.trip.backlog[0]!, title: "Todai-ji", placeId: "fake:todai-ji" });
+    const [owner] = await app.db.select({ id: users.id }).from(users).where(eq(users.auth0Sub, "lena@example.com"));
+    const caller = { userId: owner!.id, account: true, ip: "elsewhere" };
+    await takeUsage(app.db, caller, "lookup", (await remainingUsage(app.db, caller, "lookup")) - 2);
+    const res = await call("POST", "/api/trips/import", OWNER, backup);
+    expect(res.status).toBe(429);
+    expect(await json(res)).toMatchObject({ code: "lookup_limit", needed: 3, remaining: 2 });
+    expect(await listTrips()).toHaveLength(1);
+  });
+
+  it("is written whole with exactly the lookups it needs, a place the provider does not know too, and gives back what it did not use", async () => {
+    const { trip } = await fullTrip();
+    const backup: Backup = structuredClone(await backupOf(trip.id));
+    // Not cached and not known: looked up for the Trip and again for the Leg that ends there.
+    backup.trip.days[0]![1]!.placeId = "fake:no-such-place";
+    const [owner] = await app.db.select({ id: users.id }).from(users).where(eq(users.auth0Sub, "lena@example.com"));
+    const caller = { userId: owner!.id, account: true, ip: "elsewhere" };
+    await takeUsage(app.db, caller, "lookup", (await remainingUsage(app.db, caller, "lookup")) - 3);
+    const res = await call("POST", "/api/trips/import", OWNER, backup);
+    expect(res.status).toBe(201);
+    const copy = tripSchema.parse(await json(res));
+    expect(copy.legs).toMatchObject([{ durationMinutes: null }]);
+    expect(await remainingUsage(app.db, caller, "lookup")).toBe(1);
   });
 });

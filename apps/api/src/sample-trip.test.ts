@@ -156,6 +156,23 @@ describe("the pinned place ids", () => {
     }
   });
 
+  it("are found once, so the next visitor's copy asks the provider about no place", async () => {
+    const inner = fakePlaceProvider();
+    let calls = 0;
+    const provider = { ...inner, get: async (id: string) => (calls++, inner.get(id)), search: async (query: string) => (calls++, inner.search(query)) };
+    const counted = await startTestApp(provider);
+    try {
+      await fetch(`${counted.baseUrl}/api/sample-trip`, { method: "POST", headers: { "x-guest-id": crypto.randomUUID() } });
+      const first = calls;
+      expect(first).toBeGreaterThan(0);
+      const res = await fetch(`${counted.baseUrl}/api/sample-trip`, { method: "POST", headers: { "x-guest-id": crypto.randomUUID() } });
+      expect(res.status).toBe(201);
+      expect(calls).toBe(first);
+    } finally {
+      await counted.stop();
+    }
+  });
+
   it("fall back to the name with a provider that does not know them", async () => {
     const headers = guest();
     await openSample(headers);

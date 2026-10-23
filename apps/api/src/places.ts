@@ -3,6 +3,7 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "./db/client";
 import { placeQueries, places } from "./db/schema";
+import { UsageLimitError } from "./usage";
 
 // Where place data comes from. The app only ever stores a place's id on an Event; the rest is
 // fetched through the provider and cached for a limited time (ADR 0007).
@@ -318,6 +319,20 @@ async function remember(db: Db, found: Place[], now: Date) {
 // query found is kept in `place_queries` and used again until it is old; a query the provider could
 // not answer is left out (and not kept), so its Event simply has no place.
 const LOOKUP_BATCH = 5;
+
+// Asks about every id, a few at a time so a long Trip does not send dozens of requests at once, and
+// settles like Promise.allSettled: one result per id, in the same order. Once a usage limit (plan
+// step 33) refuses one, the ids not asked about yet fail the same way without being asked.
+async function settleInBatches<T>(ids: string[], ask: (id: string) => Promise<T>): Promise<PromiseSettledResult<T>[]> {
+  const settled: PromiseSettledResult<T>[] = [];
+  for (let i = 0; i < ids.length; i += LOOKUP_BATCH) {
+    const limited = settled.find((r): r is PromiseRejectedResult => r.status === "rejected" && r.reason instanceof UsageLimitError);
+    const batch = ids.slice(i, i + LOOKUP_BATCH);
+    settled.push(...(limited ? batch.map(() => limited) : await Promise.allSettled(batch.map(ask))));
+  }
+  return settled;
+}
+
 export async function findPlaceIds(db: Db, provider: PlaceProvider, queries: string[], now = new Date()): Promise<Map<string, string | null>> {
   const keyOf = (query: string) => query.trim().toLowerCase();
   // Each key with the query as first written, which is what the provider is asked.
@@ -384,7 +399,7 @@ export async function getPlaces(db: Db, provider: PlaceProvider, ids: string[], 
       refetch.push(id);
     }
   }
-  const settled = await Promise.allSettled(refetch.map((id) => provider.get(id)));
+  const settled = await settleInBatches(refetch, (id) => provider.get(id));
   const fresh = settled.flatMap((r) => (r.status === "fulfilled" && r.value ? [r.value] : []));
   // What did arrive is kept even when another lookup failed.
   await remember(db, fresh, now);
@@ -398,6 +413,19 @@ export async function getPlaces(db: Db, provider: PlaceProvider, ids: string[], 
   const gone = refetch.filter((id) => !known.has(id));
   if (gone.length > 0) await db.delete(places).where(inArray(places.id, gone));
   return unique.flatMap((id) => known.get(id) ?? []);
+}
+
+// The ids getPlaces would ask the provider about: those with no fresh cached place.
+export async function uncachedPlaceIds(db: Db, ids: string[], now = new Date()): Promise<string[]> {
+  const unique = [...new Set(ids)];
+  if (unique.length === 0) return [];
+  const oldest = now.getTime() - PLACE_CACHE_DAYS * 24 * 60 * 60 * 1000;
+  const cached = new Set(
+    (await db.select({ id: places.id, area: places.area, fetchedAt: places.fetchedAt }).from(places).where(inArray(places.id, unique)))
+      .filter((r) => r.fetchedAt.getTime() > oldest && r.area !== null)
+      .map((r) => r.id),
+  );
+  return unique.filter((id) => !cached.has(id));
 }
 
 // The opening hours for these place ids, read through the place cache like the place itself:
@@ -429,7 +457,7 @@ export async function getOpeningHours(db: Db, provider: PlaceProvider, ids: stri
     if (!cached) refetch.push(id);
     else if (cached.hours) found.set(id, cached.hours);
   }
-  const settled = await Promise.allSettled(refetch.map((id) => provider.getOpeningHours(id)));
+  const settled = await settleInBatches(refetch, (id) => provider.getOpeningHours(id));
   for (const [i, result] of settled.entries()) {
     if (result.status === "rejected") continue;
     const id = refetch[i]!;

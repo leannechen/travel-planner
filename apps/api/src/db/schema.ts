@@ -311,6 +311,21 @@ export const aiGenerations = pgTable(
   ],
 );
 
+// How much of a limited thing (plan step 33) someone has used in a window of time. `subject` is
+// "user:<id>" or "ip:<address>"; `bucket` names what is counted and over which window, for example
+// "search-minute" or "lookup-day"; `windowStart` is the start of that minute or UTC day. Rows of
+// past windows are removed after a while.
+export const usageCounts = pgTable(
+  "usage_counts",
+  {
+    subject: text().notNull(),
+    bucket: text().notNull(),
+    windowStart: timestamp({ withTimezone: true }).notNull(),
+    count: integer().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.subject, t.bucket, t.windowStart] }), index("usage_counts_window").on(t.windowStart)],
+);
+
 export const tripsRelations = relations(trips, ({ many }) => ({
   days: many(days),
   events: many(events),

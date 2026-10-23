@@ -381,6 +381,7 @@ function Workspace({ joinedMessage }: { joinedMessage?: string }) {
         onDelete={handleDeleteTrip}
         onExport={handleExportTrip}
         onImport={handleImportBackup}
+        onImportLogin={auth.status === "guest" ? () => { setTripListOpen(false); void auth.login(); } : undefined}
         // These open on top of the list, so Cancel leaves the list as it was.
         onOpenSettings={setSettingsTripId}
         onShare={(tripId) => { if (auth.status === "guest") void auth.login(); else setShareTripId(tripId); }}

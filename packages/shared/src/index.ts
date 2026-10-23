@@ -371,6 +371,16 @@ export const backupSchema = z.object({
   trip: tripSeedSchema,
 });
 export type Backup = z.infer<typeof backupSchema>;
+// Backup imports an account may start a day (UTC), counted before the file is read.
+export const IMPORT_DAILY_ATTEMPTS = 20;
+
+// Paid Google calls (plan step 33). Every call that reaches Google counts, an answer from the cache
+// does not. A call counts for the user (an account or a guest session) and for the IP address, and
+// is refused when either has used its share: the IP's share stops a guest who keeps making new
+// sessions. Searches (typed in the Location field) and lookups (place details, opening hours,
+// photos, travel times) have separate shares; searches also have one per minute.
+export const SEARCH_LIMITS = { perMinute: { user: 30, ip: 60 }, perDay: { account: 300, guest: 100, ip: 500 } } as const;
+export const LOOKUP_LIMITS = { perDay: { account: 1000, guest: 200, ip: 1500 } } as const;
 
 // AI generation (PRD §7, ADR 0008). A logged-in user may start this many a day (UTC); a generation
 // that failed does not count unless the model answered, but all attempts together are capped too.

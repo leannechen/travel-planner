@@ -81,16 +81,17 @@ async function sendNow(path: string, init: RequestInit): Promise<Response> {
   return res;
 }
 
-// A failed request; `code` is the server's machine-readable reason when it gave one.
+// A failed request; `code` is the server's machine-readable reason when it gave one, and `detail` the
+// whole answer (some reasons come with figures, such as a usage limit's).
 export class ApiError extends Error {
-  constructor(message: string, readonly code?: string) {
+  constructor(message: string, readonly code?: string, readonly detail: Record<string, unknown> = {}) {
     super(message);
   }
 }
 
 async function failure(res: Response): Promise<Error> {
   const detail = (await res.json().catch(() => undefined)) as { error?: string; code?: string } | undefined;
-  return new ApiError(detail?.error ?? `Request failed: ${res.status}`, detail?.code);
+  return new ApiError(detail?.error ?? `Request failed: ${res.status}`, detail?.code, detail);
 }
 
 async function request<T>(

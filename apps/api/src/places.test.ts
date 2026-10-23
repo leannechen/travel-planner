@@ -3,7 +3,8 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { startTestApp } from "../test/test-app";
 import { placeQueries, places } from "./db/schema";
-import { areaFromComponents, fakePlaceProvider, fetchOpeningHours, findPlaceIds, getOpeningHours, getPlaces, googlePlaceProvider, PLACE_CACHE_DAYS, PlaceProviderError, searchPlaces, type PlaceProvider } from "./places";
+import { UsageLimitError } from "./usage";
+import { areaFromComponents, fakePlaceProvider, fetchOpeningHours, findPlaceIds, getOpeningHours, getPlaces, googlePlaceProvider, PLACE_CACHE_DAYS, PlaceProviderError, searchPlaces, uncachedPlaceIds, type PlaceProvider } from "./places";
 
 let app: Awaited<ReturnType<typeof startTestApp>>;
 
@@ -118,6 +119,49 @@ describe("getPlaces", () => {
   it("keeps the order of the ids and skips repeats", async () => {
     const found = await getPlaces(app.db, fakePlaceProvider(), ["fake:todai-ji", "fake:nara-park", "fake:todai-ji"]);
     expect(found.map((p) => p.id)).toEqual(["fake:todai-ji", "fake:nara-park"]);
+  });
+
+  it("asks the provider about a few places at a time, and still about every one", async () => {
+    const inner = fakePlaceProvider();
+    let running = 0;
+    let most = 0;
+    const asked: string[] = [];
+    const provider: PlaceProvider = {
+      ...inner,
+      get: async (id) => {
+        asked.push(id);
+        most = Math.max(most, ++running);
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        running--;
+        return inner.get(id);
+      },
+    };
+    const ids = ["fake:nara-park", ...Array.from({ length: 11 }, (_, i) => `fake:none-${i}`), "fake:todai-ji"];
+    const found = await getPlaces(app.db, provider, ids);
+    expect(found.map((p) => p.id)).toEqual(["fake:nara-park", "fake:todai-ji"]);
+    expect(asked).toHaveLength(ids.length);
+    expect(most).toBe(5);
+  });
+
+  it("stops asking once a usage limit refuses a lookup", async () => {
+    const inner = fakePlaceProvider();
+    let asked = 0;
+    const provider: PlaceProvider = {
+      ...inner,
+      get: async (id) => {
+        if (++asked > 3) throw new UsageLimitError("lookup", "day");
+        return inner.get(id);
+      },
+    };
+    const ids = Array.from({ length: 20 }, (_, i) => `fake:none-${i}`);
+    await expect(getPlaces(app.db, provider, ids)).rejects.toThrow(UsageLimitError);
+    expect(asked).toBe(5);
+  });
+
+  it("tells which ids are not cached yet", async () => {
+    await getPlaces(app.db, fakePlaceProvider(), ["fake:nara-park"]);
+    expect(await uncachedPlaceIds(app.db, ["fake:nara-park", "fake:todai-ji", "fake:todai-ji"])).toEqual(["fake:todai-ji"]);
+    expect(await uncachedPlaceIds(app.db, ["fake:nara-park"], new Date(Date.now() + (PLACE_CACHE_DAYS + 1) * DAY))).toEqual(["fake:nara-park"]);
   });
 });
 

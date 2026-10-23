@@ -162,6 +162,13 @@
       "when": 1792680791564,
       "tag": "0022_ai_generations",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1792763635860,
+      "tag": "0023_usage_counts",
+      "breakpoints": true
     }
   ]
 }

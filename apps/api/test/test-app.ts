@@ -65,7 +65,7 @@ export async function startTestApp(places: PlaceProvider = fakePlaceProvider(), 
       resends.length = 0;
       images.clear();
       await Promise.all(pendingGenerations);
-      await db.execute(sql`truncate table events, days, trips, users, places, route_estimates, place_queries cascade`);
+      await db.execute(sql`truncate table events, days, trips, users, places, route_estimates, place_queries, usage_counts cascade`);
     },
     async stop() {
       await Promise.all(pendingGenerations);

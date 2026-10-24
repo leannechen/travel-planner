@@ -26,7 +26,7 @@ import {
   type UpdateEventInput,
   type UpdateTripInput,
 } from "@travel-planner/shared";
-import { and, asc, desc, eq, inArray, isNotNull, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNotNull, or, sql } from "drizzle-orm";
 import type { Db } from "./db/client";
 import { days, eventImages, events, legs, notes, todos, trips, users } from "./db/schema";
 import type { ImageStore, PreparedImage } from "./images";
@@ -457,7 +457,10 @@ export async function setOpeningHours(
 
 // Gives the Event this image, replacing the one it had (step 39). The file is stored first and the
 // row switched in one transaction, so a failure leaves the old image in place; the old file is deleted
-// last. Returns the Event, or undefined when it is not in this user's Trip.
+// last. Returns the Event, undefined when it is not in this user's Trip, or "limit" when the Trip's
+// Owner already keeps as many pictures as `maxImages` allows (for an account or for a guest) and this
+// Event has none to replace (step 45). The pictures counted are those in the Owner's Trips, whoever
+// uploaded them, so an Editor's uploads use the Owner's share and leave with the Trip.
 export async function setEventImage(
   db: Db,
   store: ImageStore,
@@ -465,17 +468,18 @@ export async function setEventImage(
   tripId: string,
   eventId: string,
   image: PreparedImage,
-): Promise<Event | undefined> {
+  maxImages: { account: number; guest: number } = { account: Infinity, guest: Infinity },
+): Promise<Event | "limit" | undefined> {
   if (!(await findEventPlace(db, userId, tripId, eventId))) return undefined;
   const imageId = randomUUID();
   await store.put(imageId, image.bytes);
   let old: string | undefined;
-  let event: Event | undefined;
+  let event: Event | "limit" | undefined;
   try {
     event = await db.transaction(async (tx) => {
       // The shared lock on the Trip keeps deleteTrip from reading the image keys while this row is
       // not yet committed (it would miss the file).
-      const [trip] = await tx.select({ id: trips.id }).from(trips).where(eq(trips.id, tripId)).for("share");
+      const [trip] = await tx.select({ id: trips.id, ownerId: trips.ownerId }).from(trips).where(eq(trips.id, tripId)).for("share");
       if (!trip) return undefined;
       const [locked] = await tx
         .select({ id: events.id })
@@ -483,6 +487,20 @@ export async function setEventImage(
         .where(and(eq(events.id, eventId), eq(events.tripId, tripId)))
         .for("update");
       if (!locked) return undefined;
+      // One upload at a time per Owner while the count is checked, so uploads at the same moment
+      // cannot go past the limit together.
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${"images:" + trip.ownerId}))`);
+      const [replaced] = await tx.select({ id: eventImages.id }).from(eventImages).where(eq(eventImages.eventId, eventId));
+      if (!replaced) {
+        const [owner] = await tx.select({ auth0Sub: users.auth0Sub }).from(users).where(eq(users.id, trip.ownerId));
+        const [kept] = await tx
+          .select({ n: count() })
+          .from(eventImages)
+          .innerJoin(events, eq(events.id, eventImages.eventId))
+          .innerJoin(trips, eq(trips.id, events.tripId))
+          .where(eq(trips.ownerId, trip.ownerId));
+        if ((kept?.n ?? 0) >= (owner?.auth0Sub ? maxImages.account : maxImages.guest)) return "limit" as const;
+      }
       const [previous] = await tx.delete(eventImages).where(eq(eventImages.eventId, eventId)).returning({ key: eventImages.storageKey });
       old = previous?.key;
       await tx.insert(eventImages).values({ id: imageId, eventId, storageKey: imageId, contentType: image.contentType, byteSize: image.bytes.length, createdBy: userId });
@@ -493,10 +511,10 @@ export async function setEventImage(
     await store.delete(imageId);
     throw err;
   }
-  if (!event) {
-    // Deleted while the file was being stored.
+  if (!event || event === "limit") {
+    // Deleted while the file was being stored, or over the user's limit.
     await store.delete(imageId);
-    return undefined;
+    return event;
   }
   if (old) await store.delete(old);
   return event;

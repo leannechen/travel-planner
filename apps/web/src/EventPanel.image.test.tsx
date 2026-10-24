@@ -164,6 +164,20 @@ describe("Image section of the Event panel", () => {
     expect((await screen.findByRole("alert")).textContent).toBe("That picture is larger than 5 MB.");
   });
 
+  it.each([
+    ["upload_limit", { window: "minute" }, "Too many pictures uploaded. Try again in a minute."],
+    ["upload_limit", { window: "day" }, "Today's picture uploads are used up. Try again tomorrow."],
+    ["image_count_limit", {}, "This Trip's owner has reached the limit of stored pictures. A picture has to be removed first."],
+  ])("explains the limit %s %j in the interface language", async (code, detail, text) => {
+    const user = userEvent.setup();
+    const refusal = Object.assign(new Error("server text"), { code, detail });
+    setup(undefined, vi.fn<ChangeImage>().mockRejectedValue(refusal));
+    await user.upload(screen.getByTestId("image-input"), png());
+    await save(user);
+
+    expect((await screen.findByRole("alert")).textContent).toBe(text);
+  });
+
   it("does not lose a picture chosen for a new Event without a title", async () => {
     const user = userEvent.setup();
     const props = setup(null);

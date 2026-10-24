@@ -1,9 +1,12 @@
-import { eventSchema, invitationSchema, shareLinkSchema, tripSchema, MAX_IMAGE_BYTES, deletedEventSchema } from "@travel-planner/shared";
+import { eventSchema, invitationSchema, shareLinkSchema, tripSchema, MAX_IMAGE_BYTES, UPLOAD_LIMITS, MAX_STORED_IMAGES, deletedEventSchema } from "@travel-planner/shared";
 import sharp from "sharp";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { startTestApp } from "../test/test-app";
 import { GUEST_HEADER } from "./auth";
 import { prepareImage } from "./images";
+import { eventImages, events as eventsTable } from "./db/schema";
+import { setEventImage } from "./trips";
+import { takeUsage } from "./usage";
 
 let app: Awaited<ReturnType<typeof startTestApp>>;
 
@@ -271,5 +274,100 @@ describe("prepareImage", () => {
   it("returns nothing for something that is not a picture", async () => {
     expect(await prepareImage(Buffer.from("not a picture"))).toBeUndefined();
     expect(await prepareImage(Buffer.alloc(0))).toBeUndefined();
+  });
+});
+
+describe("upload limits", () => {
+  const userOf = async (token: string) => ((await (await call("GET", "/api/me", token)).json()) as { id: string }).id;
+
+  it("answers 429 once the minute's share is used, before the file is read, and stores nothing", async () => {
+    const { path } = await tripWithEvent();
+    await takeUsage(app.db, { userId: await userOf(OWNER), account: true, ip: "elsewhere" }, "upload", UPLOAD_LIMITS.perMinute.user);
+
+    // Not even a picture: the limit answers first.
+    const refused = await upload(path, OWNER, "not a picture");
+    expect(refused.status).toBe(429);
+    expect(await refused.json()).toMatchObject({ code: "upload_limit", window: "minute" });
+    expect(app.images.keys()).toEqual([]);
+  });
+
+  it("counts an upload that is refused for its type", async () => {
+    const { path } = await tripWithEvent();
+    for (let i = 0; i < UPLOAD_LIMITS.perMinute.user; i++) expect((await upload(path, OWNER, "not a picture")).status).toBe(415);
+    expect((await upload(path, OWNER, await picture())).status).toBe(429);
+  });
+
+  it("counts a stranger's tries against the stranger's own share, not the Owner's", async () => {
+    const { path } = await tripWithEvent();
+    for (let i = 0; i < UPLOAD_LIMITS.perMinute.user; i++) expect((await upload(path, STRANGER, await picture())).status).toBe(404);
+    expect((await upload(path, STRANGER, await picture())).status).toBe(429);
+    expect((await upload(path, OWNER, await picture())).status).toBe(200);
+  });
+
+  it("limits the pictures in the Owner's Trips, lets a replacement through, and gives the count back on removal", async () => {
+    const { trip, event } = await tripWithEvent();
+    const second = eventSchema.parse(await (await call("POST", `/api/trips/${trip.id}/days/${trip.days[0]!.id}/events`, OWNER, { title: "Nishiki Market" })).json());
+    const userId = await userOf(OWNER);
+    const image = (await prepareImage(await picture()))!;
+    const one = { account: 1, guest: 1 };
+
+    expect(eventSchema.safeParse(await setEventImage(app.db, app.images, userId, trip.id, event.id, image, one)).success).toBe(true);
+    // The second Event would be a second picture.
+    expect(await setEventImage(app.db, app.images, userId, trip.id, second.id, image, one)).toBe("limit");
+    expect(app.images.keys()).toHaveLength(1);
+    // Replacing the first one keeps the count.
+    expect(eventSchema.safeParse(await setEventImage(app.db, app.images, userId, trip.id, event.id, image, one)).success).toBe(true);
+    expect(app.images.keys()).toHaveLength(1);
+
+    expect((await call("DELETE", `/api/trips/${trip.id}/events/${event.id}/image`, OWNER)).status).toBe(200);
+    expect(eventSchema.safeParse(await setEventImage(app.db, app.images, userId, trip.id, second.id, image, one)).success).toBe(true);
+  });
+
+  it("gives the count back when the Event is deleted", async () => {
+    const { trip, event } = await tripWithEvent();
+    const second = eventSchema.parse(await (await call("POST", `/api/trips/${trip.id}/days/${trip.days[0]!.id}/events`, OWNER, { title: "Nishiki Market" })).json());
+    const userId = await userOf(OWNER);
+    const image = (await prepareImage(await picture()))!;
+    const one = { account: 1, guest: 1 };
+    await setEventImage(app.db, app.images, userId, trip.id, event.id, image, one);
+    expect(await setEventImage(app.db, app.images, userId, trip.id, second.id, image, one)).toBe("limit");
+
+    expect((await call("DELETE", `/api/trips/${trip.id}/events/${event.id}`, OWNER)).status).toBe(200);
+    expect(eventSchema.safeParse(await setEventImage(app.db, app.images, userId, trip.id, second.id, image, one)).success).toBe(true);
+  });
+
+  it("counts an Editor's pictures against the Owner, and says so with 429 and no file kept", async () => {
+    const { trip } = await tripWithEvent();
+    const invitation = invitationSchema.parse(await (await call("POST", `/api/trips/${trip.id}/invitations`, OWNER, { email: "mei@example.com" })).json());
+    expect((await call("POST", `/api/invitations/${invitation.token}/accept`, MEI)).status).toBe(200);
+    const ownerId = await userOf(OWNER);
+    // The Owner is an account with MAX_STORED_IMAGES.account pictures in other Events.
+    const day = trip.days[0]!.id;
+    const ids: string[] = [];
+    for (let i = 0; i < MAX_STORED_IMAGES.account; i++) ids.push(crypto.randomUUID());
+    const events = await app.db
+      .insert(eventsTable)
+      .values(ids.map((id, i) => ({ id, tripId: trip.id, dayId: day, title: `E${i}`, startMinute: 0, durationMinutes: 15 })))
+      .returning({ id: eventsTable.id });
+    await app.db.insert(eventImages).values(events.map((e) => ({ id: crypto.randomUUID(), eventId: e.id, storageKey: "x", contentType: "image/png", byteSize: 1, createdBy: ownerId })));
+    const last = eventSchema.parse(await (await call("POST", `/api/trips/${trip.id}/days/${day}/events`, MEI, { title: "One more" })).json());
+
+    const before = app.images.keys().length;
+    const refused = await upload(`/api/trips/${trip.id}/events/${last.id}/image`, MEI, await picture());
+    expect(refused.status).toBe(429);
+    expect(await refused.json()).toMatchObject({ code: "image_count_limit" });
+    expect(app.images.keys()).toHaveLength(before);
+  });
+
+  it("does not let uploads at the same moment go past the limit together", async () => {
+    const { trip, event } = await tripWithEvent();
+    const others = await Promise.all(
+      [1, 2, 3].map(async (n) => eventSchema.parse(await (await call("POST", `/api/trips/${trip.id}/days/${trip.days[0]!.id}/events`, OWNER, { title: `Event ${n}` })).json())),
+    );
+    const userId = await userOf(OWNER);
+    const image = (await prepareImage(await picture()))!;
+    const results = await Promise.all([event, ...others].map((e) => setEventImage(app.db, app.images, userId, trip.id, e.id, image, { account: 2, guest: 2 })));
+    expect(results.filter((r) => r === "limit")).toHaveLength(2);
+    expect(app.images.keys()).toHaveLength(2);
   });
 });

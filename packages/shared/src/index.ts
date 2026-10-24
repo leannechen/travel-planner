@@ -129,6 +129,10 @@ export type PlacePhoto = z.infer<typeof placePhotoSchema>;
 // What an uploaded Event image may be (step 39): JPEG, PNG or WebP, at most this many bytes as sent.
 export const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+// Uploads (plan step 45): how often a picture may be sent, and how many a user may keep. Replacing a
+// picture does not add to the count; deleting one, or its Event, gives it back.
+export const UPLOAD_LIMITS = { perMinute: { user: 10, ip: 30 }, perDay: { account: 200, guest: 40, ip: 400 } } as const;
+export const MAX_STORED_IMAGES = { account: 300, guest: 30 } as const;
 export const isImageType = (type: string): type is (typeof IMAGE_TYPES)[number] => (IMAGE_TYPES as readonly string[]).includes(type);
 
 const todoText = z.string().trim().min(1, "Todo text is required").max(500);

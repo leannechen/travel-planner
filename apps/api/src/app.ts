@@ -13,6 +13,7 @@ import {
   holdingAreaSchema,
   inviteEditorInputSchema,
   MAX_IMAGE_BYTES,
+  MAX_STORED_IMAGES,
   MAX_BACKUP_BYTES,
   backupSchema,
   MAX_PLACE_IDS,
@@ -104,6 +105,24 @@ const idsQuerySchema = z.object({
     .transform((value) => value.split(",").filter(Boolean))
     .pipe(z.array(placeIdSchema).max(MAX_PLACE_IDS)),
 });
+
+// What a refused usage limit tells the person (English; the web app has its own texts).
+function usageMessage({ kind, window }: UsageLimitError): string {
+  switch (kind) {
+    case "import":
+      return "You have imported many backups today. Try again tomorrow.";
+    case "upload":
+      return window === "minute" ? "Too many pictures uploaded. Try again in a minute." : "Today's picture uploads are used up. Try again tomorrow.";
+    case "invite":
+      return "Too many invitations today. Try again tomorrow.";
+    case "resend":
+      return "The verification email was sent several times today. Check your inbox and spam folder, or try again tomorrow.";
+    case "search":
+      return window === "minute" ? "Too many place searches. Try again in a minute." : "Today's place searches are used up. Try again tomorrow.";
+    case "lookup":
+      return "Today's place and travel time lookups are used up. Try again tomorrow.";
+  }
+}
 
 export function createApp(db: Db, options: { places?: PlaceProvider; routes?: RouteProvider; generator?: ItineraryGenerator; auth?: TokenVerifier; mailer?: InvitationMailer; identityAdmin?: IdentityAdmin; appOrigin?: string; images?: ImageStore; trustProxy?: string } = {}) {
   const images = options.images ?? imageStoreFromEnv();
@@ -650,7 +669,13 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
   });
 
   // The body is the file itself, whatever type the sender says: what it really is is checked.
-  app.put("/api/trips/:tripId/events/:eventId/image", express.raw({ type: () => true, limit: MAX_IMAGE_BYTES }), async (req, res) => {
+  // Counted before the file is read, so a refused upload costs the server nothing; one for an Event
+  // that is not the caller's counts too, but only against the caller's own shares.
+  const countUpload: express.RequestHandler = async (req, res, next) => {
+    await takeUsage(db, callerOf(req, res), "upload");
+    next();
+  };
+  app.put("/api/trips/:tripId/events/:eventId/image", countUpload, express.raw({ type: () => true, limit: MAX_IMAGE_BYTES }), async (req, res) => {
     const { tripId, eventId } = eventIdParamsSchema.parse(req.params);
     if (!(await findEventPlace(db, res.locals.userId, tripId, eventId))) {
       res.status(404).json({ error: "Event not found" });
@@ -661,7 +686,12 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
       res.status(415).json({ error: "Choose a JPEG, PNG or WebP picture", code: "image_type" });
       return;
     }
-    const event = await setEventImage(db, images, res.locals.userId, tripId, eventId, image);
+    const event = await setEventImage(db, images, res.locals.userId, tripId, eventId, image, MAX_STORED_IMAGES);
+    if (event === "limit") {
+      // The Owner's share is used up; the Owner, not an Editor, has to make room.
+      res.status(429).json({ error: "This Trip's owner has reached the limit of stored pictures. A picture has to be removed first.", code: "image_count_limit" });
+      return;
+    }
     if (!event) {
       res.status(404).json({ error: "Event not found" });
       return;
@@ -926,18 +956,7 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
     }
     // A usage limit (plan step 33); `window` says whether trying again in a minute can help.
     if (err instanceof UsageLimitError) {
-      const error =
-        err.kind === "import"
-          ? "You have imported many backups today. Try again tomorrow."
-          : err.kind === "invite"
-            ? "Too many invitations today. Try again tomorrow."
-            : err.kind === "resend"
-              ? "The verification email was sent several times today. Check your inbox and spam folder, or try again tomorrow."
-              : err.kind === "search" && err.window === "minute"
-                ? "Too many place searches. Try again in a minute."
-                : err.kind === "search"
-                  ? "Today's place searches are used up. Try again tomorrow."
-                  : "Today's place and travel time lookups are used up. Try again tomorrow.";
+      const error = usageMessage(err);
       res.status(429).json({ error, code: `${err.kind}_limit`, window: err.window });
       return;
     }

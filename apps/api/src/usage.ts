@@ -1,4 +1,4 @@
-import { IMPORT_DAILY_ATTEMPTS, INVITE_LIMITS, LOOKUP_LIMITS, RESEND_LIMITS, SEARCH_LIMITS } from "@travel-planner/shared";
+import { IMPORT_DAILY_ATTEMPTS, INVITE_LIMITS, LOOKUP_LIMITS, RESEND_LIMITS, SEARCH_LIMITS, UPLOAD_LIMITS } from "@travel-planner/shared";
 import { and, eq, lt, sql } from "drizzle-orm";
 import type { Db } from "./db/client";
 import { usageCounts } from "./db/schema";
@@ -6,8 +6,8 @@ import type { PlaceProvider } from "./places";
 import type { RouteProvider } from "./routes";
 
 // What is limited (plan step 33): Google place searches, other Google calls (place details, opening
-// hours, photos, travel times), backup imports, and the two things that send email (plan step 44).
-export type UsageKind = "search" | "lookup" | "import" | "invite" | "resend";
+// hours, photos, travel times), backup imports, the two things that send email (plan step 44) and picture uploads (step 45).
+export type UsageKind = "search" | "lookup" | "import" | "invite" | "resend" | "upload";
 export type UsageWindow = "minute" | "day";
 
 // Who a request is counted for: the user it acts as (an account or a guest session), when it has
@@ -51,7 +51,14 @@ function limitsOf(kind: UsageKind, caller: Caller): Limit[] {
                 !!caller.tripId && { subject: `trip:${caller.tripId}`, bucket: "invite-day", window: "day", max: INVITE_LIMITS.perDay.trip },
                 { subject: ip, bucket: "invite-day", window: "day", max: INVITE_LIMITS.perDay.ip },
               ]
-            : [
+            : kind === "upload"
+              ? [
+                  !!user && { subject: user, bucket: "upload-minute", window: "minute", max: UPLOAD_LIMITS.perMinute.user },
+                  { subject: ip, bucket: "upload-minute", window: "minute", max: UPLOAD_LIMITS.perMinute.ip },
+                  !!user && { subject: user, bucket: "upload-day", window: "day", max: caller.account ? UPLOAD_LIMITS.perDay.account : UPLOAD_LIMITS.perDay.guest },
+                  { subject: ip, bucket: "upload-day", window: "day", max: UPLOAD_LIMITS.perDay.ip },
+                ]
+              : [
                 !!user && { subject: user, bucket: "resend-day", window: "day", max: RESEND_LIMITS.perDay.user },
                 { subject: ip, bucket: "resend-day", window: "day", max: RESEND_LIMITS.perDay.ip },
               ];

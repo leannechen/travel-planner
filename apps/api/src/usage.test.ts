@@ -1,4 +1,4 @@
-import { IMPORT_DAILY_ATTEMPTS, INVITE_LIMITS, LOOKUP_LIMITS, RESEND_LIMITS, SEARCH_LIMITS, tripSchema } from "@travel-planner/shared";
+import { IMPORT_DAILY_ATTEMPTS, INVITE_LIMITS, LOOKUP_LIMITS, RESEND_LIMITS, UPLOAD_LIMITS, SEARCH_LIMITS, tripSchema } from "@travel-planner/shared";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { startTestApp } from "../test/test-app";
@@ -109,6 +109,27 @@ describe("email limits", () => {
     await takeUsage(app.db, caller, "resend", RESEND_LIMITS.perDay.user, NOW);
     await expect(takeUsage(app.db, caller, "resend", 1, NOW)).rejects.toEqual(new UsageLimitError("resend", "day"));
     expect(await remainingUsage(app.db, caller, "resend", new Date("2026-10-24T00:00:00Z"))).toBe(RESEND_LIMITS.perDay.user);
+  });
+});
+
+describe("upload limits", () => {
+  it("limits uploads per minute and per day, a guest less than an account", async () => {
+    const caller = account();
+    await takeUsage(app.db, caller, "upload", UPLOAD_LIMITS.perMinute.user, NOW);
+    await expect(takeUsage(app.db, caller, "upload", 1, NOW)).rejects.toEqual(new UsageLimitError("upload", "minute"));
+    // The next minute starts again.
+    await takeUsage(app.db, caller, "upload", 1, new Date(NOW.getTime() + 60_000));
+    expect(await remainingUsage(app.db, guest(), "upload", NOW)).toBe(UPLOAD_LIMITS.perMinute.user);
+    const g = guest();
+    for (let i = 0; i < UPLOAD_LIMITS.perDay.guest / UPLOAD_LIMITS.perMinute.user; i++) await takeUsage(app.db, g, "upload", UPLOAD_LIMITS.perMinute.user, new Date(NOW.getTime() + i * 60_000));
+    await expect(takeUsage(app.db, g, "upload", 1, new Date(NOW.getTime() + 10 * 60_000))).rejects.toEqual(new UsageLimitError("upload", "day"));
+  });
+
+  it("counts every user of one IP address against that address's share", async () => {
+    await takeUsage(app.db, account(), "upload", UPLOAD_LIMITS.perMinute.user, NOW);
+    await takeUsage(app.db, account(), "upload", UPLOAD_LIMITS.perMinute.user, NOW);
+    await takeUsage(app.db, account(), "upload", UPLOAD_LIMITS.perMinute.user, NOW);
+    await expect(takeUsage(app.db, account(), "upload", 1, NOW)).rejects.toEqual(new UsageLimitError("upload", "minute"));
   });
 });
 

@@ -75,6 +75,24 @@ function fieldsDuration(fields: EventFields) {
 }
 
 // Where an Event is: a Day id, or the name of its holding area.
+// The server's reasons for refusing a picture, in the interface language; anything else keeps the
+// error's own text.
+function imageErrorMessage(err: unknown, t: ReturnType<typeof useT>): string {
+  const { code, detail } = err as { code?: string; detail?: { window?: string } };
+  switch (code) {
+    case "image_type":
+      return t("image.wrongType");
+    case "image_too_large":
+      return t("image.tooLarge");
+    case "upload_limit":
+      return t(detail?.window === "minute" ? "image.limitMinute" : "image.limitDay");
+    case "image_count_limit":
+      return t("image.countLimit");
+    default:
+      return err instanceof Error ? err.message : t("generic.error");
+  }
+}
+
 const placeOf = (event: { dayId: string | null; holding?: Event["holding"] }) => event.dayId ?? event.holding ?? "backlog";
 
 const hasContact = (event: { phone: string | null; email: string | null; website: string | null }) =>
@@ -328,8 +346,7 @@ export function EventPanel({
     } catch (err) {
       failed.current = true;
       // The server's reasons for refusing a picture, in the interface language.
-      const code = (err as { code?: string }).code;
-      const message = code === "image_type" ? t("image.wrongType") : code === "image_too_large" ? t("image.tooLarge") : err instanceof Error ? err.message : t("generic.error");
+      const message = imageErrorMessage(err, t);
       setStatus({ kind: "error", message });
     } finally {
       setUploading(false);

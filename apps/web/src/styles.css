@@ -3626,6 +3626,7 @@ main.has-panel .topbar {
 .settings-field {
   display: grid;
   gap: 6px;
+  margin-bottom: 8px;
 }
 
 .settings-field label {

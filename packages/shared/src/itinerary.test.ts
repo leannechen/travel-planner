@@ -17,17 +17,23 @@ const event = (fields: Partial<AiEvent> = {}): AiEvent => ({
 const itinerary = (days: AiEvent[][], fields: Partial<AiItinerary> = {}): AiItinerary => ({
   title: "Kanazawa",
   startDate: null,
+  travelMode: null,
   days: days.map((events) => ({ events })),
   ...fields,
 });
 const normalize = (it: AiItinerary) => normalizeItinerary(it, { fallbackTitle: "Kanazawa, 3 days" });
 
 describe("normalizing a generated itinerary", () => {
+  it("carries the travel mode the model found in the prompt", () => {
+    expect(normalize(itinerary([[event()]], { travelMode: "drive" }))!.travelMode).toBe("drive");
+  });
+
   it("keeps a usable itinerary as it is, with no Legs", () => {
     const trip = normalize(itinerary([[event({ description: "  The garden.  " })]], { startDate: "2026-11-03" }))!;
     expect(trip).toEqual({
       title: "Kanazawa",
       startDate: "2026-11-03",
+      travelMode: null,
       days: [
         [
           expect.objectContaining({

@@ -938,6 +938,40 @@ main.has-panel .topbar {
   font-size: 12px;
 }
 
+.empty-state {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  margin: 4px 12px;
+  padding: 16px 10px;
+  text-align: center;
+}
+
+.empty-state .empty-icon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 4px;
+  border-radius: var(--r-lg);
+  background: var(--pri-tint);
+  color: var(--pri-ink);
+}
+
+.empty-state strong {
+  font-size: 15px;
+}
+
+.empty-state p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.empty-state .btn {
+  margin-top: 6px;
+}
+
 .holding-card {
   position: relative;
   display: grid;
@@ -3052,6 +3086,12 @@ main.has-panel .topbar {
   border-bottom: 0;
 }
 
+.notes-list li button:not(.note-title) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .notes-list li button {
   min-height: 36px;
   padding: 0 8px;
@@ -4849,9 +4889,20 @@ main.has-panel .topbar {
 
   .home-header {
     position: relative;
-    z-index: 1;
+    /* Above the hero, which follows it: the account sheet is fixed inside the header and would
+       otherwise sit under the hero's surface. */
+    z-index: 14;
     padding: 14px 16px 0;
     color: #fff;
+  }
+
+  /* The header's white text is for the photo behind it, not for the sheet that opens from it. */
+  .home-header .account-sheet {
+    color: var(--text);
+  }
+
+  .home-header .account-sheet strong {
+    font-size: inherit;
   }
 
   .home-header .logo {

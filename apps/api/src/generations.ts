@@ -145,6 +145,7 @@ async function withPlaces(db: Db, deps: GenerationDeps, trip: GeneratedTrip): Pr
   return {
     title: trip.title,
     startDate: trip.startDate,
+    ...(trip.travelMode && { travelMode: trip.travelMode }),
     days: trip.days.map((list) =>
       list.map(({ placeQuery, destinationQuery, ...e }) => ({ ...e, placeId: idOf(placeQuery), destinationId: idOf(destinationQuery) })),
     ),

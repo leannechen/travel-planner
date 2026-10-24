@@ -1,11 +1,12 @@
 import { DEFAULT_DURATION_MINUTES, DEFAULT_START_MINUTE, MAX_AI_DAYS, MAX_AI_EVENTS_PER_DAY, MAX_AI_PLACE_LOOKUPS, MAX_DESCRIPTION_LENGTH, MAX_DURATION_MINUTES, MAX_PLACE_QUERY_LENGTH } from "./index";
 import type { AiEvent, AiItinerary, SeedEventInput } from "./index";
+import type { TravelMode } from "./legs";
 import { SNAP_MINUTES } from "./time-layout";
 import { startDateSchema } from "./trip-dates";
 
 // A generated Event before its places are looked up: the queries take the place of place ids.
 export type GeneratedEvent = Omit<SeedEventInput, "placeId" | "destinationId"> & { placeQuery: string | null; destinationQuery: string | null };
-export type GeneratedTrip = { title: string; startDate: string | null; days: GeneratedEvent[][] };
+export type GeneratedTrip = { title: string; startDate: string | null; travelMode: TravelMode | null; days: GeneratedEvent[][] };
 
 const MAX_TITLE_LENGTH = 200;
 const CHECK_IN_MINUTE = 15 * 60;
@@ -74,6 +75,7 @@ export function normalizeItinerary(itinerary: AiItinerary, options: { fallbackTi
   return {
     title: text(itinerary.title, MAX_TITLE_LENGTH) ?? options.fallbackTitle.trim().slice(0, MAX_TITLE_LENGTH),
     startDate: itinerary.startDate && startDateSchema.safeParse(itinerary.startDate).success ? itinerary.startDate : null,
+    travelMode: itinerary.travelMode,
     days,
   };
 }

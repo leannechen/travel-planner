@@ -420,6 +420,8 @@ export const aiItinerarySchema = z.object({
   title: z.string(),
   // "YYYY-MM-DD" when the prompt gives dates, else null.
   startDate: z.string().nullable(),
+  // How the prompt says the traveller gets around ("by car", "on foot"), else null.
+  travelMode: travelModeSchema.nullable(),
   days: z.array(z.object({ events: z.array(aiEventSchema) })),
 });
 export type AiEvent = z.infer<typeof aiEventSchema>;

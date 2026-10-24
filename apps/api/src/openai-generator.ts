@@ -23,6 +23,7 @@ Rules:
 - transportLabel: for transport only ("flight", "train", "ferry", "bus" or "other"), else null.
 - lodging: put it on the day of check-in, at "15:00" for 60 minutes, with nights set to how many nights the traveller sleeps there (the last day of the trip is the day of departure, with no night); nights is null for every other kind. Add a new lodging only when the traveller moves to another place to sleep.
 - description: one or two short sentences of useful advice (what to see, what to order, booking tips), or null.
+- travelMode: how the traveller gets around when the description says so: "drive" for a car, road trip or campervan, "transit" for public transport (trains, buses, a rail pass), "walk" for on foot; null when it does not say.
 - title: a short name for the trip. startDate: "YYYY-MM-DD" when the description gives dates (the first such date on or after today), else null.
 - If the description is not a trip that can be planned, return an empty list of days.`;
 

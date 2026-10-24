@@ -70,6 +70,14 @@ describe("generating a Trip with AI", () => {
     expect(trip!.legs).toEqual([]);
   });
 
+  it("sets the Trip's travel mode from the prompt, and keeps the default when it names none", async () => {
+    await generate(input("Kyoto, 3 days by car"));
+    expect((await trips())[0]!.travelMode).toBe("drive");
+    await app.reset();
+    await generate(input("Kyoto, 3 days, temples and food"));
+    expect((await trips())[0]!.travelMode).toBe("transit");
+  });
+
   it("writes the Trip in the user's language", async () => {
     const generation = await generate(input("京都 2 天", "zh"));
     const [trip] = await trips();

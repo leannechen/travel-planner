@@ -160,9 +160,9 @@ export const createTrip = (input: CreateTripInput) => request("/api/trips", trip
 // The user's copy of the sample Trip: made on the first call, the same one after that (PRD §1).
 export const openSampleTrip = () => request("/api/sample-trip", sampleTripResponseSchema, undefined, "POST");
 
-// Trip settings; the answer is the title and start date as saved.
+// Trip settings; the answer is the title, start date and default travel mode as saved.
 export const updateTrip = (tripId: string, input: UpdateTripInput) =>
-  request(`/api/trips/${tripId}`, z.object({ title: tripSchema.shape.title, startDate: startDateSchema.nullable() }), input, "PATCH");
+  request(`/api/trips/${tripId}`, z.object({ title: tripSchema.shape.title, startDate: startDateSchema.nullable(), travelMode: tripSchema.shape.travelMode }), input, "PATCH");
 
 // The full backup of a Trip, as the file's text.
 export async function exportBackup(tripId: string): Promise<string> {

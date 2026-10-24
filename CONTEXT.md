@@ -33,7 +33,8 @@ _Avoid_: Travel
 
 **Leg**:
 A plain movement between two adjacent Events, created when the user clicks the time slot between them. Its duration is computed from the two locations, or entered by hand when Google has no route (ADR 0009); the user picks the travel mode (drive, public transit, walk). It cannot exist if either Event has no location.
-_Avoid_: Travel, route, commute
+The interface calls it "Travel" (easier to understand); code and docs keep the name Leg.
+_Avoid_: route, commute
 
 **Backlog**:
 A holding area outside any Day for Events the user is still considering.

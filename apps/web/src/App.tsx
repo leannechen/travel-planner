@@ -72,7 +72,7 @@ import { clearNotice, clearPendingEdits, keepPendingEdits, peekNotice, peekPendi
 import { useIsPhone, useRoomForPinnedList } from "./phone";
 import { EventPanel } from "./EventPanel";
 import { rememberOpeningHours } from "./openingHours";
-import { TripSettingsDialog } from "./TripSettingsDialog";
+import { TripSettingsDialog, type SettingsChanges } from "./TripSettingsDialog";
 import { tripStartDate } from "./tripDates";
 import { useUnsavedGuard } from "./unsavedGuard";
 import { UnsavedDialog } from "./UnsavedDialog";
@@ -82,7 +82,7 @@ import { useT } from "./preferences";
 import { ShortcutSheet } from "./ShortcutSheet";
 import { Toast } from "./Toast";
 import { TitleForm } from "./TitleForm";
-import { chooseTrip, hasTripInAddress, isLandingLocation, openTrip, readWantedTripId, rememberTripId, wantsTripList } from "./currentTrip";
+import { chooseTrip, hasTripInAddress, isLandingLocation, openLanding, openTrip, readWantedTripId, rememberTripId, wantsTripList } from "./currentTrip";
 import { NewTripDialog } from "./NewTripDialog";
 import { TripListDrawer } from "./TripListDrawer";
 import { backupFileName, saveTextFile } from "./backupFile";
@@ -100,7 +100,7 @@ const emptyAreas: Areas = { days: [], backlog: [], archive: [] };
 type Selection = { tripId: string; eventId: string; quiet?: boolean; restored?: EventFields } | { tripId: string; draft: Draft; restored?: EventFields };
 
 // Where the user is heading when leaving the panel: another selection, or another Trip.
-type Heading = Selection | { switchTo: string };
+type Heading = Selection | { switchTo: string } | { goHome: true };
 
 // Whether the Trip list is pinned open (design 27, C), kept in this browser.
 const LIST_PINNED_KEY = "travel-planner.trip-list-pinned";
@@ -339,9 +339,9 @@ function Workspace({ joinedMessage }: { joinedMessage?: string }) {
   // The Trip whose settings are open.
   const [settingsTripId, setSettingsTripId] = useState<string | undefined>();
 
-  async function handleChangeStartDate(tripId: string, startDate: string | null) {
-    const saved = await updateTrip(tripId, { startDate });
-    setTrips((current) => current?.map((trip) => (trip.id === tripId ? { ...trip, startDate: saved.startDate } : trip)));
+  async function handleSaveSettings(tripId: string, changes: SettingsChanges) {
+    const saved = await updateTrip(tripId, changes);
+    setTrips((current) => current?.map((trip) => (trip.id === tripId ? { ...trip, startDate: saved.startDate, travelMode: saved.travelMode } : trip)));
   }
 
   async function handleRenameTrip(tripId: string, title: string) {
@@ -527,6 +527,12 @@ function Workspace({ joinedMessage }: { joinedMessage?: string }) {
   const showArchived = () => setToast({ id: Date.now(), message: t("event.archived") });
 
   async function apply(next: Heading | undefined) {
+    if (next && "goHome" in next) {
+      // Leaving for the Landing page: open Notes save first, and a failed save keeps the user here.
+      if (notesTripIdRef.current && closeNotes.current && !(await closeNotes.current())) return;
+      openLanding();
+      return;
+    }
     if (next && "switchTo" in next) {
       // Notes of the Trip being left close first, saving what is typed. A failed save keeps them
       // open, and the Trip stays.
@@ -1114,6 +1120,7 @@ function Workspace({ joinedMessage }: { joinedMessage?: string }) {
           sidebar={pinnedList ? tripListView(true) : undefined}
           readOnly={expired}
           onOpenSettings={() => setSettingsTripId(trip.id)}
+          onGoHome={() => select({ goHome: true })}
           onOpenTripList={() => { if (!pinnedList) setTripListOpen(true); }}
           onShare={trip.role === "owner" ? () => (auth.status === "guest" ? void auth.login() : setShareTripId(trip.id)) : undefined}
           onDaysChange={handleDaysChange}
@@ -1216,7 +1223,8 @@ function Workspace({ joinedMessage }: { joinedMessage?: string }) {
         <TripSettingsDialog
           tripTitle={trips.find((t) => t.id === settingsTripId)!.title}
           startDate={tripStartDate(trips.find((t) => t.id === settingsTripId)!)}
-          onChangeStartDate={(startDate) => handleChangeStartDate(settingsTripId, startDate)}
+          travelMode={trips.find((t) => t.id === settingsTripId)!.travelMode}
+          onSave={(changes) => handleSaveSettings(settingsTripId, changes)}
           onClose={() => setSettingsTripId(undefined)}
         />
       )}

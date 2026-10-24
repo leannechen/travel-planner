@@ -451,6 +451,14 @@ main > [role="alert"] {
   color: #fff;
 }
 
+a.logo {
+  text-decoration: none;
+}
+
+a.logo:hover {
+  filter: brightness(1.08);
+}
+
 .spacer {
   flex: 1;
 }
@@ -4137,7 +4145,9 @@ main.has-panel .topbar {
   top: 42px;
   right: 0;
   display: grid;
+  width: max-content;
   min-width: 15rem;
+  max-width: min(24rem, calc(100vw - 24px));
   padding: 6px;
   border: 1px solid var(--border2);
   border-radius: var(--r-lg);

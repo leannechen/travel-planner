@@ -12,10 +12,10 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
-function setup(startDate?: string, onChangeStartDate = vi.fn(async () => undefined)) {
+function setup(startDate?: string, onSave = vi.fn(async () => undefined)) {
   const onClose = vi.fn();
-  renderApp(<TripSettingsDialog tripTitle="Kyoto" startDate={startDate} onChangeStartDate={onChangeStartDate} onClose={onClose} />);
-  return { onChangeStartDate, onClose, field: () => screen.getByLabelText(/Start date/) as HTMLInputElement };
+  renderApp(<TripSettingsDialog tripTitle="Kyoto" startDate={startDate} travelMode="transit" onSave={onSave} onClose={onClose} />);
+  return { onSave, onClose, field: () => screen.getByLabelText(/Start date/) as HTMLInputElement };
 }
 
 describe("Trip settings", () => {
@@ -32,13 +32,13 @@ describe("Trip settings", () => {
   });
 
   it("saves nothing until Save, then saves and closes", async () => {
-    const { field, onChangeStartDate, onClose } = setup();
+    const { field, onSave, onClose } = setup();
     const save = () => screen.getByRole("button", { name: "Save" }) as HTMLButtonElement;
     expect(save().disabled).toBe(true);
     fireEvent.change(field(), { target: { value: "2026-12-01" } });
-    expect(onChangeStartDate).not.toHaveBeenCalled();
+    expect(onSave).not.toHaveBeenCalled();
     await userEvent.click(save());
-    expect(onChangeStartDate).toHaveBeenCalledWith("2026-12-01");
+    expect(onSave).toHaveBeenCalledWith({ startDate: "2026-12-01" });
     await waitFor(() => expect(onClose).toHaveBeenCalled());
   });
 
@@ -57,20 +57,20 @@ describe("Trip settings", () => {
   });
 
   it("Cancel and the close button leave without saving", async () => {
-    const { field, onChangeStartDate, onClose } = setup();
+    const { field, onSave, onClose } = setup();
     fireEvent.change(field(), { target: { value: "2026-12-01" } });
     await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     expect(onClose).toHaveBeenCalledTimes(2);
-    expect(onChangeStartDate).not.toHaveBeenCalled();
+    expect(onSave).not.toHaveBeenCalled();
   });
 
   it("Esc leaves without saving", () => {
-    const { field, onChangeStartDate, onClose } = setup();
+    const { field, onSave, onClose } = setup();
     fireEvent.change(field(), { target: { value: "2026-12-01" } });
     fireEvent(screen.getByRole("dialog", { hidden: true }), new Event("cancel", { cancelable: true }));
     expect(onClose).toHaveBeenCalled();
-    expect(onChangeStartDate).not.toHaveBeenCalled();
+    expect(onSave).not.toHaveBeenCalled();
   });
 
   it("cannot be cancelled or closed while the save is in flight", async () => {
@@ -84,23 +84,40 @@ describe("Trip settings", () => {
   });
 
   it("Clear empties the field, and Save then removes the date", async () => {
-    const { field, onChangeStartDate, onClose } = setup("2026-11-03");
+    const { field, onSave, onClose } = setup("2026-11-03");
     await userEvent.click(screen.getByRole("button", { name: "Clear" }));
     expect(field().value).toBe("");
-    expect(onChangeStartDate).not.toHaveBeenCalled();
+    expect(onSave).not.toHaveBeenCalled();
     await userEvent.click(screen.getByRole("button", { name: "Save" }));
-    expect(onChangeStartDate).toHaveBeenCalledWith(null);
+    expect(onSave).toHaveBeenCalledWith({ startDate: null });
     await waitFor(() => expect(onClose).toHaveBeenCalled());
   });
 
   it("stays open with an error when the save fails, and can be saved again", async () => {
-    const onChangeStartDate = vi.fn().mockRejectedValueOnce(new Error("down")).mockResolvedValue(undefined);
-    const { field, onClose } = setup(undefined, onChangeStartDate);
+    const onSave = vi.fn().mockRejectedValueOnce(new Error("down")).mockResolvedValue(undefined);
+    const { field, onClose } = setup(undefined, onSave);
     fireEvent.change(field(), { target: { value: "2026-12-01" } });
     await userEvent.click(screen.getByRole("button", { name: "Save" }));
-    expect((await screen.findByRole("alert")).textContent).toBe("The date could not be saved");
+    expect((await screen.findByRole("alert")).textContent).toBe("The settings could not be saved");
     expect(onClose).not.toHaveBeenCalled();
     await userEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(onClose).toHaveBeenCalled());
+  });
+
+  it("shows the Trip's default travel mode, and saves a changed one alone", async () => {
+    const { onSave, onClose } = setup("2026-11-03");
+    expect((screen.getByRole("radio", { name: "Transit" }) as HTMLInputElement).checked).toBe(true);
+    await userEvent.click(screen.getByRole("radio", { name: "Drive" }));
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSave).toHaveBeenCalledWith({ travelMode: "drive" });
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+  });
+
+  it("saves the date and the mode together", async () => {
+    const { field, onSave } = setup();
+    fireEvent.change(field(), { target: { value: "2026-12-01" } });
+    await userEvent.click(screen.getByRole("radio", { name: "Walk" }));
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSave).toHaveBeenCalledWith({ startDate: "2026-12-01", travelMode: "walk" });
   });
 });

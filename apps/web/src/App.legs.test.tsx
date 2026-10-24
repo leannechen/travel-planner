@@ -59,18 +59,18 @@ describe("a Leg with a duration entered by hand", () => {
   it("is pointed out when an Event next to it changes its time", async () => {
     open(true);
     await saveInPanel(() => fireEvent.change(startField(), { target: { value: "13:45" } }));
-    expect(await screen.findByText("The travel time of this Leg was entered by hand; check it.")).toBeTruthy();
+    expect(await screen.findByText("The time of this Travel was entered by hand; check it.")).toBeTruthy();
   });
 
   it("is not pointed out when something else about the Event changes", async () => {
     open(true);
     await saveInPanel(() => fireEvent.change(screen.getByRole("textbox", { name: "Title" }), { target: { value: "Kiyomizu" } }));
-    expect(screen.queryByText("The travel time of this Leg was entered by hand; check it.")).toBeNull();
+    expect(screen.queryByText("The time of this Travel was entered by hand; check it.")).toBeNull();
   });
 
   it("is not pointed out for a calculated Leg", async () => {
     open(false);
     await saveInPanel(() => fireEvent.change(startField(), { target: { value: "13:45" } }));
-    expect(screen.queryByText("The travel time of this Leg was entered by hand; check it.")).toBeNull();
+    expect(screen.queryByText("The time of this Travel was entered by hand; check it.")).toBeNull();
   });
 });

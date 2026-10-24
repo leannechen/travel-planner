@@ -123,6 +123,25 @@ describe("one Trip at a time", () => {
     await waitFor(() => expect(screen.queryByPlaceholderText(/Write a Note/)).toBeNull());
   });
 
+  describe("the logo", () => {
+    it("goes to the Landing page", async () => {
+      renderApp(<App />);
+      await screen.findByText("Fushimi Inari");
+      await userEvent.click(screen.getByRole("link", { name: "Home" }));
+      await waitFor(() => expect(window.location.pathname).toBe("/"));
+      await waitFor(() => expect(screen.queryByText("Fushimi Inari")).toBeNull());
+    });
+
+    it("asks first when the Event panel has an unsaved change", async () => {
+      renderApp(<App />);
+      await userEvent.click(await screen.findByText("Fushimi Inari"));
+      await userEvent.type(await screen.findByLabelText(/^Title/), " at dawn");
+      await userEvent.click(screen.getByRole("link", { name: "Home" }));
+      expect(await screen.findByText("Save your changes?")).toBeTruthy();
+      expect(window.location.pathname).toMatch(/^\/trip\//);
+    });
+  });
+
   describe("with an unsaved change in the Event panel", () => {
     async function editTitle() {
       renderApp(<App />);

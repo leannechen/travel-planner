@@ -46,7 +46,7 @@ export function Sidebar({ onShowShortcuts }: { onShowShortcuts: () => void }) {
           <select aria-label={t("sidebar.language")} title={LANGUAGES.find((l) => l.id === language)!.label} value={language} onChange={(e) => isLanguage(e.target.value) && setLanguage(e.target.value)}>
             {LANGUAGES.map((l) => (
               <option key={l.id} value={l.id} title={l.label}>
-                {l.short}
+                {l.label}
               </option>
             ))}
           </select>

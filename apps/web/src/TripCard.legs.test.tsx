@@ -193,13 +193,13 @@ describe("Legs on the timeline", () => {
     const user = userEvent.setup();
     cleanup();
     withLeg();
-    const pill = screen.getByRole("button", { name: "Transit, 25 min. Open the Leg" });
+    const pill = screen.getByRole("button", { name: "Transit, 25 min. Open the Travel" });
     expect(pill.textContent).toContain("25 min");
     // The Leg takes the place of the slot.
     expect(screen.queryByRole("button", { name: /Add travel between/ })).toBeNull();
     expect(document.querySelectorAll(".slot-row")).toHaveLength(0);
     await user.click(pill);
-    const dialog = screen.getByRole("dialog", { name: "Leg · 25 min" });
+    const dialog = screen.getByRole("dialog", { name: "Travel · 25 min" });
     expect(within(dialog).getByText("Station")).toBeTruthy();
     expect(within(dialog).getByText("Golden Pavilion")).toBeTruthy();
     expect(within(dialog).getByText("25 min · 7.4 km")).toBeTruthy();
@@ -212,7 +212,7 @@ describe("Legs on the timeline", () => {
     const user = userEvent.setup();
     cleanup();
     withLeg();
-    await user.click(screen.getByRole("button", { name: /Open the Leg/ }));
+    await user.click(screen.getByRole("button", { name: /Open the Travel/ }));
     const link = (await screen.findByRole("link", { name: "Open in Google Maps" })) as HTMLAnchorElement;
     const url = new URL(link.href);
     expect(url.searchParams.get("origin_place_id")).toBe("p1");
@@ -224,7 +224,7 @@ describe("Legs on the timeline", () => {
     const user = userEvent.setup();
     cleanup();
     withLeg({ durationMinutes: 90 });
-    const pill = screen.getByRole("button", { name: /Open the Leg/ });
+    const pill = screen.getByRole("button", { name: /Open the Travel/ });
     expect(pill.textContent).toContain("1 h 30 min · gap 1 h");
     await user.click(pill);
     expect(within(screen.getByRole("dialog")).getByRole("status").textContent).toContain("Gap is shorter than the trip");
@@ -234,10 +234,10 @@ describe("Legs on the timeline", () => {
     const user = userEvent.setup();
     cleanup();
     withLeg({ mode: "drive", durationMinutes: null, distanceMeters: null });
-    const pill = screen.getByRole("button", { name: /Open the Leg/ });
+    const pill = screen.getByRole("button", { name: /Open the Travel/ });
     expect(pill.textContent).toContain("Can't calculate");
     await user.click(pill);
-    const dialog = screen.getByRole("dialog", { name: "Leg · can't calculate" });
+    const dialog = screen.getByRole("dialog", { name: "Travel · can't calculate" });
     expect(within(dialog).getByText("—")).toBeTruthy();
     expect(within(dialog).getByText(/No route was found/)).toBeTruthy();
     expect(within(dialog).getByRole("link", { name: "Open in Google Maps" })).toBeTruthy();
@@ -248,8 +248,8 @@ describe("Legs on the timeline", () => {
     const user = userEvent.setup();
     cleanup();
     const props = withLeg({ mode: "transit", durationMinutes: null, distanceMeters: null });
-    await user.click(screen.getByRole("button", { name: /Open the Leg/ }));
-    const dialog = screen.getByRole("dialog", { name: "Leg · can't calculate" });
+    await user.click(screen.getByRole("button", { name: /Open the Travel/ }));
+    const dialog = screen.getByRole("dialog", { name: "Travel · can't calculate" });
     expect(within(dialog).getByText(/Google gives no public-transit routes in some countries/)).toBeTruthy();
     expect(within(dialog).getByRole("link", { name: "Open in Google Maps" })).toBeTruthy();
     expect(within(dialog).getByText("Whole minutes, 1 to 1,440.")).toBeTruthy();
@@ -264,7 +264,7 @@ describe("Legs on the timeline", () => {
     const user = userEvent.setup();
     cleanup();
     const props = withLeg({ mode: "transit", durationMinutes: null, distanceMeters: null });
-    await user.click(screen.getByRole("button", { name: /Open the Leg/ }));
+    await user.click(screen.getByRole("button", { name: /Open the Travel/ }));
     const field = screen.getByRole("textbox", { name: "Duration (minutes)" });
     for (const typed of ["0", "1441", "2.5", "abc"]) {
       await user.clear(field);
@@ -279,10 +279,10 @@ describe("Legs on the timeline", () => {
     const user = userEvent.setup();
     cleanup();
     withLeg({ mode: "transit", durationMinutes: 25, distanceMeters: null, manual: true });
-    const pill = screen.getByRole("button", { name: "Transit, 25 min, entered by you. Open the Leg" });
+    const pill = screen.getByRole("button", { name: "Transit, 25 min, entered by you. Open the Travel" });
     expect(pill.querySelector(".leg-manual-mark")).not.toBeNull();
     await user.click(pill);
-    const dialog = screen.getByRole("dialog", { name: "Leg · 25 min" });
+    const dialog = screen.getByRole("dialog", { name: "Travel · 25 min" });
     expect(within(dialog).getByRole("tooltip").textContent).toBe("Entered by you");
     expect(within(dialog).getByRole("button", { name: "Edit the duration" })).toBeTruthy();
     expect(within(dialog).queryByRole("textbox")).toBeNull();
@@ -293,7 +293,7 @@ describe("Legs on the timeline", () => {
     const user = userEvent.setup();
     cleanup();
     const props = withLeg({ mode: "transit", durationMinutes: 25, distanceMeters: null, manual: true });
-    await user.click(screen.getByRole("button", { name: /Open the Leg/ }));
+    await user.click(screen.getByRole("button", { name: /Open the Travel/ }));
     await user.click(screen.getByRole("button", { name: "Edit the duration" }));
     const field = screen.getByRole("textbox", { name: "Duration (minutes)" });
     expect((field as HTMLInputElement).value).toBe("25");
@@ -320,7 +320,7 @@ describe("Legs on the timeline", () => {
     const user = userEvent.setup();
     cleanup();
     const props = withLeg({ mode: "transit", durationMinutes: 25, distanceMeters: null, manual: true });
-    await user.click(screen.getByRole("button", { name: /Open the Leg/ }));
+    await user.click(screen.getByRole("button", { name: /Open the Travel/ }));
     // The current mode has the focus when the popover opens.
     await user.keyboard("{Enter}");
     await user.click(screen.getByRole("button", { name: "Transit" }));
@@ -332,9 +332,9 @@ describe("Legs on the timeline", () => {
     cleanup();
     const props = withLeg({ mode: "transit", durationMinutes: null, distanceMeters: null });
     props.onSetLegDuration.mockRejectedValueOnce(new ApiError("Only a Leg ...", "leg_calculated"));
-    await user.click(screen.getByRole("button", { name: /Open the Leg/ }));
+    await user.click(screen.getByRole("button", { name: /Open the Travel/ }));
     await user.type(screen.getByRole("textbox", { name: "Duration (minutes)" }), "25{Enter}");
-    expect((await screen.findByRole("alert")).textContent).toBe("This Leg has a calculated duration now, so it takes no minutes by hand.");
+    expect((await screen.findByRole("alert")).textContent).toBe("This Travel has a calculated duration now, so it takes no minutes by hand.");
   });
 
   it("moves up when it grows near the bottom of the window, so the minutes field is not cut off", async () => {
@@ -343,7 +343,7 @@ describe("Legs on the timeline", () => {
     let resized: (() => void) | undefined;
     vi.stubGlobal("ResizeObserver", class { constructor(callback: () => void) { resized = callback; } observe() {} unobserve() {} disconnect() {} });
     withLeg({ mode: "transit", durationMinutes: 25, distanceMeters: null, manual: true });
-    const pill = screen.getByRole("button", { name: /Open the Leg/ });
+    const pill = screen.getByRole("button", { name: /Open the Travel/ });
     pill.getBoundingClientRect = () => ({ top: 700, bottom: 722, left: 100, right: 180, width: 80, height: 22, x: 100, y: 700, toJSON() {} });
     await user.click(pill);
     const popover = screen.getByRole("dialog");
@@ -358,7 +358,7 @@ describe("Legs on the timeline", () => {
     const user = userEvent.setup();
     cleanup();
     withLeg({ mode: "transit", durationMinutes: 90, distanceMeters: null, manual: true });
-    await user.click(screen.getByRole("button", { name: /Open the Leg/ }));
+    await user.click(screen.getByRole("button", { name: /Open the Travel/ }));
     expect(within(screen.getByRole("dialog")).getByRole("status").textContent).toContain("The trip takes 1 h 30 min (entered by you).");
   });
 
@@ -366,10 +366,10 @@ describe("Legs on the timeline", () => {
     const user = userEvent.setup();
     cleanup();
     const props = withLeg();
-    await user.click(screen.getByRole("button", { name: /Open the Leg/ }));
+    await user.click(screen.getByRole("button", { name: /Open the Travel/ }));
     await user.click(screen.getByRole("button", { name: "Drive" }));
     expect(props.onChangeLegMode).toHaveBeenCalledWith(props.trip.legs[0], "drive");
-    await user.click(screen.getByRole("button", { name: "Delete Leg" }));
+    await user.click(screen.getByRole("button", { name: "Delete Travel" }));
     expect(props.onDeleteLeg).toHaveBeenCalledWith(props.trip.legs[0]);
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
@@ -378,10 +378,10 @@ describe("Legs on the timeline", () => {
     const user = userEvent.setup();
     cleanup();
     withLeg();
-    await user.click(screen.getByRole("button", { name: /Open the Leg/ }));
+    await user.click(screen.getByRole("button", { name: /Open the Travel/ }));
     fireEvent.pointerDown(document.body);
     expect(screen.queryByRole("dialog")).toBeNull();
-    await user.click(screen.getByRole("button", { name: /Open the Leg/ }));
+    await user.click(screen.getByRole("button", { name: /Open the Travel/ }));
     const reachedPage = vi.fn();
     window.addEventListener("keydown", reachedPage);
     await user.keyboard("{Escape}");
@@ -394,7 +394,7 @@ describe("Legs on the timeline", () => {
     const user = userEvent.setup();
     cleanup();
     const props = withLeg();
-    await user.click(screen.getByRole("button", { name: /Open the Leg/ }));
+    await user.click(screen.getByRole("button", { name: /Open the Travel/ }));
     expect(screen.getByRole("dialog")).toBeTruthy();
     // Another Event lands between the two; the server's answer drops the Leg.
     const day = props.trip.days[0]!;

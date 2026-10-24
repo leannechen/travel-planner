@@ -1,25 +1,34 @@
-import { MAX_START_YEAR, MIN_START_YEAR, startDateSchema } from "@travel-planner/shared";
+import { MAX_START_YEAR, MIN_START_YEAR, startDateSchema, type TravelMode } from "@travel-planner/shared";
 import { useEffect, useRef, useState } from "react";
+import { MODE_ICONS } from "./legFormat";
 import { useT } from "./preferences";
 import { X } from "lucide-react";
+
+const MODES: TravelMode[] = ["drive", "transit", "walk"];
+
+// What Save changes: only the fields that differ from the Trip.
+export type SettingsChanges = { startDate?: string | null; travelMode?: TravelMode };
 
 type Props = {
   tripTitle: string;
   startDate: string | undefined;
-  // Saves the start date; null clears it. Rejects when it could not be saved.
-  onChangeStartDate: (startDate: string | null) => Promise<void>;
+  travelMode: TravelMode;
+  // Saves the changes; a null start date clears it. Rejects when they could not be saved.
+  onSave: (changes: SettingsChanges) => Promise<void>;
   onClose: () => void;
 };
 
-// Trip settings (design 19, 45). So far only the start date. Nothing is saved until Save; Cancel,
-// the close button and Esc leave the Trip as it was. The title and default travel mode come later.
-export function TripSettingsDialog({ tripTitle, startDate, onChangeStartDate, onClose }: Props) {
+// Trip settings (design 19, 45): the start date and the default travel mode. Nothing is saved until
+// Save; Cancel, the close button and Esc leave the Trip as it was. The default travel mode is only
+// what a new Leg starts with; the Legs already there keep theirs. The title comes later.
+export function TripSettingsDialog({ tripTitle, startDate, travelMode, onSave, onClose }: Props) {
   const t = useT();
   const dialog = useRef<HTMLDialogElement>(null);
   const [saving, setSaving] = useState(false);
   const [failed, setFailed] = useState(false);
   // The date in the field: "" when empty. A half-typed date is not a date to save.
   const [draft, setDraft] = useState(startDate ?? "");
+  const [mode, setMode] = useState(travelMode);
   const [incomplete, setIncomplete] = useState(false);
   // Changes when Clear empties the field, so the field starts again from empty.
   const [fieldKey, setFieldKey] = useState(0);
@@ -29,7 +38,8 @@ export function TripSettingsDialog({ tripTitle, startDate, onChangeStartDate, on
   }, []);
 
   const valid = draft === "" || startDateSchema.safeParse(draft).success;
-  const changed = draft !== (startDate ?? "");
+  const dateChanged = draft !== (startDate ?? "");
+  const changed = dateChanged || mode !== travelMode;
   const canSave = !saving && !incomplete && valid && changed;
 
   async function save() {
@@ -37,7 +47,10 @@ export function TripSettingsDialog({ tripTitle, startDate, onChangeStartDate, on
     setSaving(true);
     setFailed(false);
     try {
-      await onChangeStartDate(draft === "" ? null : draft);
+      await onSave({
+        ...(dateChanged && { startDate: draft === "" ? null : draft }),
+        ...(mode !== travelMode && { travelMode: mode }),
+      });
       onClose();
     } catch {
       setSaving(false);
@@ -97,8 +110,24 @@ export function TripSettingsDialog({ tripTitle, startDate, onChangeStartDate, on
           </button>
         </div>
         <p className="hint">{t("trip.datesHint")}</p>
-        {failed && <p role="alert">{t("trip.dateError")}</p>}
       </div>
+      <fieldset className="settings-field new-trip-mode">
+        <legend>{t("newTrip.mode")}</legend>
+        <div className="segmented">
+          {MODES.map((value) => {
+            const Icon = MODE_ICONS[value];
+            return (
+              <label key={value} className={value === mode ? "on" : undefined}>
+                <input type="radio" name="trip-mode" value={value} checked={value === mode} onChange={() => setMode(value)} />
+                <Icon size={14} aria-hidden="true" />
+                {t(`leg.${value}`)}
+              </label>
+            );
+          })}
+        </div>
+        <p className="hint">{t("trip.modeHint")}</p>
+      </fieldset>
+      {failed && <p role="alert">{t("trip.saveError")}</p>}
       <div className="dialog-actions">
         <button type="button" className="btn" disabled={saving} onClick={onClose}>
           {t("generic.cancel")}

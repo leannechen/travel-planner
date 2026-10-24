@@ -726,6 +726,15 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
   app.post("/api/trips/:tripId/events/restore", async (req, res) => {
     const { tripId } = tripParamsSchema.parse(req.params);
     const input = deletedEventSchema.parse(req.body);
+    if (!(await canEditTrip(db, res.locals.userId, tripId))) {
+      res.status(404).json({ error: "Trip not found" });
+      return;
+    }
+    // The snapshot comes from the browser: its places must be ones the provider knows, as for a new Event.
+    if (await unknownPlace(req, res, input.event.placeId, input.event.destinationId)) {
+      res.status(400).json({ error: UNKNOWN_PLACE });
+      return;
+    }
     const result = await restoreEvent(db, res.locals.userId, tripId, input);
     if (!result) {
       res.status(404).json({ error: "Trip not found" });

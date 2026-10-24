@@ -28,7 +28,7 @@ import {
 } from "@travel-planner/shared";
 import { and, asc, count, desc, eq, inArray, isNotNull, or, sql } from "drizzle-orm";
 import type { Db } from "./db/client";
-import { days, eventImages, events, legs, notes, todos, trips, users } from "./db/schema";
+import { days, eventImages, events, legs, notes, todos, tripMembers, trips, users } from "./db/schema";
 import type { ImageStore, PreparedImage } from "./images";
 import { randomUUID } from "node:crypto";
 
@@ -944,7 +944,7 @@ async function restoreEventInTransaction(
   return db.transaction(async (tx) => {
     // The shared lock keeps the Day from being deleted while the Event is put back on it.
     const [trip] = await tx
-      .select({ id: trips.id })
+      .select({ id: trips.id, ownerId: trips.ownerId })
       .from(trips)
       .where(and(eq(trips.id, tripId), editableBy(userId)))
       .for("share");
@@ -955,12 +955,13 @@ async function restoreEventInTransaction(
     if (restored.length > 0) {
       const ids = restored.map((t) => t.id);
       const clash = await tx.select({ id: todos.id }).from(todos).where(inArray(todos.id, ids));
-      const creators = await tx
-        .select({ id: users.id })
-        .from(users)
-        .where(inArray(users.id, [...new Set(restored.map((t) => t.createdBy))]));
-      if (clash.length > 0 || creators.length !== new Set(restored.map((t) => t.createdBy)).size) return "invalid";
+      if (clash.length > 0) return "invalid";
     }
+    // The snapshot comes from the browser, so an author in it is believed only when they are the
+    // Trip's Owner or an Editor; anyone else (an id made up or taken from elsewhere, or an Editor
+    // since removed) is replaced by the person restoring.
+    const members = await tx.select({ id: tripMembers.userId }).from(tripMembers).where(eq(tripMembers.tripId, tripId));
+    const authors = new Set([trip.ownerId, ...members.map((m) => m.id)]);
 
     let dayId = event.dayId;
     if (dayId) {
@@ -979,7 +980,8 @@ async function restoreEventInTransaction(
     if (restored.length > 0) {
       // One timestamp apart, so they come back in the order they had.
       const base = Date.now();
-      await tx.insert(todos).values(restored.map((t, i) => ({ ...t, tripId, createdAt: new Date(base + i) })));
+      const authorOf = (id: string) => (authors.has(id) ? id : userId);
+      await tx.insert(todos).values(restored.map((t, i) => ({ ...t, createdBy: authorOf(t.createdBy), tripId, createdAt: new Date(base + i) })));
     }
     return toEvent(row!);
   });

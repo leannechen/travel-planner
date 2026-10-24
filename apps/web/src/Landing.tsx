@@ -1,4 +1,4 @@
-import { Bookmark, Clock, Flag, Footprints, Info, Map as MapIcon, Route, Sparkles, Users, Utensils } from "lucide-react";
+import { Bookmark, Clock, Flag, Footprints, Info, LoaderCircle, Map as MapIcon, Route, Sparkles, Users, Utensils } from "lucide-react";
 import type { Trip } from "@travel-planner/shared";
 import { useEffect, useState, type ReactNode } from "react";
 import { AccountMenu, PreferenceSwitches } from "./AccountMenu";
@@ -69,7 +69,7 @@ export function Landing({ loggedOut, onOpenTrip }: { loggedOut: boolean; onOpenT
 
   const sampleButton = (
     <button type="button" className="btn pri home-cta" disabled={opening} onClick={() => void openSample()}>
-      <MapIcon size={18} aria-hidden="true" />
+      {opening ? <LoaderCircle size={18} className="spin" aria-hidden="true" /> : <MapIcon size={18} aria-hidden="true" />}
       {opening ? t("landing.opening") : t("landing.sample")}
     </button>
   );
@@ -146,7 +146,17 @@ export function Landing({ loggedOut, onOpenTrip }: { loggedOut: boolean; onOpenT
           </h1>
           <p className="home-lead">{t("landing.lead")}</p>
           <p className="home-lead short">{t("landing.leadShort")}</p>
-          {known ? actions[variant] : <div className="home-actions placeholder" aria-hidden="true" />}
+          {known ? (
+            actions[variant]
+          ) : (
+            // Until the session and the Trips are known, which action to offer is not either: a disabled button holds the place.
+            <div className="home-actions">
+              <button type="button" className="btn pri home-cta" disabled aria-busy="true">
+                <LoaderCircle size={18} className="spin" aria-hidden="true" />
+                {t("landing.loading")}
+              </button>
+            </div>
+          )}
           {failed && (
             <p className="home-error" role="alert">
               {t("landing.error")}

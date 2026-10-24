@@ -85,7 +85,7 @@ Layout, left to right:
 - Deletion toast with an Undo action for a few seconds.
 
 ### 3.5 Holding-area cards
-- Compact Event cards showing kind, title and duration; a "schedule" action opens the Day and start-time fields.
+- Compact Event cards showing kind, title and duration; an Event is scheduled by dragging it onto a Day (the Archive card has a "Back to Backlog" button).
 
 ## 4. Interaction details
 

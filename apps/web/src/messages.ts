@@ -120,7 +120,6 @@ export const en = {
   "area.backlogEmpty": "No ideas waiting. Add one, or drag an Event here from a Day.",
   "area.archiveEmpty": "Nothing archived. Events you give up on go here. Their Todos are deleted when archived.",
   "area.givenUp": "given up",
-  "area.schedule": "Schedule",
   "area.backToBacklog": "Back to Backlog",
 
   "banner.checkOut": "Check out {time}",
@@ -369,6 +368,7 @@ export const en = {
   "landing.note.account": "You get an editable copy in your Trips.",
   "landing.note.guest": "Your Trips are only saved in this browser.",
   "landing.opening": "Opening…",
+  "landing.loading": "Loading…",
   "landing.error": "The sample Trip could not be opened. Try again.",
   "landing.card.gondola": "Gondola ride",
   "landing.card.walk": "Walk · 10 min",
@@ -632,7 +632,6 @@ export const zh: Record<FullKey, string> = {
   "area.backlogEmpty": "沒有待考慮的點子。新增一個，或從某一天把事件拖到這裡。",
   "area.archiveEmpty": "沒有放棄的事件。放棄的事件會放在這裡，放進來時它的待辦會被刪除。",
   "area.givenUp": "已放棄",
-  "area.schedule": "排進行程",
   "area.backToBacklog": "移回未決區",
 
   "banner.checkOut": "退房 {time}",
@@ -881,6 +880,7 @@ export const zh: Record<FullKey, string> = {
   "landing.note.account": "你的旅程中會有一份可編輯的副本。",
   "landing.note.guest": "你的旅程只存在這個瀏覽器。",
   "landing.opening": "開啟中…",
+  "landing.loading": "載入中…",
   "landing.error": "無法開啟範例旅程，請再試一次。",
   "landing.card.gondola": "貢多拉船遊",
   "landing.card.walk": "步行・10 分鐘",

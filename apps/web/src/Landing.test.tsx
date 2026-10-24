@@ -92,6 +92,8 @@ describe("a new visitor", () => {
     expect(screen.getByRole("status", { name: "Loading your account" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Log in" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Open a sample Trip" })).toBeNull();
+    // A disabled button holds the place of the action.
+    expect((screen.getByRole("button", { name: "Loading…" }) as HTMLButtonElement).disabled).toBe(true);
     await act(async () => answer());
     expect(await screen.findByRole("button", { name: "Open a sample Trip" })).toBeTruthy();
   });

@@ -120,7 +120,7 @@ export function accessibility(events: Event[], t: (key: MessageKey, params?: Par
 
 // One Day's Events on the shared axis. Events running past midnight are cut off there.
 // Dragging a card moves it (the drag is handled by the Trip, which also knows the other areas);
-// the handles on the selected card resize it. Only the dragged Event changes; the others stay
+// the handles on a hovered or selected card resize it. Only the dragged Event changes; the others stay
 // where they are.
 export function DayTimeline({
   dayId,
@@ -194,6 +194,9 @@ export function DayTimeline({
       finishGesture();
       if (result.startMinute !== original.startMinute || result.durationMinutes !== original.durationMinutes) {
         onChangeTimes(event.id, result);
+      } else {
+        // A click on the card's edge, with no movement, is a click on the card.
+        onSelectEvent(event.id);
       }
     };
     const onCancel = () => {
@@ -324,7 +327,7 @@ function EventCard({
       : `${formatMinute(times.startMinute)} – ${formatEnd(realEnd)}${area ? ` · ${area}` : ""}`;
   const tall = drawnHeight >= THUMB_MIN_HEIGHT;
   const changedByOther = useContext(ChangedEventsContext).has(event.id);
-  const classes = ["event-card", `kind-${event.kind}`, selected && "selected", openingConflict && "warn", isDragging && "dragging", changedByOther && "changed"].filter(Boolean).join(" ");
+  const classes = ["event-card", `kind-${event.kind}`, selected && "selected", resizing && "resizing", openingConflict && "warn", isDragging && "dragging", changedByOther && "changed"].filter(Boolean).join(" ");
 
   return (
     <li
@@ -355,12 +358,9 @@ function EventCard({
           )}
         </div>
       </button>
-      {(selected || resizing) && (
-        <>
-          <div className="resize-handle top" onPointerDown={(e) => onResizeStart("top", e)} />
-          <div className="resize-handle bottom" onPointerDown={(e) => onResizeStart("bottom", e)} />
-        </>
-      )}
+      {/* Always in the card; the style shows them on hover, while selected and while resizing. */}
+      <div className="resize-handle top" onPointerDown={(e) => onResizeStart("top", e)} />
+      <div className="resize-handle bottom" onPointerDown={(e) => onResizeStart("bottom", e)} />
     </li>
   );
 }

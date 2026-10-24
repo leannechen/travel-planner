@@ -24,9 +24,10 @@ const lengthOf = (event: Event, t: ReturnType<typeof useT>) =>
 type CardProps = {
   event: Event;
   selected: boolean;
-  actionLabel: string;
+  // The Archive offers a way back to the Backlog; the Backlog has no button (an Event is scheduled by dragging it).
+  actionLabel?: string;
   onSelect: () => void;
-  onAction: () => void;
+  onAction?: () => void;
 };
 
 // A compact card for an Event outside any Day. Dragging it onto a Day schedules it there.
@@ -51,9 +52,11 @@ function HoldingCard({ event, selected, actionLabel, onSelect, onAction }: CardP
         </strong>
         <span>{lengthOf(event, t)}</span>
       </button>
-      <button type="button" className="holding-action" onClick={onAction}>
-        {actionLabel}
-      </button>
+      {actionLabel && (
+        <button type="button" className="holding-action" onClick={onAction}>
+          {actionLabel}
+        </button>
+      )}
     </li>
   );
 }
@@ -167,9 +170,7 @@ export function HoldingAreas({ backlog, archive, selectedEventId, dropTarget, on
                 key={event.id}
                 event={event}
                 selected={event.id === selectedEventId}
-                actionLabel={t("area.schedule")}
                 onSelect={() => onSelectEvent(event.id)}
-                onAction={() => onSelectEvent(event.id)}
               />
             ))}
           </ul>

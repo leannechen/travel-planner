@@ -807,6 +807,12 @@ main.has-panel .topbar {
   box-shadow: 0 0 0 4px var(--pri), var(--sh-card);
 }
 
+/* A card whose handles are showing is above the next card, which would cover its bottom handle. */
+.event-card:hover:not(.dragging),
+.event-card.resizing {
+  z-index: 4;
+}
+
 .event-card.dragging {
   z-index: 5;
   opacity: 0.9;
@@ -832,12 +838,20 @@ main.has-panel .topbar {
 }
 
 .resize-handle {
+  display: none;
   position: absolute;
   left: 0;
   right: 0;
   height: 8px;
   cursor: ns-resize;
   touch-action: none;
+}
+
+/* Shown on hover, so a card can be resized without selecting it first; kept while selected or being resized. */
+.event-card:hover:not(.dragging) .resize-handle,
+.event-card.selected:not(.dragging) .resize-handle,
+.event-card.resizing .resize-handle {
+  display: block;
 }
 
 .resize-handle::after {
@@ -880,6 +894,11 @@ main.has-panel .topbar {
 
 .holding-area {
   padding: 0 0 8px;
+}
+
+/* The open Backlog takes the height the column has, so the whole of it is a drop target. */
+.holding-areas:not(.only) > .holding-area[data-drop="backlog"][open] {
+  flex: 1;
 }
 
 .holding-area + .holding-area {
@@ -2540,15 +2559,50 @@ main.has-panel .topbar {
   font-size: 12px;
 }
 
+/* The one gradient button (design 24, the `.aib` rules in design/source/TripList.dc.html). The gradient is
+   set here, not inline, so the hover state is not overridden. */
 .new-trip-choice.ai {
-  border-color: transparent;
-  background: linear-gradient(120deg, var(--pri), var(--d6));
-  color: var(--onpri);
+  border: 0;
+  background: linear-gradient(120deg, #7a5af8 0%, #2373f4 48%, #4cc3f5 100%);
+  color: #fff;
+  box-shadow: 0 6px 16px -4px rgba(35, 115, 244, 0.45);
+  transition:
+    filter 0.15s,
+    transform 0.15s,
+    box-shadow 0.15s;
+}
+
+.new-trip-choice.ai:hover {
+  filter: brightness(1.08) saturate(1.05);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px -6px rgba(35, 115, 244, 0.55);
+}
+
+.new-trip-choice.ai:active {
+  filter: brightness(0.96);
+  transform: none;
+  box-shadow: 0 3px 8px -3px rgba(35, 115, 244, 0.45);
+}
+
+.new-trip-choice.ai:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: -4px;
+  box-shadow: 0 0 0 3px var(--pri);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .new-trip-choice.ai {
+    transition: none;
+  }
+
+  .new-trip-choice.ai:hover {
+    transform: none;
+  }
 }
 
 .new-trip-choice.ai small {
-  color: var(--onpri);
-  opacity: 0.85;
+  color: #fff;
+  opacity: 0.9;
 }
 
 .new-trip-dialog .ai-mark {
@@ -2712,6 +2766,13 @@ main.has-panel .topbar {
   background: var(--pri-strong);
   color: var(--onpri);
   font-weight: 600;
+}
+
+/* Stays filled on hover (the generic .btn:hover would turn it into a plain button). */
+.btn.primary:hover:not(:disabled) {
+  border-color: var(--pri);
+  background: var(--pri);
+  color: var(--onpri);
 }
 
 .btn.sm {
@@ -3486,6 +3547,11 @@ main.has-panel .topbar {
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
+}
+
+.oh-get:hover:not([disabled]) {
+  border-color: var(--muted);
+  background: var(--surface2);
 }
 
 .oh-get[disabled] {
@@ -4283,7 +4349,7 @@ main.has-panel .topbar {
 }
 
 .workspace.read-only .slot-actions,
-.workspace.read-only .resize-handle {
+.workspace.read-only .event-card .resize-handle.resize-handle {
   display: none;
 }
 

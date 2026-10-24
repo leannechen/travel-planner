@@ -48,3 +48,12 @@ describe("a dragged card", () => {
     expect(show({ eventId: kiyomizuId, startMinute: 615 })("Fushimi")).toBe("12:00 – 13:00");
   });
 });
+
+describe("the resize handles", () => {
+  it("are on every card, so hovering one is enough to resize it", () => {
+    show();
+    const card = screen.getByText("Fushimi").closest("li")!;
+    expect(card.classList.contains("selected")).toBe(false);
+    expect(card.querySelectorAll(".resize-handle")).toHaveLength(2);
+  });
+});

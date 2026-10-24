@@ -37,14 +37,22 @@
   --l-tint: #fff4cc;
   --l-ink: #7a5a00;
   /* Day colors, Map View only (1 to 4 from the design; 5 to 8 repeat the series for longer Trips) */
-  --d1: #1e2a4a;
-  --d2: #d6336c;
-  --d3: #0b7a91;
-  --d4: #8a5a2b;
-  --d5: #2f8f4e;
+  --d1: #826aedff;
+  --d2: #c879ffff;
+  --d3: #ffb7ffff;
+  --d4: #3bf4fbff;
+  --d5: #caff8aff;
   --d6: #7b4fd0;
   --d7: #d9822b;
   --d8: #4b6a88;
+
+  /*
+  --medium-slate-blue: #826aedff;
+--mauve-magic: #c879ffff;
+--mauve: #ffb7ffff;
+--cyan-glow: #3bf4fbff;
+--lime-cream: #caff8aff;
+  */
   /* schedule */
   --card: #ffffff;
   --cardbd: #d3dcec;

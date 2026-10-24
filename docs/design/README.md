@@ -62,7 +62,7 @@ All images in `png/` are exported at **2x** (twice the CSS pixel width and heigh
 | 21 | `png/21-export-image.png` | `source/ExportImage.dc.html` | 1960x1120 | Exported image — poster. Not built: image export was dropped on 2026-10-23 |
 | 22 | `png/22-states-empty-loading.png` | `source/StatesEmpty.dc.html` | 2000x1000 | States — empty Trip, Day, Backlog and Archive; loading |
 | 23 | `png/23-states-errors.png` | `source/StatesErrors.dc.html` | 2000x1180 | States — errors and limit reached |
-| 24 | `png/24-trip-list.png` | `source/TripList.dc.html` | 4660x920 | Trip list — sidebar, item menu, New Trip (Blank / Generate with AI), Delete Trip, phone |
+| 24 | `png/24-trip-list.png` | `source/TripList.dc.html` | 4660x920 | Trip list — sidebar, item menu, New Trip (Blank / Generate with AI), Delete Trip, phone. Hover, pressed and focus states of the "Generate with AI" button are live CSS (`.aib`), not in the PNG; see design-spec §4 |
 | 25 | `png/25-leg-detail.png` | `source/LegDetail.dc.html` | 3300x900 | Leg — chooser, detail, warning, cannot calculate, phone sheet |
 | 25b | `png/25b-leg-manual-duration.png` | `source/LegManual.dc.html` | 3900x900 | Leg — duration entered by hand where Google cannot calculate (public transit in Japan): field, entered state, gap warning, toast, phone sheets |
 | 25c | `png/25c-leg-duration-edit.png` | `source/LegDuration.dc.html` | 1520x760 | Leg — editing a duration entered by hand (Edit button): resting, after Edit, phone |

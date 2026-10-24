@@ -95,6 +95,7 @@ Layout, left to right:
 - **Phone**: within a Day, drag and resize are available; across areas, only the fields.
 - **Collaboration**: other people's changes appear without reload; show who is online and briefly highlight an Event changed by someone else.
 - **Viewer mode**: same layout without edit affordances, no Todos or Archive.
+- **"Generate with AI" button (New Trip chooser, design 24)**: the one gradient button in the app. Hover: brightness 1.08 and saturation 1.05, lifted 1px, a deeper shadow (`0 10px 22px -6px rgba(35,115,244,.55)`), 150 ms transition. Pressed: back in place, brightness .96, a smaller shadow. Keyboard focus: a 2px white inner outline (offset -4px) and a 3px primary ring. The gradient must be set by a class, not inline, so the hover state is not overridden. "Blank Trip" uses the normal button hover. The exact CSS is the `.aib` rules in `design/source/TripList.dc.html`.
 
 ## 5. Keyboard and language
 

@@ -67,7 +67,7 @@ export function OpeningHoursSection({ on, hours, fetching, weekday, dated, confl
     return (
       <div className="oh">
         <span className="oh-title">{t("opening.title")}</span>
-        <button type="button" className="oh-get" disabled={busy} aria-busy={busy} onClick={() => void turnOn()}>
+        <button type="button" className="btn oh-get" disabled={busy} aria-busy={busy} onClick={() => void turnOn()}>
           {busy ? <LoaderCircle size={14} className="spin" aria-hidden="true" /> : <Clock size={14} aria-hidden="true" />}
           {busy ? t("opening.loading") : t("opening.get")}
         </button>

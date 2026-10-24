@@ -252,8 +252,9 @@ button:where(:not([class])),
   flex: none;
 }
 
-button:where(:not([class])):hover,
-.btn:hover {
+/* :where() keeps the specificity of the plain :hover rule, so buttons with their own hover rule still win. */
+button:where(:not([class])):hover:where(:not(:disabled)),
+.btn:hover:where(:not(:disabled)) {
   background: var(--surface2);
   border-color: var(--muted);
 }
@@ -3532,31 +3533,9 @@ main.has-panel .topbar {
   font-weight: 500;
 }
 
+/* The secondary button (.btn) supplies the look, hover and disabled states. */
 .oh-get {
-  display: inline-flex;
-  align-items: center;
   align-self: flex-start;
-  gap: 6px;
-  height: 36px;
-  padding: 0 12px;
-  border: 1px solid var(--border2);
-  border-radius: var(--r-md);
-  background: var(--surface);
-  color: var(--pri-ink);
-  font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.oh-get:hover:not([disabled]) {
-  border-color: var(--muted);
-  background: var(--surface2);
-}
-
-.oh-get[disabled] {
-  color: var(--muted);
-  cursor: default;
 }
 
 .oh-wk {

@@ -382,6 +382,12 @@ export const IMPORT_DAILY_ATTEMPTS = 20;
 export const SEARCH_LIMITS = { perMinute: { user: 30, ip: 60 }, perDay: { account: 300, guest: 100, ip: 500 } } as const;
 export const LOOKUP_LIMITS = { perDay: { account: 1000, guest: 200, ip: 1500 } } as const;
 
+// Anything that sends email (plan step 44), so the app cannot be used to mail arbitrary addresses.
+// Every invitation counts, also one asked for again or withdrawn later, for the Owner, for the Trip
+// and for the IP address; the verification email can be asked for again a few times a day.
+export const INVITE_LIMITS = { perDay: { user: 20, trip: 20, ip: 50 } } as const;
+export const RESEND_LIMITS = { perDay: { user: 5, ip: 20 } } as const;
+
 // AI generation (PRD §7, ADR 0008). A logged-in user may start this many a day (UTC); a generation
 // that failed does not count unless the model answered, but all attempts together are capped too.
 export const AI_DAILY_LIMIT = 3;

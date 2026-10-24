@@ -1,8 +1,9 @@
-import { eventSchema, invitationSchema, sharingSchema, tripSchema } from "@travel-planner/shared";
+import { eventSchema, INVITE_LIMITS, invitationSchema, RESEND_LIMITS, sharingSchema, tripSchema } from "@travel-planner/shared";
 import { z } from "zod";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { startTestApp } from "../test/test-app";
 import { auth0IdentityAdmin, IdentityAdminError, logInvitationMailer } from "./sharing";
+import { remainingUsage } from "./usage";
 
 let app: Awaited<ReturnType<typeof startTestApp>>;
 
@@ -388,5 +389,57 @@ describe("the share link", () => {
   it("rejects a body that is not a switch", async () => {
     const trip = await ownerTrip();
     expect((await call("PUT", `/api/trips/${trip.id}/link`, OWNER, { enabled: "yes" })).status).toBe(400);
+  });
+});
+
+describe("email limits", () => {
+  it("refuses invitations past the Trip's share, withdrawn ones included, and sends no mail for them", async () => {
+    const trip = await ownerTrip();
+    for (let i = 0; i < INVITE_LIMITS.perDay.trip; i++) {
+      const { res, invitation } = await invite(trip.id, `guest${i}@example.com`);
+      expect(res.status).toBe(201);
+      // Withdrawing does not give the count back.
+      if (i === 0) await call("DELETE", `/api/trips/${trip.id}/invitations/${invitation!.id}`, OWNER);
+    }
+    const mailsSent = app.mails.length;
+    const refused = await invite(trip.id, "one-more@example.com");
+    expect(refused.res.status).toBe(429);
+    expect(await refused.res.json()).toMatchObject({ code: "invite_limit", window: "day" });
+    expect(app.mails.length).toBe(mailsSent);
+  });
+
+  it("does not let a stranger use up the Trip's share", async () => {
+    const trip = await ownerTrip();
+    for (let i = 0; i < INVITE_LIMITS.perDay.trip + 2; i++) {
+      expect((await call("POST", `/api/trips/${trip.id}/invitations`, MEI, { email: `x${i}@example.com` })).status).toBe(404);
+    }
+    expect((await invite(trip.id)).res.status).toBe(201);
+  });
+
+  it("counts an invitation that is refused for its address", async () => {
+    const trip = await ownerTrip();
+    const me = (await (await call("GET", "/api/me", OWNER)).json()) as { id: string };
+    const before = await remainingUsage(app.db, { userId: me.id, account: true, ip: "unused", tripId: trip.id }, "invite");
+    expect((await invite(trip.id, "lena@example.com")).res.status).toBe(409);
+    expect(await remainingUsage(app.db, { userId: me.id, account: true, ip: "unused", tripId: trip.id }, "invite")).toBe(before - 1);
+  });
+
+  it("limits the user across all their Trips", async () => {
+    const first = await ownerTrip();
+    const second = await ownerTrip();
+    for (let i = 0; i < INVITE_LIMITS.perDay.user; i++) {
+      expect((await invite(i % 2 ? first.id : second.id, `guest${i}@example.com`)).res.status).toBe(201);
+    }
+    expect((await invite(first.id, "late@example.com")).res.status).toBe(429);
+  });
+
+  it("limits asking for the verification email again", async () => {
+    for (let i = 0; i < RESEND_LIMITS.perDay.user; i++) {
+      expect((await call("POST", "/api/me/resend-verification", "fake-unverified:mei@example.com")).status).toBe(204);
+    }
+    const refused = await call("POST", "/api/me/resend-verification", "fake-unverified:mei@example.com");
+    expect(refused.status).toBe(429);
+    expect(await refused.json()).toMatchObject({ code: "resend_limit" });
+    expect(app.resends).toHaveLength(RESEND_LIMITS.perDay.user);
   });
 });

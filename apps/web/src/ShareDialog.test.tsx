@@ -62,6 +62,16 @@ describe("ShareDialog", () => {
     expect(screen.getByRole("alert").textContent).toBe("Enter a valid email address.");
   });
 
+  it("says when today's invitations are used up, with its own text instead of the server's", async () => {
+    vi.mocked(inviteEditor).mockRejectedValue(new ApiError("limit", "invite_limit", { window: "day" }));
+    open();
+    await screen.findByText("mei@example.com");
+    await userEvent.type(screen.getByPlaceholderText("Invite by email"), "new@example.com");
+    await userEvent.click(screen.getByRole("button", { name: "Invite" }));
+
+    expect((await screen.findByRole("alert")).textContent).toBe("Too many invitations today. Try again tomorrow.");
+  });
+
   it("shows the server's reason when an invitation is refused", async () => {
     vi.mocked(inviteEditor).mockRejectedValue(new ApiError("That person can already edit this Trip", "already_editor"));
     open();

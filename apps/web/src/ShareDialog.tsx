@@ -65,7 +65,7 @@ export function ShareDialog({ tripId, tripTitle, ownerEmail, onClose }: Props) {
     setBusy(true);
     const done = await change(
       () => inviteEditor(tripId, parsed.data),
-      (err) => (err instanceof ApiError ? { own_address: t("share.ownAddress"), already_editor: t("share.alreadyEditor") }[err.code ?? ""] : undefined),
+      (err) => (err instanceof ApiError ? { own_address: t("share.ownAddress"), already_editor: t("share.alreadyEditor"), invite_limit: t("share.inviteLimit") }[err.code ?? ""] : undefined),
     );
     setBusy(false);
     if (done) setEmail((current) => (current === email ? "" : current));

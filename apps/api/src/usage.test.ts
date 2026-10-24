@@ -1,4 +1,4 @@
-import { IMPORT_DAILY_ATTEMPTS, LOOKUP_LIMITS, SEARCH_LIMITS, tripSchema } from "@travel-planner/shared";
+import { IMPORT_DAILY_ATTEMPTS, INVITE_LIMITS, LOOKUP_LIMITS, RESEND_LIMITS, SEARCH_LIMITS, tripSchema } from "@travel-planner/shared";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { startTestApp } from "../test/test-app";
@@ -72,6 +72,43 @@ describe("usage limits", () => {
     await takeUsage(app.db, account(), "lookup", 1, NOW);
     await pruneUsage(app.db, NOW);
     expect((await app.db.select().from(usageCounts)).map((r) => r.windowStart)).toEqual([new Date("2026-10-23T00:00:00Z"), new Date("2026-10-23T00:00:00Z")]);
+  });
+});
+
+describe("email limits", () => {
+  it("counts invitations for the Trip across the people who may invite", async () => {
+    const half = INVITE_LIMITS.perDay.trip / 2;
+    await takeUsage(app.db, { ...account(), tripId: "t1" }, "invite", half, NOW);
+    await takeUsage(app.db, { ...account(), tripId: "t1" }, "invite", half, NOW);
+    // The Trip's share is used up, though neither person has used theirs.
+    await expect(takeUsage(app.db, { ...account(), tripId: "t1" }, "invite", 1, NOW)).rejects.toEqual(new UsageLimitError("invite", "day"));
+    await takeUsage(app.db, { ...account(), tripId: "t2" }, "invite", 1, NOW);
+  });
+
+  it("counts invitations for the user across Trips", async () => {
+    const owner = account();
+    await takeUsage(app.db, { ...owner, tripId: "t1" }, "invite", INVITE_LIMITS.perDay.user, NOW);
+    await expect(takeUsage(app.db, { ...owner, tripId: "t2" }, "invite", 1, NOW)).rejects.toThrow(UsageLimitError);
+  });
+
+  it("counts invitations for the IP address across users", async () => {
+    // Two people with 20 each leave 10 of the address's 50.
+    await takeUsage(app.db, { ...account(), tripId: crypto.randomUUID() }, "invite", 20, NOW);
+    await takeUsage(app.db, { ...account(), tripId: crypto.randomUUID() }, "invite", 20, NOW);
+    await expect(takeUsage(app.db, { ...account(), tripId: crypto.randomUUID() }, "invite", 11, NOW)).rejects.toThrow(UsageLimitError);
+    await takeUsage(app.db, { ...account(), tripId: crypto.randomUUID() }, "invite", 10, NOW);
+  });
+
+  it("counts the verification email per IP address across users", async () => {
+    for (let i = 0; i < RESEND_LIMITS.perDay.ip / RESEND_LIMITS.perDay.user; i++) await takeUsage(app.db, account(), "resend", RESEND_LIMITS.perDay.user, NOW);
+    await expect(takeUsage(app.db, account(), "resend", 1, NOW)).rejects.toEqual(new UsageLimitError("resend", "day"));
+  });
+
+  it("counts the verification email per user", async () => {
+    const caller = account();
+    await takeUsage(app.db, caller, "resend", RESEND_LIMITS.perDay.user, NOW);
+    await expect(takeUsage(app.db, caller, "resend", 1, NOW)).rejects.toEqual(new UsageLimitError("resend", "day"));
+    expect(await remainingUsage(app.db, caller, "resend", new Date("2026-10-24T00:00:00Z"))).toBe(RESEND_LIMITS.perDay.user);
   });
 });
 

@@ -466,6 +466,7 @@ export const en = {
   "invite.notVerifiedYet": "Not verified yet. Check your inbox and spam folder.",
   "invite.resent": "Link sent again to {email}",
   "invite.resendFailed": "The link could not be sent. Try again in a moment.",
+  "invite.resendLimit": "The link was sent several times today. Check your inbox and spam folder, or try again tomorrow.",
   "invite.joined": "You joined {trip} as an Editor",
 
   "share.button": "Share",
@@ -485,6 +486,7 @@ export const en = {
   "share.remove": "Remove {email}",
   "share.loginToShare": "Log in to share this Trip",
   "share.ownAddress": "That is your own address.",
+  "share.inviteLimit": "Too many invitations today. Try again tomorrow.",
   "share.alreadyEditor": "That person can already edit this Trip.",
   "share.link": "Link sharing",
   "share.linkOn": "Anyone with the link can view Days, Map and Backlog. No login needed.",
@@ -978,6 +980,7 @@ export const zh: Record<FullKey, string> = {
   "invite.notVerifiedYet": "尚未驗證。請檢查收件匣與垃圾郵件。",
   "invite.resent": "已重新寄送連結至 {email}",
   "invite.resendFailed": "無法寄出連結，請稍後再試。",
+  "invite.resendLimit": "今天已寄出多次連結。請檢查收件匣與垃圾郵件，或明天再試。",
   "invite.joined": "你已加入 {trip}，身分為編輯者",
 
   "share.button": "分享",
@@ -997,6 +1000,7 @@ export const zh: Record<FullKey, string> = {
   "share.remove": "移除 {email}",
   "share.loginToShare": "登入後才能分享這趟旅程",
   "share.ownAddress": "這是你自己的電子郵件地址。",
+  "share.inviteLimit": "今天寄出的邀請太多了，請明天再試。",
   "share.alreadyEditor": "對方已經可以編輯這趟旅程。",
   "share.link": "連結分享",
   "share.linkOn": "任何有連結的人都能檢視每天行程、地圖與未決區，不需要登入。",

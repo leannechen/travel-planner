@@ -2,7 +2,7 @@ import type { InvitationPreview } from "@travel-planner/shared";
 import { Check, LogIn, Mail, Map as MapIcon, Repeat } from "lucide-react";
 import { useEffect, useState } from "react";
 import { LoginErrorStrip, PreferenceSwitches } from "./AccountMenu";
-import { acceptInvitation, getInvitationPreview, resendVerification } from "./api";
+import { acceptInvitation, ApiError, getInvitationPreview, resendVerification } from "./api";
 import { useAuth } from "./AuthProvider";
 import { usePreferences } from "./preferences";
 
@@ -27,7 +27,7 @@ export function InvitePage({ token, onJoined, onLeave }: Props) {
   // Counts tries, so "I've verified" asks the server again.
   const [attempt, setAttempt] = useState(0);
   const [retried, setRetried] = useState(false);
-  const [resend, setResend] = useState<"idle" | "sent" | "failed">("idle");
+  const [resend, setResend] = useState<"idle" | "sent" | "failed" | "limit">("idle");
 
   useEffect(() => {
     getInvitationPreview(token).then(
@@ -72,8 +72,8 @@ export function InvitePage({ token, onJoined, onLeave }: Props) {
     try {
       await resendVerification();
       setResend("sent");
-    } catch {
-      setResend("failed");
+    } catch (err) {
+      setResend(err instanceof ApiError && err.code === "resend_limit" ? "limit" : "failed");
     }
   }
 
@@ -169,6 +169,7 @@ export function InvitePage({ token, onJoined, onLeave }: Props) {
           {retried && <p role="status">{t("invite.notVerifiedYet")}</p>}
           {resend === "sent" && <p role="status">{t("invite.resent", { email: preview.invitedEmail })}</p>}
           {resend === "failed" && <p role="alert">{t("invite.resendFailed")}</p>}
+          {resend === "limit" && <p role="alert">{t("invite.resendLimit")}</p>}
         </>
       );
     }

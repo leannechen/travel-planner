@@ -3,7 +3,7 @@ import { cleanup, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
-import { acceptInvitation, getInvitationPreview, listTrips, resendVerification } from "./api";
+import { acceptInvitation, ApiError, getInvitationPreview, listTrips, resendVerification } from "./api";
 import { createFakeAuth, type FakeAuth } from "./fakeAuth";
 import { forgetGuestId } from "./guest";
 import { makeTrip, memoryStore, renderApp, setPhone } from "./test-helpers";
@@ -125,6 +125,16 @@ describe("an invitation link, logged in", () => {
     await waitFor(() => expect(listTrips).toHaveBeenCalled());
     expect(window.location.search).not.toContain("invite");
     expect(screen.queryByText(/You joined/)).toBeNull();
+  });
+
+  it("says when the verification email was sent too many times today", async () => {
+    vi.mocked(acceptInvitation).mockResolvedValue({ ok: false, reason: "email_not_verified" });
+    vi.mocked(resendVerification).mockRejectedValueOnce(new ApiError("limit", "resend_limit", { window: "day" }));
+    await loginAs("mei@example.com");
+    renderApp(<App />, fake);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Send the link again" }));
+    expect((await screen.findByRole("alert")).textContent).toBe("The link was sent several times today. Check your inbox and spam folder, or try again tomorrow.");
   });
 
   it("asks for the email to be verified, checks again with a fresh token, and can send the link again", async () => {

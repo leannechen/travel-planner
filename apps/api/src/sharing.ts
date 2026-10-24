@@ -95,6 +95,11 @@ export async function setShareLink(db: Db, userId: string, tripId: string, enabl
   return row;
 }
 
+// Whether the Trip is the user's own.
+export async function ownsTrip(db: Db, userId: string, tripId: string): Promise<boolean> {
+  return Boolean(await ownedTrip(db, userId, tripId));
+}
+
 async function ownedTrip(db: Db, userId: string, tripId: string) {
   const [trip] = await db
     .select({ id: trips.id, title: trips.title })

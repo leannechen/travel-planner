@@ -33,7 +33,7 @@ import express from "express";
 import { z, ZodError } from "zod";
 import type { Db } from "./db/client";
 import { users } from "./db/schema";
-import { acceptInvitation, getSharing, identityAdminFromEnv, IdentityAdminError, inviteEditor, logInvitationMailer, previewInvitation, removeEditor, revokeInvitation, setShareLink, type IdentityAdmin, type InvitationMailer } from "./sharing";
+import { acceptInvitation, getSharing, identityAdminFromEnv, IdentityAdminError, inviteEditor, logInvitationMailer, ownsTrip, previewInvitation, removeEditor, revokeInvitation, setShareLink, type IdentityAdmin, type InvitationMailer } from "./sharing";
 import { authenticate, GUEST_HEADER, mergeGuest, verifierFromEnv, type TokenVerifier } from "./auth";
 import { createLiveHub } from "./live";
 import { createLeg, deleteLeg, isProviderError, listLegs, setLegDuration, setLegMode, syncLegs, type LegDeps } from "./legs";
@@ -256,11 +256,13 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
     res.json({ merged });
   });
 
-  app.post("/api/me/resend-verification", async (_req, res) => {
+  app.post("/api/me/resend-verification", async (req, res) => {
     if (!res.locals.sub) {
       res.status(401).json({ error: "Log in first", code: "no_session" });
       return;
     }
+    // Counted before Auth0 is asked, so a failing call uses the share too.
+    await takeUsage(db, callerOf(req, res), "resend");
     try {
       await identityAdmin.resendVerification(res.locals.sub);
     } catch (err) {
@@ -479,6 +481,13 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
   app.post("/api/trips/:tripId/invitations", async (req, res) => {
     const { tripId } = tripParamsSchema.parse(req.params);
     const { email } = inviteEditorInputSchema.parse(req.body);
+    // Every invitation counts, also one for an address that turns out to be the Owner's or an
+    // Editor's. The Trip's own share is counted only for its Owner, so a stranger cannot use it up.
+    if (!(await ownsTrip(db, res.locals.userId, tripId))) {
+      res.status(404).json({ error: "Trip not found" });
+      return;
+    }
+    await takeUsage(db, { ...callerOf(req, res), tripId }, "invite");
     const result = await inviteEditor(db, res.locals.userId, tripId, email, res.locals.email);
     if (!result) {
       res.status(404).json({ error: "Trip not found" });
@@ -920,11 +929,15 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
       const error =
         err.kind === "import"
           ? "You have imported many backups today. Try again tomorrow."
-          : err.kind === "search" && err.window === "minute"
-            ? "Too many place searches. Try again in a minute."
-            : err.kind === "search"
-              ? "Today's place searches are used up. Try again tomorrow."
-              : "Today's place and travel time lookups are used up. Try again tomorrow.";
+          : err.kind === "invite"
+            ? "Too many invitations today. Try again tomorrow."
+            : err.kind === "resend"
+              ? "The verification email was sent several times today. Check your inbox and spam folder, or try again tomorrow."
+              : err.kind === "search" && err.window === "minute"
+                ? "Too many place searches. Try again in a minute."
+                : err.kind === "search"
+                  ? "Today's place searches are used up. Try again tomorrow."
+                  : "Today's place and travel time lookups are used up. Try again tomorrow.";
       res.status(429).json({ error, code: `${err.kind}_limit`, window: err.window });
       return;
     }

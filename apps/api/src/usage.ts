@@ -1,4 +1,4 @@
-import { IMPORT_DAILY_ATTEMPTS, LOOKUP_LIMITS, SEARCH_LIMITS } from "@travel-planner/shared";
+import { IMPORT_DAILY_ATTEMPTS, INVITE_LIMITS, LOOKUP_LIMITS, RESEND_LIMITS, SEARCH_LIMITS } from "@travel-planner/shared";
 import { and, eq, lt, sql } from "drizzle-orm";
 import type { Db } from "./db/client";
 import { usageCounts } from "./db/schema";
@@ -6,13 +6,14 @@ import type { PlaceProvider } from "./places";
 import type { RouteProvider } from "./routes";
 
 // What is limited (plan step 33): Google place searches, other Google calls (place details, opening
-// hours, photos, travel times), and backup imports.
-export type UsageKind = "search" | "lookup" | "import";
+// hours, photos, travel times), backup imports, and the two things that send email (plan step 44).
+export type UsageKind = "search" | "lookup" | "import" | "invite" | "resend";
 export type UsageWindow = "minute" | "day";
 
 // Who a request is counted for: the user it acts as (an account or a guest session), when it has
-// one, and the IP address it came from.
-export type Caller = { userId?: string; account: boolean; ip: string };
+// one, and the IP address it came from. `tripId` is the Trip a request acts on, for limits per Trip;
+// give it only once the caller is known to have access to the Trip.
+export type Caller = { userId?: string; account: boolean; ip: string; tripId?: string };
 
 // Someone used their share of `kind` for the current `window`.
 export class UsageLimitError extends Error {
@@ -42,7 +43,18 @@ function limitsOf(kind: UsageKind, caller: Caller): Limit[] {
             !!user && { subject: user, bucket: "lookup-day", window: "day", max: caller.account ? LOOKUP_LIMITS.perDay.account : LOOKUP_LIMITS.perDay.guest },
             { subject: ip, bucket: "lookup-day", window: "day", max: LOOKUP_LIMITS.perDay.ip },
           ]
-        : [!!user && { subject: user, bucket: "import-day", window: "day", max: IMPORT_DAILY_ATTEMPTS }];
+        : kind === "import"
+          ? [!!user && { subject: user, bucket: "import-day", window: "day", max: IMPORT_DAILY_ATTEMPTS }]
+          : kind === "invite"
+            ? [
+                !!user && { subject: user, bucket: "invite-day", window: "day", max: INVITE_LIMITS.perDay.user },
+                !!caller.tripId && { subject: `trip:${caller.tripId}`, bucket: "invite-day", window: "day", max: INVITE_LIMITS.perDay.trip },
+                { subject: ip, bucket: "invite-day", window: "day", max: INVITE_LIMITS.perDay.ip },
+              ]
+            : [
+                !!user && { subject: user, bucket: "resend-day", window: "day", max: RESEND_LIMITS.perDay.user },
+                { subject: ip, bucket: "resend-day", window: "day", max: RESEND_LIMITS.perDay.ip },
+              ];
   return limits.filter((l): l is Limit => l !== false);
 }
 

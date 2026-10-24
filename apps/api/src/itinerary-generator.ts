@@ -46,9 +46,9 @@ const FAKE_DAYS: Stop[][] = [
 
 const FAKE_DELAY_MS = 0;
 
-// The travel mode the fake finds in a prompt: "by car", "drive", "開車", "on foot", "walk", "步行".
+// The travel mode the fake finds in a prompt: "by car", "drive", "開車", "on foot", "walk", "走路", "步行".
 const fakeModeOf = (prompt: string): AiItinerary["travelMode"] =>
-  /by car|drive|driving|road trip|開車|自駕/i.test(prompt) ? "drive" : /on foot|walk|步行/i.test(prompt) ? "walk" : null;
+  /by car|drive|driving|road trip|開車|自駕/i.test(prompt) ? "drive" : /on foot|walk|走路|步行/i.test(prompt) ? "walk" : null;
 
 // A generator for development and tests that needs no key: a few days around Kyoto, as many as the
 // prompt asks for ("5 days", "5 天"; 3 otherwise). A prompt with "[unusable]" or "[fail]" fails that

@@ -1,6 +1,6 @@
 import { useDraggable } from "@dnd-kit/react";
 import type { Event, HoldingArea } from "@travel-planner/shared";
-import { Archive, Bookmark, ChevronDown, ChevronRight, Lightbulb, PanelLeftClose, PanelLeftOpen, Plus, type LucideIcon } from "lucide-react";
+import { Archive, Bookmark, ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react";
 import { useCollapsed } from "./collapsed";
 import { CompactSidebarContext } from "./Sidebar";
 import { KindIcon } from "./kinds";
@@ -159,14 +159,7 @@ export function HoldingAreas({ backlog, archive, selectedEventId, dropTarget, on
           )}
         </summary>
         {backlog.length === 0 ? (
-          <EmptyArea icon={Lightbulb} title={t("area.backlogEmpty")} help={t("area.backlogEmptyHelp")}>
-            {!viewer && (
-              <button type="button" className="btn tonal sm" disabled={readOnly} onClick={onAddToBacklog}>
-                <Plus size={14} aria-hidden="true" />
-                {t("area.addToBacklog")}
-              </button>
-            )}
-          </EmptyArea>
+          <p className="holding-empty">{t("area.backlogEmpty")}</p>
         ) : (
           <ul>
             {backlog.map((event) => (
@@ -193,7 +186,7 @@ export function HoldingAreas({ backlog, archive, selectedEventId, dropTarget, on
           <span className="hint">{t("area.givenUp")}</span>
         </summary>
         {archive.length === 0 ? (
-          <EmptyArea icon={Archive} title={t("area.archiveEmpty")} help={t("area.archiveEmptyHelp")} />
+          <p className="holding-empty">{t("area.archiveEmpty")}</p>
         ) : (
           <ul>
             {archive.map((event) => (
@@ -212,20 +205,5 @@ export function HoldingAreas({ backlog, archive, selectedEventId, dropTarget, on
       )}
       {footer}
     </aside>
-  );
-}
-
-// The empty state of a holding area (design 28): an icon tile, a bold line, one muted line and at
-// most one action, centred.
-function EmptyArea({ icon: Icon, title, help, children }: { icon: LucideIcon; title: string; help: string; children?: ReactNode }) {
-  return (
-    <div className="empty-state">
-      <span className="empty-icon" aria-hidden="true">
-        <Icon size={24} />
-      </span>
-      <strong>{title}</strong>
-      <p>{help}</p>
-      {children}
-    </div>
   );
 }

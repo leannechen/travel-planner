@@ -938,40 +938,6 @@ main.has-panel .topbar {
   font-size: 12px;
 }
 
-.empty-state {
-  display: grid;
-  justify-items: center;
-  gap: 6px;
-  margin: 4px 12px;
-  padding: 16px 10px;
-  text-align: center;
-}
-
-.empty-state .empty-icon {
-  display: grid;
-  place-items: center;
-  width: 56px;
-  height: 56px;
-  margin-bottom: 4px;
-  border-radius: var(--r-lg);
-  background: var(--pri-tint);
-  color: var(--pri-ink);
-}
-
-.empty-state strong {
-  font-size: 15px;
-}
-
-.empty-state p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.empty-state .btn {
-  margin-top: 6px;
-}
-
 .holding-card {
   position: relative;
   display: grid;

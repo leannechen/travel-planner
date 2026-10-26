@@ -1,10 +1,10 @@
-import { backupSchema, eventSchema, tripSchema, type Backup } from "@travel-planner/shared";
+import { backupSchema, eventSchema, tripSchema, MAX_STORED_IMAGES, type Backup } from "@travel-planner/shared";
 import { eq } from "drizzle-orm";
 import sharp from "sharp";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { startTestApp } from "../test/test-app";
 import { GUEST_HEADER } from "./auth";
-import { users } from "./db/schema";
+import { eventImages, events as eventsTable, users } from "./db/schema";
 import { remainingUsage, takeUsage } from "./usage";
 
 let app: Awaited<ReturnType<typeof startTestApp>>;
@@ -122,6 +122,36 @@ describe("importing a backup", () => {
     expect(await json(res)).toMatchObject({ code: "invalid_backup" });
     expect(await listTrips()).toHaveLength(1);
     expect(app.images.keys()).toHaveLength(1);
+  });
+
+  it("is written when its pictures bring the owner exactly to the stored-picture limit", async () => {
+    const { trip } = await fullTrip();
+    const backup: Backup = structuredClone(await backupOf(trip.id));
+    const [owner] = await app.db.select({ id: users.id }).from(users).where(eq(users.auth0Sub, "lena@example.com"));
+    const day = trip.days[0]!.id;
+    const filler = Array.from({ length: MAX_STORED_IMAGES.account - 2 }, (_, i) => ({ id: crypto.randomUUID(), tripId: trip.id, dayId: day, title: `E${i}`, startMinute: 0, durationMinutes: 15 }));
+    await app.db.insert(eventsTable).values(filler);
+    await app.db.insert(eventImages).values(filler.map((e) => ({ id: crypto.randomUUID(), eventId: e.id, storageKey: "x", contentType: "image/png", byteSize: 1, createdBy: owner!.id })));
+    expect((await call("POST", "/api/trips/import", OWNER, backup)).status).toBe(201);
+  });
+
+  it("is refused whole, with 429, when its pictures would take the owner past the stored-picture limit", async () => {
+    const { trip } = await fullTrip();
+    const backup: Backup = structuredClone(await backupOf(trip.id));
+    const [owner] = await app.db.select({ id: users.id }).from(users).where(eq(users.auth0Sub, "lena@example.com"));
+    // The owner keeps one picture short of the limit (the Trip's own picture and 298 more).
+    const day = trip.days[0]!.id;
+    const filler = Array.from({ length: MAX_STORED_IMAGES.account - 2 }, (_, i) => ({ id: crypto.randomUUID(), tripId: trip.id, dayId: day, title: `E${i}`, startMinute: 0, durationMinutes: 15 }));
+    await app.db.insert(eventsTable).values(filler);
+    await app.db.insert(eventImages).values(filler.map((e) => ({ id: crypto.randomUUID(), eventId: e.id, storageKey: "x", contentType: "image/png", byteSize: 1, createdBy: owner!.id })));
+    // The backup has one picture; giving the second Event one too makes 299 + 2, past 300.
+    backup.trip.days[0]![1]!.image = backup.trip.days[0]![0]!.image;
+    const files = app.images.keys().length;
+    const res = await call("POST", "/api/trips/import", OWNER, backup);
+    expect(res.status).toBe(429);
+    expect(await json(res)).toMatchObject({ code: "image_count_limit" });
+    expect(await listTrips()).toHaveLength(1);
+    expect(app.images.keys()).toHaveLength(files);
   });
 
   it("is for accounts: a guest is asked to log in, and nothing is written", async () => {

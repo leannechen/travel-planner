@@ -2,7 +2,7 @@ import { daySchema, dayDeletionSchema, deletedEventSchema, eventSchema, healthRe
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { trips, users, days, events } from "./db/schema";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { startTestApp } from "../test/test-app";
 import { fakePlaceProvider, PlaceProviderError } from "./places";
 
@@ -1654,5 +1654,29 @@ describe("places when the provider fails", () => {
     } finally {
       await failing.stop();
     }
+  });
+});
+
+describe("an error nobody expected", () => {
+  it("answers 500 with a plain message, never the stack", async () => {
+    const broken = await startTestApp({ ...fakePlaceProvider(), search: () => Promise.reject(new TypeError("secret detail at /srv/app.ts")) });
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      await broken.reset();
+      const res = await fetch(`${broken.baseUrl}/api/places/search?q=x`);
+      expect(res.status).toBe(500);
+      expect(await res.json()).toEqual({ error: "Internal error" });
+      expect(log).toHaveBeenCalled();
+    } finally {
+      log.mockRestore();
+      await broken.stop();
+    }
+  });
+
+  it("still answers 400 for a request body that is not JSON", async () => {
+    await app.reset();
+    const res = await fetch(`${app.baseUrl}/api/trips`, { method: "POST", headers: { "content-type": "application/json" }, body: "{bad" });
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: "Invalid request" });
   });
 });

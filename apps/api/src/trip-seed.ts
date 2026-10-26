@@ -1,7 +1,7 @@
 import { adjacentPairs, legEndpoints, tripSeedSchema, type SeedEvent, type TripSeedInput } from "@travel-planner/shared";
 import type { Db } from "./db/client";
-import { eq } from "drizzle-orm";
-import { days, eventImages, events, notes, todos, trips } from "./db/schema";
+import { count, eq, sql } from "drizzle-orm";
+import { days, eventImages, events, notes, todos, trips, users } from "./db/schema";
 import { prepareImage, type ImageStore, type PreparedImage } from "./images";
 import { createLeg, isProviderError, type LegDeps } from "./legs";
 import { getPlaces, uncachedPlaceIds } from "./places";
@@ -16,17 +16,25 @@ export class SeedImageError extends Error {
   }
 }
 
+// A seed whose images would take the owner past the stored-image limit (the same limit as an upload).
+export class SeedImageLimitError extends Error {
+  constructor() {
+    super("This backup has more pictures than you can keep");
+  }
+}
+
 // Writes a new Trip from a seed (ADR 0008) and returns its id. With `sampleOf`, a user who already has
 // a copy of that sample gets undefined and nothing is written (the unique index on the owner and
 // the sample). Images in the seed (a backup) are checked and kept in `options.images`; one that is not
-// a picture throws a SeedImageError before anything is written. Legs are made after the Trip is written; a provider that cannot be reached leaves a
+// a picture throws a SeedImageError before anything is written. With `options.maxImages`, a seed that
+// would take the owner past it throws a SeedImageLimitError and nothing is written. Legs are made after the Trip is written; a provider that cannot be reached leaves a
 // Leg out, and the user can add it later.
 export async function writeTripSeed(
   db: Db,
   deps: LegDeps,
   ownerId: string,
   input: TripSeedInput,
-  options: { sampleOf?: string; images?: ImageStore } = {},
+  options: { sampleOf?: string; images?: ImageStore; maxImages?: { account: number; guest: number } } = {},
 ): Promise<string | undefined> {
   const seed = tripSeedSchema.parse(input);
   // Ids are made here so Todos and Legs can refer to their Events before anything is written.
@@ -45,6 +53,9 @@ export async function writeTripSeed(
     if (!image) throw new SeedImageError(e.title);
     prepared.set(e.id, { ...image, id: crypto.randomUUID() });
   }
+  // A backup clearly over the limit is refused now, before any file is stored or place looked up; the
+  // check is made again under the lock when the Trip is written.
+  if (prepared.size > 0 && options.maxImages && (await overImageLimit(db, ownerId, prepared.size, options.maxImages))) throw new SeedImageLimitError();
   if (prepared.size > 0 && !options.images) throw new Error("A seed with images needs an image store");
   const storeImages = async () => {
     for (const image of prepared.values()) await options.images!.put(image.id, image.bytes);
@@ -67,6 +78,11 @@ export async function writeTripSeed(
   try {
     await storeImages();
     tripId = await db.transaction(async (tx) => {
+      if (prepared.size > 0 && options.maxImages) {
+        // The lock setEventImage takes, so an import and an upload at the same moment cannot go past the limit together.
+        await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${"images:" + ownerId}))`);
+        if (await overImageLimit(tx, ownerId, prepared.size, options.maxImages)) throw new SeedImageLimitError();
+      }
       const [trip] = await tx
         .insert(trips)
         .values({ ownerId, title: seed.title, travelMode: seed.travelMode, startDate: seed.startDate, sampleOf: options.sampleOf ?? null })
@@ -139,6 +155,18 @@ export async function writeTripSeed(
 
   await addLegs(db, deps, tripId, dayLists);
   return tripId;
+}
+
+// Whether the owner's stored images plus `adding` would pass the limit for their kind of user.
+async function overImageLimit(db: Pick<Db, "select">, ownerId: string, adding: number, max: { account: number; guest: number }) {
+  const [owner] = await db.select({ auth0Sub: users.auth0Sub }).from(users).where(eq(users.id, ownerId));
+  const [kept] = await db
+    .select({ n: count() })
+    .from(eventImages)
+    .innerJoin(events, eq(events.id, eventImages.eventId))
+    .innerJoin(trips, eq(trips.id, events.tripId))
+    .where(eq(trips.ownerId, ownerId));
+  return (kept?.n ?? 0) + adding > (owner?.auth0Sub ? max.account : max.guest);
 }
 
 // The Legs a seed asks for: from every Event with `legToNext` to the next adjacent Event of its Day,

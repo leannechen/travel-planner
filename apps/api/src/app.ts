@@ -40,7 +40,7 @@ import { createLiveHub } from "./live";
 import { createLeg, deleteLeg, isProviderError, listLegs, setLegDuration, setLegMode, syncLegs, type LegDeps } from "./legs";
 import { exportBackup } from "./backup";
 import { openSampleTrip } from "./sample-trip";
-import { seedLookupCost, SeedImageError, writeTripSeed } from "./trip-seed";
+import { seedLookupCost, SeedImageError, SeedImageLimitError, writeTripSeed } from "./trip-seed";
 import { clientAddress, giveBackUsage, meteredPlaces, meteredRoutes, remainingUsage, takeUsage, UsageLimitError, type Caller } from "./usage";
 import { generationsSummary, getGeneration, startGeneration } from "./generations";
 import type { ItineraryGenerator } from "./itinerary-generator";
@@ -377,10 +377,14 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
       else await takeUsage(db, caller, kind);
     });
     try {
-      const tripId = (await writeTripSeed(db, deps, res.locals.userId, parsed.data.trip, { images }))!;
+      const tripId = (await writeTripSeed(db, deps, res.locals.userId, parsed.data.trip, { images, maxImages: MAX_STORED_IMAGES }))!;
       const [trip] = await listTrips(db, res.locals.userId, tripId);
       res.status(201).json(trip);
     } catch (err) {
+      if (err instanceof SeedImageLimitError) {
+        res.status(429).json({ error: "This backup has more pictures than you can keep. Remove some pictures first.", code: "image_count_limit" });
+        return;
+      }
       if (!(err instanceof SeedImageError)) throw err;
       res.status(422).json({ error: err.message, code: "invalid_backup" });
     } finally {
@@ -989,7 +993,20 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
       res.status(502).json({ error: err instanceof PlaceProviderError ? "Places are not available right now" : "Travel times are not available right now" });
       return;
     }
-    next(err);
+    // A request the body parser refused (bad JSON, too large): the client's mistake, said without the detail.
+    const status = (err as { status?: number }).status;
+    if (typeof status === "number" && status >= 400 && status < 500) {
+      res.status(status).json({ error: status === 413 ? "The request is too large" : "Invalid request" });
+      return;
+    }
+    // Anything else: logged here, and never sent to the caller (Express's own handler would send the
+    // stack unless NODE_ENV is "production").
+    console.error(err);
+    if (res.headersSent) {
+      next(err);
+      return;
+    }
+    res.status(500).json({ error: "Internal error" });
   });
 
   return app;

@@ -145,6 +145,12 @@ describe("clientAddress", () => {
     expect(clientAddress("2001:db8::1%eth0")).toBe("2001:db8:0:0::/64");
     expect(clientAddress("::1")).toBe("0:0:0:0::/64");
   });
+
+  it("counts something that is not an address as one client instead of throwing", () => {
+    for (const bad of ["1:2:3:4:5:6:7:8:9", "1::2::3", "1:2:3:4:5:6:7::8", "", "not-an-ip", "unknown"]) {
+      expect(clientAddress(bad)).toBe("unknown");
+    }
+  });
 });
 
 describe("usage limits on the API", () => {

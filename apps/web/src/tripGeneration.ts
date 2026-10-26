@@ -56,6 +56,8 @@ export function useTripGeneration(enabled: boolean, onFinished: (generation: Gen
           clearInterval(timer);
           setRunningId(undefined);
           if (generation.status === "failed") setFailure(generation.failure);
+          // Only a failed prompt is kept (to try again); a Trip that was made starts the next one empty.
+          else setLastPrompt("");
           finished.current(generation, watching.current);
           // Whether it counted depends on how it failed, so the server is asked again.
           void refresh().catch(() => undefined);

@@ -104,6 +104,13 @@ describe("access token check", () => {
     expect(() => verifierFromEnv({ NODE_ENV: "production", AUTH_FAKE: "1" })).toThrow();
     expect(() => verifierFromEnv({ AUTH_FAKE: "1" })).not.toThrow();
   });
+
+  it("refuses to start in production with AUTH_FAKE set, even next to a real tenant", () => {
+    const tenant = { AUTH0_DOMAIN: settings.domain, AUTH0_AUDIENCE: settings.audience };
+    expect(() => verifierFromEnv({ ...tenant, NODE_ENV: "production", AUTH_FAKE: "1" })).toThrow(/AUTH_FAKE/);
+    expect(() => verifierFromEnv({ ...tenant, NODE_ENV: "production" })).not.toThrow();
+    expect(() => verifierFromEnv({ ...tenant, AUTH_FAKE: "1" })).not.toThrow();
+  });
 });
 
 describe("who a request acts as", () => {

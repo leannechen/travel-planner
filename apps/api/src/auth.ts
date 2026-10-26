@@ -137,9 +137,12 @@ export function fakeTokenVerifier(): TokenVerifier {
 }
 
 export function verifierFromEnv(env: NodeJS.ProcessEnv = process.env): TokenVerifier {
+  // Copying the development .env to a deployment must fail loudly, not be ignored in silence.
+  if (env.AUTH_FAKE && env.NODE_ENV === "production") throw new Error("AUTH_FAKE is for development only; remove it from the production environment");
   const settings = authSettingsFromEnv(env);
   if (settings) return jwtVerifier(settings);
   // Without a tenant anyone could act as anyone, so it takes an explicit choice (development).
+  // The production check is repeated on purpose, so this line stays safe if the one above changes.
   if (env.AUTH_FAKE === "1" && env.NODE_ENV !== "production") return fakeTokenVerifier();
   throw new Error("Set AUTH0_DOMAIN and AUTH0_AUDIENCE (or AUTH_FAKE=1 for development without a tenant)");
 }

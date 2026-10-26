@@ -10,6 +10,9 @@ import { pruneUsage } from "./usage";
 const port = Number(process.env.PORT ?? 3001);
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) throw new Error("DATABASE_URL is not set");
+// A wrong login setup must stop the start before anything touches the database.
+const auth = verifierFromEnv();
+if (!authSettingsFromEnv()) console.warn("AUTH0_DOMAIN is not set: accepting fake tokens (development only)");
 
 const { db } = createDb(databaseUrl);
 await runMigrations(db);
@@ -26,9 +29,6 @@ const removeStaleGuests = () =>
     .catch((err: unknown) => console.error("Could not remove stale guests", err));
 await removeStaleGuests();
 setInterval(() => void removeStaleGuests(), 24 * 60 * 60 * 1000).unref();
-
-const auth = verifierFromEnv();
-if (!authSettingsFromEnv()) console.warn("AUTH0_DOMAIN is not set: accepting fake tokens (development only)");
 
 listenLive(createApp(db, { auth, images }), port, () => {
   console.log(`API listening on http://localhost:${port}`);

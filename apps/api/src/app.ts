@@ -38,6 +38,7 @@ import { acceptInvitation, getSharing, identityAdminFromEnv, IdentityAdminError,
 import { authenticate, GUEST_HEADER, mergeGuest, verifierFromEnv, type TokenVerifier } from "./auth";
 import { createLiveHub } from "./live";
 import { createLeg, deleteLeg, isProviderError, listLegs, setLegDuration, setLegMode, syncLegs, type LegDeps } from "./legs";
+import { hasUserRoom, LimitReached } from "./limits";
 import { exportBackup } from "./backup";
 import { openSampleTrip } from "./sample-trip";
 import { seedLookupCost, SeedImageError, SeedImageLimitError, writeTripSeed } from "./trip-seed";
@@ -123,6 +124,14 @@ function usageMessage({ kind, window }: UsageLimitError): string {
       return "Today's place and travel time lookups are used up. Try again tomorrow.";
   }
 }
+
+const LIMIT_MESSAGES = {
+  trips: "You have as many Trips as you can keep. Delete one first.",
+  days: "This Trip has as many Days as it can hold.",
+  events: "This Trip has as many Events as it can hold.",
+  todos: "This Trip has as many Todos as it can hold.",
+  notes: "This Trip has as many Notes as it can hold.",
+} as const;
 
 export function createApp(db: Db, options: { places?: PlaceProvider; routes?: RouteProvider; generator?: ItineraryGenerator; auth?: TokenVerifier; mailer?: InvitationMailer; identityAdmin?: IdentityAdmin; appOrigin?: string; images?: ImageStore; trustProxy?: string } = {}) {
   const images = options.images ?? imageStoreFromEnv();
@@ -349,6 +358,8 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
       res.status(403).json({ error: "Log in to import a backup", code: "login_required" });
       return;
     }
+    // Before the usage is counted and the file is read: a user with no room for a Trip gets nothing from it.
+    if (!(await hasUserRoom(db, res.locals.userId))) throw new LimitReached("trips");
     await takeUsage(db, callerOf(req, res), "import");
     next();
   };
@@ -424,6 +435,8 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
   });
   app.post("/api/generations", async (req, res) => {
     const input = generateTripInputSchema.parse(req.body);
+    // Before the model is paid for and the daily attempt used.
+    if (!(await hasUserRoom(db, res.locals.userId))) throw new LimitReached("trips");
     const started = await startGeneration(db, generationDeps, res.locals.userId, input);
     if (started === "limit") res.status(429).json({ error: "Daily limit reached. You can create another Trip with AI tomorrow.", code: "daily_limit" });
     else if (started === "running") res.status(409).json({ error: "A Trip is already being created", code: "generation_running" });
@@ -991,6 +1004,10 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
     // The place provider could not be reached or refused the request.
     if (isProviderError(err)) {
       res.status(502).json({ error: err instanceof PlaceProviderError ? "Places are not available right now" : "Travel times are not available right now" });
+      return;
+    }
+    if (err instanceof LimitReached) {
+      res.status(409).json({ error: LIMIT_MESSAGES[err.what], code: "limit_reached" });
       return;
     }
     // A request the body parser refused (bad JSON, too large): the client's mistake, said without the detail.

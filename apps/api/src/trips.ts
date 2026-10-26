@@ -29,6 +29,7 @@ import {
 } from "@travel-planner/shared";
 import { and, asc, count, desc, eq, inArray, isNotNull, or, sql } from "drizzle-orm";
 import type { Db } from "./db/client";
+import { takeTripRoom, takeUserRoom } from "./limits";
 import { days, eventImages, events, legs, notes, todos, tripMembers, trips, users } from "./db/schema";
 import type { ImageStore, PreparedImage } from "./images";
 import { randomUUID } from "node:crypto";
@@ -245,6 +246,7 @@ export async function sharedPlaceIds(db: Db, token: string, ids: string[]): Prom
 
 export async function createTrip(db: Db, userId: string, input: CreateTripInput): Promise<Trip> {
   return db.transaction(async (tx) => {
+    await takeUserRoom(tx, userId);
     const [trip] = await tx
       .insert(trips)
       .values({ ownerId: userId, title: input.title, travelMode: input.travelMode, startDate: input.startDate })
@@ -335,6 +337,7 @@ export async function addEvent(
     if (!day) return undefined;
     if (input.kind === "lodging" && !(await stayFits(tx, tripId, dayId, input.nights))) return "invalid-lodging";
 
+    await takeTripRoom(tx, tripId, "events");
     const [event] = await tx.insert(events).values({ tripId, dayId, ...input }).returning();
     return toEvent(event!);
   });
@@ -357,6 +360,7 @@ export async function addHeldEvent(
       .where(and(eq(trips.id, tripId), editableBy(userId)))
       .for("share");
     if (!trip) return undefined;
+    await takeTripRoom(tx, tripId, "events");
     const [event] = await tx.insert(events).values({ tripId, holding, ...input }).returning();
     return toEvent(event!);
   });
@@ -658,6 +662,7 @@ export async function insertDay(
     const ids = await lockTripDays(tx, userId, tripId);
     if (!ids) return undefined;
     if (position > ids.length + 1) return "invalid-position";
+    await takeTripRoom(tx, tripId, "days");
 
     const stays = await loadStays(tx, tripId);
     // Created past the end, then renumbered into place.
@@ -790,6 +795,7 @@ async function restoreInTransaction(
     const present = new Set(own.map((e) => e.id));
     const placements = input.placements.filter((p) => present.has(p.eventId) && !archived.has(p.eventId));
 
+    await takeTripRoom(tx, tripId, "days");
     await tx.insert(days).values({ id: input.dayId, tripId, position: ids.length + 1 });
     await applyDayOrder(tx, tripId, order);
     for (const p of placements) {
@@ -836,12 +842,23 @@ export async function addTodo(
       if (!event) return undefined;
       if (event.holding === "archive") return "archived";
     }
+    await takeTripRoom(tx, tripId, "todos");
     const [row] = await tx
       .insert(todos)
       .values({ tripId, eventId: input.eventId, text: input.text, createdBy: userId })
       .returning();
     return toTodo(row!);
   });
+}
+
+// Takes a shared lock on the Trip row, when the user can edit the Trip (false when not).
+async function lockTripToEdit(tx: Tx, userId: string, tripId: string) {
+  const [trip] = await tx
+    .select({ id: trips.id })
+    .from(trips)
+    .where(and(eq(trips.id, tripId), editableBy(userId)))
+    .for("share");
+  return !!trip;
 }
 
 export async function canEditTrip(db: Db, userId: string, tripId: string) {
@@ -959,6 +976,9 @@ async function restoreEventInTransaction(
       const clash = await tx.select({ id: todos.id }).from(todos).where(inArray(todos.id, ids));
       if (clash.length > 0) return "invalid";
     }
+    // Both counted before anything is written (the lock is taken again for the second, which is fine).
+    await takeTripRoom(tx, tripId, "events");
+    if (restored.length > 0) await takeTripRoom(tx, tripId, "todos", restored.length);
     // The snapshot comes from the browser, so an author in it is believed only when they are the
     // Trip's Owner or an Editor; anyone else (an id made up or taken from elsewhere, or an Editor
     // since removed) is replaced by the person restoring.
@@ -993,9 +1013,13 @@ async function restoreEventInTransaction(
 // not in it).
 
 export async function addNote(db: Db, userId: string, tripId: string, input: CreateNoteInput): Promise<Note | undefined> {
-  if (!(await canEditTrip(db, userId, tripId))) return undefined;
-  const [row] = await db.insert(notes).values({ tripId, body: input.body }).returning();
-  return toNote(row!);
+  return db.transaction(async (tx) => {
+    // The Trip row first (shared), as the other writers do: the size lock always comes after it.
+    if (!(await lockTripToEdit(tx, userId, tripId))) return undefined;
+    await takeTripRoom(tx, tripId, "notes");
+    const [row] = await tx.insert(notes).values({ tripId, body: input.body }).returning();
+    return toNote(row!);
+  });
 }
 
 // Editing the text moves the Note to the top of the list; pinning does not.
@@ -1032,14 +1056,17 @@ export async function restoreNote(
   tripId: string,
   input: RestoreNoteInput,
 ): Promise<Note | undefined | "exists"> {
-  if (!(await canEditTrip(db, userId, tripId))) return undefined;
   const { note } = input;
-  const [row] = await db
-    .insert(notes)
-    .values({ id: note.id, tripId, body: note.body, pinned: note.pinned, updatedAt: new Date(note.updatedAt) })
-    .onConflictDoNothing()
-    .returning();
-  return row ? toNote(row) : "exists";
+  return db.transaction(async (tx) => {
+    if (!(await lockTripToEdit(tx, userId, tripId))) return undefined;
+    await takeTripRoom(tx, tripId, "notes");
+    const [row] = await tx
+      .insert(notes)
+      .values({ id: note.id, tripId, body: note.body, pinned: note.pinned, updatedAt: new Date(note.updatedAt) })
+      .onConflictDoNothing()
+      .returning();
+    return row ? toNote(row) : "exists";
+  });
 }
 
 // Which of these places the user's own Events use. Opening hours are only handed out for those, so

@@ -2,6 +2,7 @@ import { adjacentPairs, legEndpoints, tripSeedSchema, type SeedEvent, type TripS
 import type { Db } from "./db/client";
 import { count, eq, sql } from "drizzle-orm";
 import { days, eventImages, events, notes, todos, trips, users } from "./db/schema";
+import { takeUserRoom } from "./limits";
 import { prepareImage, type ImageStore, type PreparedImage } from "./images";
 import { createLeg, isProviderError, type LegDeps } from "./legs";
 import { getPlaces, uncachedPlaceIds } from "./places";
@@ -78,6 +79,7 @@ export async function writeTripSeed(
   try {
     await storeImages();
     tripId = await db.transaction(async (tx) => {
+      await takeUserRoom(tx, ownerId);
       if (prepared.size > 0 && options.maxImages) {
         // The lock setEventImage takes, so an import and an upload at the same moment cannot go past the limit together.
         await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${"images:" + ownerId}))`);

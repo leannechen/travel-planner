@@ -133,6 +133,8 @@ export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 // picture does not add to the count; deleting one, or its Event, gives it back.
 export const UPLOAD_LIMITS = { perMinute: { user: 10, ip: 30 }, perDay: { account: 200, guest: 40, ip: 400 } } as const;
 export const MAX_STORED_IMAGES = { account: 300, guest: 30 } as const;
+// How many Trips a user owns at most (a guest has fewer). Per Trip, the limits are the MAX_SEED_* below.
+export const MAX_TRIPS = { account: 200, guest: 20 } as const;
 export const isImageType = (type: string): type is (typeof IMAGE_TYPES)[number] => (IMAGE_TYPES as readonly string[]).includes(type);
 
 const todoText = z.string().trim().min(1, "Todo text is required").max(500);

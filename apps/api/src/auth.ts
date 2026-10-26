@@ -235,10 +235,12 @@ export function authenticate(db: Db, verifier: TokenVerifier) {
 
 // Moves the guest session's Trips to the account and removes the guest. Nothing the account already
 // has is touched: Trips only change owner. Running it again finds no guest and does nothing.
-export async function mergeGuest(db: Db, accountId: string, guestToken: string): Promise<number> {
+// The guest's user id and the moved Trips' ids are returned, so connections the guest still has open
+// to those Trips can be ended; `guestId` is undefined when nothing was merged.
+export async function mergeGuest(db: Db, accountId: string, guestToken: string): Promise<{ guestId?: string; tripIds: string[] }> {
   return db.transaction(async (tx) => {
     const [guest] = await tx.select({ id: users.id }).from(users).where(eq(users.guestToken, guestToken)).for("update");
-    if (!guest || guest.id === accountId) return 0;
+    if (!guest || guest.id === accountId) return { tripIds: [] };
     // An account has one copy of a sample Trip: the guest's copy of one the account already has
     // stays as an ordinary Trip.
     await tx
@@ -251,6 +253,6 @@ export async function mergeGuest(db: Db, accountId: string, guestToken: string):
     // So do their uploaded images: the rows would otherwise go with the guest, leaving the files.
     await tx.update(eventImages).set({ createdBy: accountId }).where(eq(eventImages.createdBy, guest.id));
     await tx.delete(users).where(eq(users.id, guest.id));
-    return moved.length;
+    return { guestId: guest.id, tripIds: moved.map((trip) => trip.id) };
   });
 }

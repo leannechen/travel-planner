@@ -271,8 +271,11 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
       return;
     }
     const guestToken = z.uuid().safeParse(req.header(GUEST_HEADER));
-    const merged = guestToken.success ? await mergeGuest(db, res.locals.accountId, guestToken.data) : 0;
-    res.json({ merged });
+    const { guestId, tripIds } = guestToken.success ? await mergeGuest(db, res.locals.accountId, guestToken.data) : { guestId: undefined, tripIds: [] };
+    // The guest is gone, and so is their access: a page that still has one of these Trips open on
+    // the guest id would go on hearing about changes to the account's Trip.
+    if (guestId) for (const tripId of tripIds) live.kick(tripId, guestId);
+    res.json({ merged: tripIds.length });
   });
 
   app.post("/api/me/resend-verification", async (req, res) => {

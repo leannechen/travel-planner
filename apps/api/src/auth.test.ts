@@ -272,7 +272,7 @@ describe("guest merge on login", () => {
     // mergeGuest guards against a guest row that is the account itself.
     const [row] = await app.db.insert(users).values({ guestToken: crypto.randomUUID() }).returning();
     await app.db.insert(trips).values({ ownerId: row!.id, title: "Mine" });
-    expect(await mergeGuest(app.db, row!.id, row!.guestToken!)).toBe(0);
+    expect(await mergeGuest(app.db, row!.id, row!.guestToken!)).toEqual({ tripIds: [] });
     expect(await app.db.select().from(trips).where(eq(trips.ownerId, row!.id))).toHaveLength(1);
   });
 });

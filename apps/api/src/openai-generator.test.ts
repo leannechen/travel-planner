@@ -8,6 +8,7 @@ import { DEFAULT_OPENAI_MODEL, itineraryGeneratorFromEnv, openAiItineraryGenerat
 const itinerary: AiItinerary = {
   title: "Taipei food weekend",
   startDate: null,
+  travelMode: null,
   days: [
     {
       events: [

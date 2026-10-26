@@ -70,6 +70,19 @@ async function tripWithLeg(mode: TravelMode = "walk") {
   return { tripId, dayId, a, b, res, leg: res.status === 201 ? legSchema.parse(await res.clone().json()) : undefined };
 }
 
+describe("the Trip's default travel mode (Trip settings)", () => {
+  it("changes what a new Leg starts with, and leaves the Legs already there as they are", async () => {
+    const { tripId, leg } = await tripWithLeg("walk");
+    const lookups = calls.estimate;
+    const res = await send("PATCH", `/api/trips/${tripId}`, { travelMode: "drive" });
+    expect(res.status).toBe(200);
+    const trips = tripSchema.array().parse(await (await send("GET", "/api/trips")).json());
+    expect(trips[0]!.travelMode).toBe("drive");
+    expect(await legsOf(tripId)).toEqual([leg]);
+    expect(calls.estimate).toBe(lookups);
+  });
+});
+
 describe("creating a Leg", () => {
   it("calculates the duration and the distance between the two places", async () => {
     const { res, leg, dayId, a, b } = await tripWithLeg("walk");

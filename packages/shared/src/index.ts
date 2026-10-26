@@ -185,10 +185,10 @@ export const tripSchema = z.object({
 });
 
 export const createTripInputSchema = z.object({ title, travelMode: travelModeSchema.optional(), startDate: startDateSchema.nullable().optional() });
-// Trip settings: the start date (null clears it) and the title. At least one is given.
+// Trip settings: the start date (null clears it), the title and the default travel mode. At least one is given.
 export const updateTripInputSchema = z
-  .object({ startDate: startDateSchema.nullable().optional(), title: title.optional() })
-  .refine((input) => input.startDate !== undefined || input.title !== undefined, { message: "Nothing to change" });
+  .object({ startDate: startDateSchema.nullable().optional(), title: title.optional(), travelMode: travelModeSchema.optional() })
+  .refine((input) => input.startDate !== undefined || input.title !== undefined || input.travelMode !== undefined, { message: "Nothing to change" });
 export type UpdateTripInput = z.infer<typeof updateTripInputSchema>;
 // The answer to opening the sample Trip (PRD §1): the user's copy, and whether this request made it.
 export const sampleTripResponseSchema = z.object({ tripId: z.uuid(), created: z.boolean() });
@@ -430,6 +430,8 @@ export const aiItinerarySchema = z.object({
   title: z.string(),
   // "YYYY-MM-DD" when the prompt gives dates, else null.
   startDate: z.string().nullable(),
+  // How the prompt says the traveller gets around ("by car", "on foot"), else null.
+  travelMode: travelModeSchema.nullable(),
   days: z.array(z.object({ events: z.array(aiEventSchema) })),
 });
 export type AiEvent = z.infer<typeof aiEventSchema>;

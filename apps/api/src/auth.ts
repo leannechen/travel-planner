@@ -160,7 +160,14 @@ export async function findOrCreateAccount(db: Db, sub: string, email?: string): 
   return row!.id;
 }
 
+// The guest's id, made on the first request. A request marks the guest as seen, at most once an hour.
 async function findOrCreateGuest(db: Db, token: string): Promise<string> {
+  const [touched] = await db
+    .update(users)
+    .set({ lastSeenAt: sql`now()` })
+    .where(and(eq(users.guestToken, token), sql`${users.lastSeenAt} < now() - interval '1 hour'`))
+    .returning({ id: users.id });
+  if (touched) return touched.id;
   const [found] = await db.select({ id: users.id }).from(users).where(eq(users.guestToken, token));
   if (found) return found.id;
   const [created] = await db.insert(users).values({ guestToken: token }).onConflictDoNothing().returning({ id: users.id });

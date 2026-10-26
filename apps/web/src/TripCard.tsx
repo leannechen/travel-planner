@@ -31,7 +31,7 @@ import { dayLabel, formatTripRange, tripStartDate, weekdayKey } from "./tripDate
 import { accessibility, DayTimeline, HourLabels, PX_PER_HOUR, sensors, type EventTimes } from "./DayTimeline";
 import { endGesture } from "./gesture";
 import { HoldingAreas } from "./HoldingAreas";
-import { readView, rememberView, type TripView } from "./currentTrip";
+import { openLanding, readView, rememberView, type TripView } from "./currentTrip";
 import { MapView } from "./MapView";
 import { LegPopover } from "./LegPopover";
 import { LodgingBanners, staysOf } from "./LodgingBanners";
@@ -47,6 +47,8 @@ type Props = {
   trip: Trip;
   // Opens Trip settings (the start date).
   onOpenSettings: () => void;
+  // Leaves for the Landing page, from the logo; without it the logo goes there at once.
+  onGoHome?: () => void;
   // Opens the list of Trips, from the Trip title; without it the title is plain text.
   onOpenTripList?: () => void;
   // Opens Share (the Owner's; left out for an Editor).
@@ -107,7 +109,7 @@ function dropTargetAt(root: HTMLElement, x: number, y: number, draggedId: string
   return undefined;
 }
 
-export function TripCard({ trip, onOpenSettings, onOpenTripList, onShare, onDaysChange, selectedEventId, draft, onSelectEvent: selectEventProp, onCreateAt: createAtProp, onAddToBacklog: addToBacklogProp, onMove: moveProp, onCreateLeg, onChangeLegMode, onSetLegDuration, onDeleteLeg, onToast, notesOpen, onToggleNotes, onShowShortcuts, footer, onAddTodo, onToggleTodo, onDeleteTodo, account, collaborators, banner, sidebar, readOnly: readOnlyProp = false, viewer = false }: Props) {
+export function TripCard({ trip, onOpenSettings, onGoHome, onOpenTripList, onShare, onDaysChange, selectedEventId, draft, onSelectEvent: selectEventProp, onCreateAt: createAtProp, onAddToBacklog: addToBacklogProp, onMove: moveProp, onCreateLeg, onChangeLegMode, onSetLegDuration, onDeleteLeg, onToast, notesOpen, onToggleNotes, onShowShortcuts, footer, onAddTodo, onToggleTodo, onDeleteTodo, account, collaborators, banner, sidebar, readOnly: readOnlyProp = false, viewer = false }: Props) {
   const t = useT();
   const { language } = usePreferences();
   const readOnly = readOnlyProp || viewer;
@@ -297,9 +299,20 @@ export function TripCard({ trip, onOpenSettings, onOpenTripList, onShare, onDays
   return (
     <article ref={root} className={["workspace", view === "map" && "map-mode", (selectedEventId || draft) && "has-selection", readOnly && "read-only"].filter(Boolean).join(" ")}>
       <div className="topbar">
-        <span className="logo" aria-hidden="true">
-          <MapIcon size={18} />
-        </span>
+        {/* A real link to the root, so it can be opened in a new tab; a plain click stays in the app. */}
+        <a
+          className="logo"
+          href="/"
+          aria-label={t("app.home")}
+          title={t("app.home")}
+          onClick={(e) => {
+            if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+            e.preventDefault();
+            (onGoHome ?? openLanding)();
+          }}
+        >
+          <MapIcon size={18} aria-hidden="true" />
+        </a>
         <h2>
           {onOpenTripList ? (
             <button type="button" className="trip-title" aria-haspopup="dialog" title={t("tripList.switch")} onClick={onOpenTripList}>

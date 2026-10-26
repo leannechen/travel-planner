@@ -23,6 +23,7 @@ import {
   type Day,
   type Event,
   type Trip,
+  type TravelMode,
   type UpdateEventInput,
   type UpdateTripInput,
 } from "@travel-planner/shared";
@@ -266,21 +267,22 @@ export async function createTrip(db: Db, userId: string, input: CreateTripInput)
 }
 
 // Changes the Trip's settings; undefined when the user cannot change them. The start date is for the
-// Owner and Editors, the title for the Owner only (PRD §8.1).
+// Owner and Editors, the default travel mode likewise, the title for the Owner only (PRD §8.1).
 export async function updateTrip(
   db: Db,
   userId: string,
   tripId: string,
   input: UpdateTripInput,
-): Promise<{ title: string; startDate: string | null } | undefined> {
+): Promise<{ title: string; startDate: string | null; travelMode: TravelMode } | undefined> {
   const [row] = await db
     .update(trips)
     .set({
       ...(input.startDate !== undefined && { startDate: input.startDate }),
       ...(input.title !== undefined && { title: input.title }),
+      ...(input.travelMode !== undefined && { travelMode: input.travelMode }),
     })
     .where(and(eq(trips.id, tripId), input.title !== undefined ? eq(trips.ownerId, userId) : editableBy(userId)))
-    .returning({ title: trips.title, startDate: trips.startDate });
+    .returning({ title: trips.title, startDate: trips.startDate, travelMode: trips.travelMode });
   return row;
 }
 

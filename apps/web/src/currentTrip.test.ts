@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   chooseTrip,
   hasTripInAddress,
   isLandingLocation,
+  openLanding,
   openTrip,
   readRememberedTripId,
   readView,
@@ -85,6 +86,19 @@ describe("openTrip", () => {
     expect(window.location.pathname + window.location.search).toBe("/trip/b");
     expect(window.history.length).toBe(before + 1);
     expect(readRememberedTripId()).toBe("b");
+  });
+});
+
+describe("openLanding", () => {
+  it("goes to the root as a new entry and tells the App with popstate", () => {
+    window.history.replaceState(null, "", "/trip/abc?view=map");
+    const onPop = vi.fn();
+    window.addEventListener("popstate", onPop);
+    openLanding();
+    window.removeEventListener("popstate", onPop);
+    expect(window.location.pathname + window.location.search).toBe("/");
+    expect(isLandingLocation()).toBe(true);
+    expect(onPop).toHaveBeenCalledTimes(1);
   });
 });
 

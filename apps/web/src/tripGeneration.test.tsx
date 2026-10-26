@@ -38,7 +38,7 @@ describe("following an AI generation", () => {
     vi.mocked(api.getGeneration).mockResolvedValue(running);
     result.current.setWatching(true);
     await act(() => result.current.start({ prompt: "Kyoto", language: "en" }));
-    expect(result.current).toMatchObject({ running: true, remaining: 2 });
+    expect(result.current).toMatchObject({ running: true, remaining: 2, lastPrompt: "Kyoto" });
 
     await act(() => vi.advanceTimersByTimeAsync(2000));
     expect(onFinished).not.toHaveBeenCalled();
@@ -48,6 +48,18 @@ describe("following an AI generation", () => {
     await act(() => vi.advanceTimersByTimeAsync(2000));
     expect(onFinished).toHaveBeenCalledWith(done, true);
     expect(result.current.running).toBe(false);
+    // The Trip was made, so the next prompt starts empty.
+    expect(result.current.lastPrompt).toBe("");
+  });
+
+  it("keeps the prompt of a generation that failed, so it can be tried again", async () => {
+    const { result } = renderHook(() => useTripGeneration(true, vi.fn()));
+    await settle();
+    vi.mocked(api.startGeneration).mockResolvedValue(running);
+    vi.mocked(api.getGeneration).mockResolvedValue({ ...running, status: "failed", failure: "failed" });
+    await act(() => result.current.start({ prompt: "Kyoto", language: "en" }));
+    await act(() => vi.advanceTimersByTimeAsync(2000));
+    expect(result.current).toMatchObject({ failure: "failed", lastPrompt: "Kyoto" });
   });
 
   it("picks up a generation that was already running, and keeps why it failed", async () => {

@@ -16,7 +16,7 @@ export function PreferenceSwitches() {
         <div className="seg" role="group" aria-label={t("account.language")}>
           {LANGUAGES.map((l) => (
             <button key={l.id} type="button" aria-pressed={language === l.id} title={l.label} onClick={() => setLanguage(l.id)}>
-              {l.short}
+              {l.label}
             </button>
           ))}
         </div>

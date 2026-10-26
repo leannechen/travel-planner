@@ -39,7 +39,7 @@ describe("renaming a Trip", () => {
   it("changes the title for the Owner and keeps the rest", async () => {
     const trip = await ownerTrip();
     const res = await call("PATCH", `/api/trips/${trip.id}`, OWNER, { title: "Japan 2026" });
-    expect(await res.json()).toEqual({ title: "Japan 2026", startDate: null });
+    expect(await res.json()).toEqual({ title: "Japan 2026", startDate: null, travelMode: "transit" });
     const listed = tripSchema.array().parse(await (await call("GET", "/api/trips", OWNER)).json());
     expect(listed.find((t) => t.id === trip.id)?.title).toBe("Japan 2026");
   });
@@ -50,6 +50,19 @@ describe("renaming a Trip", () => {
     expect((await call("PATCH", `/api/trips/${trip.id}`, OWNER, { title: "   " })).status).toBe(400);
     expect((await call("PATCH", `/api/trips/${trip.id}`, MEI, { title: "Mine now" })).status).toBe(404);
     expect((await call("PATCH", `/api/trips/${trip.id}`, MEI, { startDate: "2026-11-03" })).status).toBe(200);
+  });
+});
+
+describe("the default travel mode of a Trip", () => {
+  it("is changed by the Owner and by an Editor", async () => {
+    const trip = await ownerTrip();
+    await addEditor(trip.id);
+    const res = await call("PATCH", `/api/trips/${trip.id}`, OWNER, { travelMode: "drive" });
+    expect(await res.json()).toEqual({ title: "Kyoto & Osaka", startDate: null, travelMode: "drive" });
+    expect((await call("PATCH", `/api/trips/${trip.id}`, MEI, { travelMode: "walk" })).status).toBe(200);
+    const listed = tripSchema.array().parse(await (await call("GET", "/api/trips", OWNER)).json());
+    expect(listed.find((t) => t.id === trip.id)?.travelMode).toBe("walk");
+    expect((await call("PATCH", `/api/trips/${trip.id}`, OWNER, { travelMode: "teleport" })).status).toBe(400);
   });
 });
 

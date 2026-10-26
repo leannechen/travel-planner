@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { cleanup, screen } from "@testing-library/react";
+import { act, cleanup, screen } from "@testing-library/react";
+import { useState } from "react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "./api";
@@ -67,6 +68,22 @@ describe("New Trip", () => {
     open(generation({ failure: "failed", lastPrompt: "Kyoto, 3 days" }), "ai");
     expect((screen.getByLabelText("Describe your trip") as HTMLTextAreaElement).value).toBe("Kyoto, 3 days");
     expect(screen.getByRole("alert").textContent).toContain("Something went wrong");
+  });
+
+  it("closes when the Trip it was making is ready, and stays open when that failed", () => {
+    const handlers = { onCreate: vi.fn(async () => undefined), onCancel: vi.fn() };
+    let set: (g: TripGeneration) => void = () => undefined;
+    function Harness() {
+      const [g, setG] = useState(generation({ running: true, lastPrompt: "Kyoto" }));
+      set = setG;
+      return <NewTripDialog generation={g} initialStep="ai" {...handlers} />;
+    }
+    renderApp(<Harness />);
+    act(() => set(generation({ failure: "failed", lastPrompt: "Kyoto" })));
+    expect(handlers.onCancel).not.toHaveBeenCalled();
+    act(() => set(generation({ running: true, lastPrompt: "Kyoto" })));
+    act(() => set(generation()));
+    expect(handlers.onCancel).toHaveBeenCalled();
   });
 
   it("shows the limit instead of letting the user generate", async () => {

@@ -1,6 +1,6 @@
 import { MAX_AI_PROMPT_LENGTH } from "@travel-planner/shared";
 import { ChevronLeft, Info, Sparkles, TriangleAlert, X } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ApiError } from "./api";
 import { usePreferences } from "./preferences";
 import type { TripGeneration } from "./tripGeneration";
@@ -29,7 +29,14 @@ export function GenerateTripPane({ generation, onBack, onClose }: Props) {
     return () => setWatching(false);
   }, [setWatching]);
 
-  const limitReached = generation.remaining === 0;
+  // The Trip was made while this dialog was open: it has done its job, and the prompt goes with it.
+  const wasRunning = useRef(generation.running);
+  useEffect(() => {
+    if (wasRunning.current && !generation.running && !generation.failure) onClose();
+    wasRunning.current = generation.running;
+  }, [generation.running, generation.failure, onClose]);
+
+  const limitReached =generation.remaining === 0;
   const canGenerate = prompt.trim() !== "" && !busy && !limitReached;
 
   async function submit(e: FormEvent) {

@@ -460,6 +460,14 @@ main > [role="alert"] {
   color: #fff;
 }
 
+a.logo {
+  text-decoration: none;
+}
+
+a.logo:hover {
+  filter: brightness(1.08);
+}
+
 .spacer {
   flex: 1;
 }
@@ -3114,6 +3122,12 @@ main.has-panel .topbar {
   border-bottom: 0;
 }
 
+.notes-list li button:not(.note-title) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .notes-list li button {
   min-height: 36px;
   padding: 0 8px;
@@ -4190,7 +4204,9 @@ main.has-panel .topbar {
   top: 42px;
   right: 0;
   display: grid;
+  width: max-content;
   min-width: 15rem;
+  max-width: min(24rem, calc(100vw - 24px));
   padding: 6px;
   border: 1px solid var(--border2);
   border-radius: var(--r-lg);
@@ -4892,9 +4908,20 @@ main.has-panel .topbar {
 
   .home-header {
     position: relative;
-    z-index: 1;
+    /* Above the hero, which follows it: the account sheet is fixed inside the header and would
+       otherwise sit under the hero's surface. */
+    z-index: 14;
     padding: 14px 16px 0;
     color: #fff;
+  }
+
+  /* The header's white text is for the photo behind it, not for the sheet that opens from it. */
+  .home-header .account-sheet {
+    color: var(--text);
+  }
+
+  .home-header .account-sheet strong {
+    font-size: inherit;
   }
 
   .home-header .logo {

@@ -13,6 +13,9 @@ export const users = pgTable("users", {
   // dialog; null for a guest and for a token that carries none.
   email: text(),
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  // When a guest last made a request (updated at most hourly; an account keeps its creation time).
+  // A guest unseen for GUEST_RETENTION_DAYS is removed with their Trips.
+  lastSeenAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });
 
 export const travelMode = pgEnum("travel_mode", ["drive", "transit", "walk"]);

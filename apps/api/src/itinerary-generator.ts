@@ -46,6 +46,10 @@ const FAKE_DAYS: Stop[][] = [
 
 const FAKE_DELAY_MS = 0;
 
+// The travel mode the fake finds in a prompt: "by car", "drive", "開車", "on foot", "walk", "走路", "步行".
+const fakeModeOf = (prompt: string): AiItinerary["travelMode"] =>
+  /by car|drive|driving|road trip|開車|自駕/i.test(prompt) ? "drive" : /on foot|walk|走路|步行/i.test(prompt) ? "walk" : null;
+
 // A generator for development and tests that needs no key: a few days around Kyoto, as many as the
 // prompt asks for ("5 days", "5 天"; 3 otherwise). A prompt with "[unusable]" or "[fail]" fails that
 // way, so those states can be tried.
@@ -73,7 +77,7 @@ export function fakeItineraryGenerator(options: { delayMs?: number } = {}): Itin
       const hotel: AiEvent = { ...event({ en: "Hotel Granvia Kyoto", zh: "京都格蘭比亞大酒店", query: "Hotel Granvia Kyoto", start: "15:00", minutes: 60 }), kind: "lodging", nights: count };
       const days = Array.from({ length: count }, (_, i) => ({ events: [...(i === 0 ? [hotel] : []), ...FAKE_DAYS[i % FAKE_DAYS.length]!.map(event)] }));
       return {
-        itinerary: { title: language === "zh" ? `京都 ${count} 日` : `${count} days in Kyoto`, startDate: null, days },
+        itinerary: { title: language === "zh" ? `京都 ${count} 日` : `${count} days in Kyoto`, startDate: null, travelMode: fakeModeOf(prompt), days },
         usage: { inputTokens: 0, outputTokens: 0 },
       };
     },

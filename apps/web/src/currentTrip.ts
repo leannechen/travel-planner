@@ -74,6 +74,13 @@ export function rememberTripId(id: string | undefined) {
   rememberInBrowser(id);
 }
 
+// Goes to the Landing page from the workspace, as a new history entry so Back returns. The App
+// listens for popstate to decide the page, so the event is raised by hand.
+export function openLanding() {
+  window.history.pushState(null, "", "/");
+  window.dispatchEvent(new PopStateEvent("popstate"));
+}
+
 // Goes to a Trip from another page (the Landing page), as a new history entry so Back returns.
 export function openTrip(id: string) {
   const url = new URL(window.location.href);

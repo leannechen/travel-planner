@@ -1507,11 +1507,11 @@ describe("Trip start date", () => {
 
   it("is set, changed and cleared", async () => {
     const { trip } = await createTrip("Kyoto");
-    expect(await (await patchTrip(trip.id, { startDate: "2026-11-03" })).json()).toEqual({ title: "Kyoto", startDate: "2026-11-03" });
+    expect(await (await patchTrip(trip.id, { startDate: "2026-11-03" })).json()).toEqual({ title: "Kyoto", startDate: "2026-11-03", travelMode: "transit" });
     expect((await list()).find((t) => t.id === trip.id)?.startDate).toBe("2026-11-03");
     await patchTrip(trip.id, { startDate: "2026-12-01" });
     expect((await list()).find((t) => t.id === trip.id)?.startDate).toBe("2026-12-01");
-    expect(await (await patchTrip(trip.id, { startDate: null })).json()).toEqual({ title: "Kyoto", startDate: null });
+    expect(await (await patchTrip(trip.id, { startDate: null })).json()).toEqual({ title: "Kyoto", startDate: null, travelMode: "transit" });
     expect((await list()).find((t) => t.id === trip.id)?.startDate).toBeNull();
   });
 

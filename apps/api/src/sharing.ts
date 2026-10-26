@@ -85,14 +85,20 @@ const newToken = () => randomBytes(24).toString("base64url");
 // The share link's secret: short enough to read out, long enough to be unguessable (72 bits).
 const newLinkToken = () => randomBytes(9).toString("base64url");
 
-// Turns the Trip's read-only link on or off. The secret is made the first time and kept, so turning
-// the link on again gives the same address. undefined: not the Owner's Trip.
+// Turns the Trip's read-only link on or off. Turning it on from off makes a new secret, so a copy of
+// the old address that got around stays dead; while it is off the old secret is kept, so the old
+// address can say the link is off. Turning on a link that is already on changes nothing.
+// undefined: not the Owner's Trip.
 export async function setShareLink(db: Db, userId: string, tripId: string, enabled: boolean): Promise<ShareLink | undefined> {
   const trip = await ownedTrip(db, userId, tripId);
   if (!trip) return undefined;
+  const token = newLinkToken();
   const [row] = await db
     .update(trips)
-    .set({ shareEnabled: enabled, shareToken: sql`coalesce(${trips.shareToken}, ${newLinkToken()})` })
+    .set({
+      shareEnabled: enabled,
+      shareToken: enabled ? sql`case when ${trips.shareEnabled} then coalesce(${trips.shareToken}, ${token}) else ${token} end` : sql`coalesce(${trips.shareToken}, ${token})`,
+    })
     .where(eq(trips.id, tripId))
     .returning({ enabled: trips.shareEnabled, token: trips.shareToken });
   return row;

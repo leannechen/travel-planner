@@ -349,7 +349,7 @@ describe("the share link", () => {
     return trip;
   }
 
-  it("is off at first, and turning it on gives a link that keeps its address when turned off and on again", async () => {
+  it("is off at first, and turning it on gives a link that keeps its address until it is turned off and on again", async () => {
     const trip = await ownerTrip();
     const before = sharingSchema.parse(await (await call("GET", `/api/trips/${trip.id}/sharing`, OWNER)).json());
     expect(before.link).toEqual({ enabled: false, token: null });
@@ -359,7 +359,22 @@ describe("the share link", () => {
     expect(on.token).toMatch(/^[\w-]{12}$/);
     const off = (await (await setLink(trip.id, false)).json()) as { enabled: boolean; token: string };
     expect(off).toEqual({ enabled: false, token: on.token });
-    expect(await (await setLink(trip.id, true)).json()).toEqual(on);
+    // Turning on a link that is on changes nothing.
+    const again = (await (await setLink(trip.id, true)).json()) as { enabled: boolean; token: string };
+    expect(await (await setLink(trip.id, true)).json()).toEqual(again);
+    expect(await (await setLink(trip.id, false)).json()).toMatchObject({ token: again.token });
+  });
+
+  it("makes a new address when turned on again, and the old one then leads nowhere", async () => {
+    const trip = await ownerTrip();
+    const first = (await (await setLink(trip.id, true)).json()) as { token: string };
+    await setLink(trip.id, false);
+    const second = (await (await setLink(trip.id, true)).json()) as { token: string };
+
+    expect(second.token).toMatch(/^[\w-]{12}$/);
+    expect(second.token).not.toBe(first.token);
+    expect((await viewer(`/api/shared/${first.token}`)).status).toBe(404);
+    expect((await viewer(`/api/shared/${second.token}`)).status).toBe(200);
   });
 
   it("shows anyone the Days, Events and Backlog but no Todos, Notes or Archive, with contact fields", async () => {

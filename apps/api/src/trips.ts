@@ -480,8 +480,13 @@ export async function setEventImage(
   try {
     event = await db.transaction(async (tx) => {
       // The shared lock on the Trip keeps deleteTrip from reading the image keys while this row is
-      // not yet committed (it would miss the file).
-      const [trip] = await tx.select({ id: trips.id, ownerId: trips.ownerId }).from(trips).where(eq(trips.id, tripId)).for("share");
+      // not yet committed (it would miss the file). Editing is checked again here: the Editor may
+      // have been removed while the file was being stored.
+      const [trip] = await tx
+        .select({ id: trips.id, ownerId: trips.ownerId })
+        .from(trips)
+        .where(and(eq(trips.id, tripId), editableBy(userId)))
+        .for("share");
       if (!trip) return undefined;
       const [locked] = await tx
         .select({ id: events.id })
@@ -514,7 +519,7 @@ export async function setEventImage(
     throw err;
   }
   if (!event || event === "limit") {
-    // Deleted while the file was being stored, or over the user's limit.
+    // Deleted, or the user lost access, while the file was being stored; or over the user's limit.
     await store.delete(imageId);
     return event;
   }

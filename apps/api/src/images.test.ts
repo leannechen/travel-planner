@@ -323,6 +323,27 @@ describe("upload limits", () => {
     expect(eventSchema.safeParse(await setEventImage(app.db, app.images, userId, trip.id, second.id, image, one)).success).toBe(true);
   });
 
+  it("stores nothing for an Editor who is removed while the file is being stored", async () => {
+    const { trip, event } = await tripWithEvent();
+    const invitation = invitationSchema.parse(await (await call("POST", `/api/trips/${trip.id}/invitations`, OWNER, { email: "mei@example.com" })).json());
+    expect((await call("POST", `/api/invitations/${invitation.token}/accept`, MEI)).status).toBe(200);
+    const mei = await userOf(MEI);
+    const image = (await prepareImage(await picture()))!;
+    // The removal lands after the first check and before the picture is switched in.
+    const slow = {
+      ...app.images,
+      async put(key: string, bytes: Buffer) {
+        await app.images.put(key, bytes);
+        expect((await call("DELETE", `/api/trips/${trip.id}/editors/${mei}`, OWNER)).status).toBe(204);
+      },
+    };
+
+    expect(await setEventImage(app.db, slow, mei, trip.id, event.id, image)).toBeUndefined();
+
+    expect(app.images.keys()).toHaveLength(0);
+    expect(await app.db.select().from(eventImages)).toHaveLength(0);
+  });
+
   it("gives the count back when the Event is deleted", async () => {
     const { trip, event } = await tripWithEvent();
     const second = eventSchema.parse(await (await call("POST", `/api/trips/${trip.id}/days/${trip.days[0]!.id}/events`, OWNER, { title: "Nishiki Market" })).json());

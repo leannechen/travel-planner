@@ -1,6 +1,6 @@
 import { eventSchema, INVITE_LIMITS, invitationSchema, RESEND_LIMITS, sharingSchema, tripSchema } from "@travel-planner/shared";
 import { z } from "zod";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { startTestApp } from "../test/test-app";
 import { auth0IdentityAdmin, IdentityAdminError, logInvitationMailer } from "./sharing";
 import { remainingUsage } from "./usage";
@@ -113,6 +113,32 @@ describe("the invitation log", () => {
     await logInvitationMailer((line) => lines.push(line)).send({ to: "mei@example.com", inviterEmail: null, tripTitle: 'x"\nInvitation to edit "Team"', link: "http://app.test/?invite=abc" });
     expect(lines).toHaveLength(1);
     expect(lines[0]).not.toContain("\n");
+  });
+
+  describe("the link, which carries the invitation's secret", () => {
+    const invitation = { to: "mei@example.com", inviterEmail: null, tripTitle: "Team", link: "http://app.test/?invite=secret-token-123" };
+    async function logged(withLink?: boolean): Promise<string> {
+      const lines: string[] = [];
+      await logInvitationMailer((line) => lines.push(line), withLink).send(invitation);
+      return lines[0]!;
+    }
+    afterEach(() => vi.unstubAllEnvs());
+
+    it("is left out when asked to", async () => {
+      const line = await logged(false);
+      expect(line).toContain("mei@example.com");
+      expect(line).not.toContain("secret-token-123");
+    });
+
+    it("is in the log in development", async () => {
+      vi.stubEnv("NODE_ENV", "development");
+      expect(await logged()).toContain(invitation.link);
+    });
+
+    it("is left out of the log in production", async () => {
+      vi.stubEnv("NODE_ENV", "production");
+      expect(await logged()).not.toContain("secret-token-123");
+    });
   });
 });
 

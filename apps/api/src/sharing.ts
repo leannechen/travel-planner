@@ -5,16 +5,19 @@ import type { Db } from "./db/client";
 import { tripInvitations, tripMembers, trips, users } from "./db/schema";
 
 // How an invitation reaches its address. Sending real email is not built yet; the fake only logs
-// the link, and the Owner can copy the link from the Share dialog.
+// the invitation, and the Owner can copy the link from the Share dialog.
 export type InvitationMailer = {
   send(invitation: { to: string; inviterEmail: string | null; tripTitle: string; link: string }): Promise<void>;
 };
 
-export function logInvitationMailer(log: (line: string) => void = console.log): InvitationMailer {
+// The link carries the invitation's secret, so it goes into the log only outside production, where
+// log files are kept and read by more people than the Owner.
+export function logInvitationMailer(log: (line: string) => void = console.log, withLink = process.env.NODE_ENV !== "production"): InvitationMailer {
   return {
     async send({ to, tripTitle, link }) {
       // JSON quoting keeps line breaks in a title from forging extra log lines.
-      log(`Invitation to edit ${JSON.stringify(tripTitle)} for ${JSON.stringify(to)}: ${link}`);
+      const line = `Invitation to edit ${JSON.stringify(tripTitle)} for ${JSON.stringify(to)}`;
+      log(withLink ? `${line}: ${link}` : line);
     },
   };
 }

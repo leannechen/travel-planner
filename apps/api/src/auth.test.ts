@@ -1,11 +1,14 @@
 import { eq } from "drizzle-orm";
 import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT, type JWK } from "jose";
-import { tripSchema } from "@travel-planner/shared";
+import { eventSchema, tripSchema } from "@travel-planner/shared";
 import { z } from "zod";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { startTestApp, testToken } from "../test/test-app";
+import sharp from "sharp";
+import { prepareImage } from "./images";
+import { setEventImage } from "./trips";
 import { authSettingsFromEnv, jwtVerifier, mergeGuest, TokenRejected, verifierFromEnv } from "./auth";
-import { trips, users } from "./db/schema";
+import { eventImages, trips, users } from "./db/schema";
 
 const settings = { domain: "tenant.example.auth0.com", audience: "https://api.travel-planner.example" };
 const ISSUER = `https://${settings.domain}/`;
@@ -253,6 +256,42 @@ describe("guest merge on login", () => {
     expect(await titles(account)).toEqual(["Taipei"]);
   });
 
+  it("keeps the account within its picture limit: the guest's Trips move, the pictures that do not fit are dropped", async () => {
+    const image = (await prepareImage(await sharp({ create: { width: 8, height: 6, channels: 3, background: "#d33" } }).png().toBuffer()))!;
+    const post = (headers: Record<string, string>, path: string, body: unknown) => fetch(`${app.baseUrl}${path}`, { method: "POST", headers: jsonHeaders(headers), body: JSON.stringify(body) });
+    const withEvents = async (headers: Record<string, string>, userId: () => Promise<string>, count: number) => {
+      const trip = tripSchema.parse(await (await createTrip(headers, "Kyoto")).json());
+      const made = [];
+      for (let i = 0; i < count; i++) made.push(eventSchema.parse(await (await post(headers, `/api/trips/${trip.id}/days/${trip.days[0]!.id}/events`, { title: `Stop ${i}` })).json()));
+      return { trip, made, owner: await userId() };
+    };
+    const guestId = crypto.randomUUID();
+    const guest = { "x-guest-id": guestId };
+    const ownerOf = async (headers: Record<string, string>) => {
+      const me = z.object({ id: z.string() }).parse(await (await fetch(`${app.baseUrl}/api/me`, { headers })).json());
+      return me.id;
+    };
+    const own = await withEvents(account, () => ownerOf(account), 1);
+    const theirs = await withEvents(guest, () => ownerOf(guest), 2);
+    const limit = { account: 2, guest: 30 };
+    await setEventImage(app.db, app.images, own.owner, own.trip.id, own.made[0]!.id, image, limit);
+    for (const e of theirs.made) await setEventImage(app.db, app.images, theirs.owner, theirs.trip.id, e.id, image, limit);
+    expect(app.images.keys()).toHaveLength(3);
+
+    const merged = await mergeGuest(app.db, app.images, own.owner, guestId, limit);
+    expect(merged).toBe(1);
+    expect(await titles(account)).toEqual(["Kyoto", "Kyoto"]);
+    // 1 of the account's own + 1 of the guest's: the second guest picture did not fit.
+    expect(await app.db.select().from(eventImages)).toHaveLength(2);
+    expect(app.images.keys()).toHaveLength(2);
+    // The Events stay; the later picture is the one dropped.
+    const events = z.array(tripSchema).parse(await (await fetch(`${app.baseUrl}/api/trips`, { headers: account })).json()).flatMap((t) => t.days.flatMap((d) => d.events));
+    const [first, second] = theirs.made.map((m) => events.find((e) => e.id === m.id));
+    expect(first?.imageId).toBeTruthy();
+    expect(second).toBeDefined();
+    expect(second?.imageId).toBeNull();
+  });
+
   it("is for accounts only: a guest cannot merge, and cannot take another guest's Trips", async () => {
     const victim = crypto.randomUUID();
     await createTrip({ "x-guest-id": victim }, "Kyoto");
@@ -265,7 +304,7 @@ describe("guest merge on login", () => {
     // mergeGuest guards against a guest row that is the account itself.
     const [row] = await app.db.insert(users).values({ guestToken: crypto.randomUUID() }).returning();
     await app.db.insert(trips).values({ ownerId: row!.id, title: "Mine" });
-    expect(await mergeGuest(app.db, row!.id, row!.guestToken!)).toBe(0);
+    expect(await mergeGuest(app.db, app.images, row!.id, row!.guestToken!)).toBe(0);
     expect(await app.db.select().from(trips).where(eq(trips.ownerId, row!.id))).toHaveLength(1);
   });
 });

@@ -271,7 +271,7 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
       return;
     }
     const guestToken = z.uuid().safeParse(req.header(GUEST_HEADER));
-    const merged = guestToken.success ? await mergeGuest(db, res.locals.accountId, guestToken.data) : 0;
+    const merged = guestToken.success ? await mergeGuest(db, images, res.locals.accountId, guestToken.data, MAX_STORED_IMAGES) : 0;
     res.json({ merged });
   });
 

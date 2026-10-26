@@ -1,9 +1,10 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, count, eq, inArray, sql } from "drizzle-orm";
 import { createRemoteJWKSet, errors, jwtVerify, type JWTVerifyGetKey } from "jose";
 import type { NextFunction, Request, Response } from "express";
 import { z } from "zod";
 import type { Db } from "./db/client";
-import { eventImages, todos, trips, users } from "./db/schema";
+import { eventImages, events, todos, trips, users } from "./db/schema";
+import type { ImageStore } from "./images";
 
 // What the API needs from a valid access token: who it is for.
 // `email` and `emailVerified` come from custom claims that an Auth0 Action adds to the access token
@@ -231,11 +232,46 @@ export function authenticate(db: Db, verifier: TokenVerifier) {
 }
 
 // Moves the guest session's Trips to the account and removes the guest. Nothing the account already
-// has is touched: Trips only change owner. Running it again finds no guest and does nothing.
-export async function mergeGuest(db: Db, accountId: string, guestToken: string): Promise<number> {
-  return db.transaction(async (tx) => {
+// has is touched: Trips only change owner. Running it again finds no guest and does nothing. The
+// account keeps to its stored-image limit: the guest's pictures that do not fit are dropped (the
+// Events stay, without a picture) and their files deleted.
+export async function mergeGuest(
+  db: Db,
+  store: ImageStore,
+  accountId: string,
+  guestToken: string,
+  maxImages: { account: number; guest: number } = { account: Infinity, guest: Infinity },
+): Promise<number> {
+  const dropped: string[] = [];
+  const moved = await db.transaction(async (tx) => {
+    const [found] = await tx.select({ id: users.id }).from(users).where(eq(users.guestToken, guestToken));
+    if (!found || found.id === accountId) return 0;
+    // Locks in the order an upload and an import take them: the Trip rows, then the image locks (so a
+    // picture added at the same moment cannot go past the limit), and the guest row last.
+    await tx.select({ id: trips.id }).from(trips).where(eq(trips.ownerId, found.id)).orderBy(trips.id).for("update");
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${"images:" + found.id}))`);
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${"images:" + accountId}))`);
     const [guest] = await tx.select({ id: users.id }).from(users).where(eq(users.guestToken, guestToken)).for("update");
-    if (!guest || guest.id === accountId) return 0;
+    if (!guest) return 0;
+    const [kept] = await tx
+      .select({ n: count() })
+      .from(eventImages)
+      .innerJoin(events, eq(events.id, eventImages.eventId))
+      .innerJoin(trips, eq(trips.id, events.tripId))
+      .where(eq(trips.ownerId, accountId));
+    const room = Math.max(0, maxImages.account - (kept?.n ?? 0));
+    const theirs = await tx
+      .select({ id: eventImages.id, key: eventImages.storageKey })
+      .from(eventImages)
+      .innerJoin(events, eq(events.id, eventImages.eventId))
+      .innerJoin(trips, eq(trips.id, events.tripId))
+      .where(eq(trips.ownerId, guest.id))
+      .orderBy(eventImages.createdAt, eventImages.id);
+    const tooMany = theirs.slice(room);
+    if (tooMany.length > 0) {
+      await tx.delete(eventImages).where(inArray(eventImages.id, tooMany.map((i) => i.id)));
+      dropped.push(...tooMany.map((i) => i.key));
+    }
     // An account has one copy of a sample Trip: the guest's copy of one the account already has
     // stays as an ordinary Trip.
     await tx
@@ -250,4 +286,6 @@ export async function mergeGuest(db: Db, accountId: string, guestToken: string):
     await tx.delete(users).where(eq(users.id, guest.id));
     return moved.length;
   });
+  for (const key of dropped) await store.delete(key);
+  return moved;
 }

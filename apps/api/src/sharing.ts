@@ -168,6 +168,11 @@ export async function getSharing(db: Db, userId: string, tripId: string): Promis
 export async function removeEditor(db: Db, userId: string, tripId: string, editorId: string): Promise<true | undefined> {
   if (!(await ownedTrip(db, userId, tripId))) return undefined;
   return db.transaction(async (tx) => {
+    // Waits for a write that checked this Editor's access under the shared lock on the Trip row (a
+    // picture being switched in), and makes the writes after it see the removal: they check access
+    // in a statement of their own, after they got the lock. "no key update" still conflicts with
+    // that shared lock, but lets Days, Events and the like be added to the Trip meanwhile.
+    await tx.select({ id: trips.id }).from(trips).where(eq(trips.id, tripId)).for("no key update");
     const removed = await tx
       .delete(tripMembers)
       .where(and(eq(tripMembers.tripId, tripId), eq(tripMembers.userId, editorId)))

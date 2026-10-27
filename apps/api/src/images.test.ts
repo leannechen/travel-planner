@@ -1,10 +1,11 @@
 import { eventSchema, invitationSchema, shareLinkSchema, tripSchema, MAX_IMAGE_BYTES, UPLOAD_LIMITS, MAX_STORED_IMAGES, deletedEventSchema } from "@travel-planner/shared";
 import sharp from "sharp";
+import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { startTestApp } from "../test/test-app";
 import { GUEST_HEADER } from "./auth";
 import { prepareImage } from "./images";
-import { eventImages, events as eventsTable } from "./db/schema";
+import { eventImages, events as eventsTable, trips as tripsTable, tripMembers } from "./db/schema";
 import { setEventImage } from "./trips";
 import { takeUsage } from "./usage";
 
@@ -340,6 +341,38 @@ describe("upload limits", () => {
 
     expect(await setEventImage(app.db, slow, mei, trip.id, event.id, image)).toBeUndefined();
 
+    expect(app.images.keys()).toHaveLength(0);
+    expect(await app.db.select().from(eventImages)).toHaveLength(0);
+  });
+
+  it("stores nothing for an Editor whose removal is being committed when the upload starts", async () => {
+    const { trip, event } = await tripWithEvent();
+    const invitation = invitationSchema.parse(await (await call("POST", `/api/trips/${trip.id}/invitations`, OWNER, { email: "mei@example.com" })).json());
+    expect((await call("POST", `/api/invitations/${invitation.token}/accept`, MEI)).status).toBe(200);
+    const mei = await userOf(MEI);
+    const image = (await prepareImage(await picture()))!;
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    let removedRow!: () => void;
+    const hasRemoved = new Promise<void>((resolve) => (removedRow = resolve));
+    // The removal: the Trip row locked and the membership deleted, not yet committed.
+    const removal = app.db.transaction(async (tx) => {
+      await tx.select({ id: tripsTable.id }).from(tripsTable).where(eq(tripsTable.id, trip.id)).for("no key update");
+      await tx.delete(tripMembers).where(eq(tripMembers.userId, mei));
+      removedRow();
+      await held;
+    });
+    try {
+      await hasRemoved;
+      // The upload starts now, while the removal is uncommitted, and has to wait for it.
+      const upload = setEventImage(app.db, app.images, mei, trip.id, event.id, image);
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      release();
+      await removal;
+      expect(await upload).toBeUndefined();
+    } finally {
+      release();
+    }
     expect(app.images.keys()).toHaveLength(0);
     expect(await app.db.select().from(eventImages)).toHaveLength(0);
   });

@@ -486,12 +486,12 @@ export async function setEventImage(
       // The shared lock on the Trip keeps deleteTrip from reading the image keys while this row is
       // not yet committed (it would miss the file). Editing is checked again here: the Editor may
       // have been removed while the file was being stored.
-      const [trip] = await tx
-        .select({ id: trips.id, ownerId: trips.ownerId })
-        .from(trips)
-        .where(and(eq(trips.id, tripId), editableBy(userId)))
-        .for("share");
+      const [trip] = await tx.select({ id: trips.id, ownerId: trips.ownerId }).from(trips).where(eq(trips.id, tripId)).for("share");
       if (!trip) return undefined;
+      // A separate statement: it must see the Editors as they are after the lock was granted, which
+      // one that waited for the lock on the same statement would not (removeEditor locks the row too).
+      const [allowed] = await tx.select({ id: trips.id }).from(trips).where(and(eq(trips.id, tripId), editableBy(userId)));
+      if (!allowed) return undefined;
       const [locked] = await tx
         .select({ id: events.id })
         .from(events)

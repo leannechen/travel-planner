@@ -30,10 +30,12 @@ export async function startTestApp(places: PlaceProvider = fakePlaceProvider(), 
   let server!: Server;
   let live!: { close(): void };
   let pendingGenerations!: Set<Promise<void>>;
+  let importsRunning!: () => number;
   await new Promise<void>((resolve) => {
     const app = createApp(db, { places, routes, generator, auth, mailer, identityAdmin, appOrigin: "http://app.test", images });
     live = app.locals.live;
     pendingGenerations = app.locals.pendingGenerations;
+    importsRunning = app.locals.importsRunning;
     server = listenLive(app, 0, () => resolve());
   });
   const baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
@@ -56,6 +58,8 @@ export async function startTestApp(places: PlaceProvider = fakePlaceProvider(), 
     images,
     mails,
     resends,
+    // How many backup imports hold a place right now.
+    importsRunning: () => importsRunning(),
     // Waits for the AI generations still running in the background.
     async settle() {
       await Promise.all(pendingGenerations);

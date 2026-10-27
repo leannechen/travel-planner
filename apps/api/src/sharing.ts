@@ -5,16 +5,19 @@ import type { Db } from "./db/client";
 import { tripInvitations, tripMembers, trips, users } from "./db/schema";
 
 // How an invitation reaches its address. Sending real email is not built yet; the fake only logs
-// the link, and the Owner can copy the link from the Share dialog.
+// the invitation, and the Owner can copy the link from the Share dialog.
 export type InvitationMailer = {
   send(invitation: { to: string; inviterEmail: string | null; tripTitle: string; link: string }): Promise<void>;
 };
 
-export function logInvitationMailer(log: (line: string) => void = console.log): InvitationMailer {
+// The link carries the invitation's secret, so it goes into the log only outside production, where
+// log files are kept and read by more people than the Owner.
+export function logInvitationMailer(log: (line: string) => void = console.log, withLink = process.env.NODE_ENV !== "production"): InvitationMailer {
   return {
     async send({ to, tripTitle, link }) {
       // JSON quoting keeps line breaks in a title from forging extra log lines.
-      log(`Invitation to edit ${JSON.stringify(tripTitle)} for ${JSON.stringify(to)}: ${link}`);
+      const line = `Invitation to edit ${JSON.stringify(tripTitle)} for ${JSON.stringify(to)}`;
+      log(withLink ? `${line}: ${link}` : line);
     },
   };
 }
@@ -82,14 +85,20 @@ const newToken = () => randomBytes(24).toString("base64url");
 // The share link's secret: short enough to read out, long enough to be unguessable (72 bits).
 const newLinkToken = () => randomBytes(9).toString("base64url");
 
-// Turns the Trip's read-only link on or off. The secret is made the first time and kept, so turning
-// the link on again gives the same address. undefined: not the Owner's Trip.
+// Turns the Trip's read-only link on or off. Turning it on from off makes a new secret, so a copy of
+// the old address that got around stays dead; while it is off the old secret is kept, so the old
+// address can say the link is off. Turning on a link that is already on changes nothing.
+// undefined: not the Owner's Trip.
 export async function setShareLink(db: Db, userId: string, tripId: string, enabled: boolean): Promise<ShareLink | undefined> {
   const trip = await ownedTrip(db, userId, tripId);
   if (!trip) return undefined;
+  const token = newLinkToken();
   const [row] = await db
     .update(trips)
-    .set({ shareEnabled: enabled, shareToken: sql`coalesce(${trips.shareToken}, ${newLinkToken()})` })
+    .set({
+      shareEnabled: enabled,
+      shareToken: enabled ? sql`case when ${trips.shareEnabled} then coalesce(${trips.shareToken}, ${token}) else ${token} end` : sql`coalesce(${trips.shareToken}, ${token})`,
+    })
     .where(eq(trips.id, tripId))
     .returning({ enabled: trips.shareEnabled, token: trips.shareToken });
   return row;

@@ -1,6 +1,6 @@
 import { eventSchema, INVITE_LIMITS, invitationSchema, RESEND_LIMITS, sharingSchema, tripSchema } from "@travel-planner/shared";
 import { z } from "zod";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { startTestApp } from "../test/test-app";
 import { auth0IdentityAdmin, IdentityAdminError, logInvitationMailer } from "./sharing";
 import { remainingUsage } from "./usage";
@@ -113,6 +113,32 @@ describe("the invitation log", () => {
     await logInvitationMailer((line) => lines.push(line)).send({ to: "mei@example.com", inviterEmail: null, tripTitle: 'x"\nInvitation to edit "Team"', link: "http://app.test/?invite=abc" });
     expect(lines).toHaveLength(1);
     expect(lines[0]).not.toContain("\n");
+  });
+
+  describe("the link, which carries the invitation's secret", () => {
+    const invitation = { to: "mei@example.com", inviterEmail: null, tripTitle: "Team", link: "http://app.test/?invite=secret-token-123" };
+    async function logged(withLink?: boolean): Promise<string> {
+      const lines: string[] = [];
+      await logInvitationMailer((line) => lines.push(line), withLink).send(invitation);
+      return lines[0]!;
+    }
+    afterEach(() => vi.unstubAllEnvs());
+
+    it("is left out when asked to", async () => {
+      const line = await logged(false);
+      expect(line).toContain("mei@example.com");
+      expect(line).not.toContain("secret-token-123");
+    });
+
+    it("is in the log in development", async () => {
+      vi.stubEnv("NODE_ENV", "development");
+      expect(await logged()).toContain(invitation.link);
+    });
+
+    it("is left out of the log in production", async () => {
+      vi.stubEnv("NODE_ENV", "production");
+      expect(await logged()).not.toContain("secret-token-123");
+    });
   });
 });
 
@@ -323,7 +349,7 @@ describe("the share link", () => {
     return trip;
   }
 
-  it("is off at first, and turning it on gives a link that keeps its address when turned off and on again", async () => {
+  it("is off at first, and turning it on gives a link that keeps its address until it is turned off and on again", async () => {
     const trip = await ownerTrip();
     const before = sharingSchema.parse(await (await call("GET", `/api/trips/${trip.id}/sharing`, OWNER)).json());
     expect(before.link).toEqual({ enabled: false, token: null });
@@ -333,7 +359,22 @@ describe("the share link", () => {
     expect(on.token).toMatch(/^[\w-]{12}$/);
     const off = (await (await setLink(trip.id, false)).json()) as { enabled: boolean; token: string };
     expect(off).toEqual({ enabled: false, token: on.token });
-    expect(await (await setLink(trip.id, true)).json()).toEqual(on);
+    // Turning on a link that is on changes nothing.
+    const again = (await (await setLink(trip.id, true)).json()) as { enabled: boolean; token: string };
+    expect(await (await setLink(trip.id, true)).json()).toEqual(again);
+    expect(await (await setLink(trip.id, false)).json()).toMatchObject({ token: again.token });
+  });
+
+  it("makes a new address when turned on again, and the old one then leads nowhere", async () => {
+    const trip = await ownerTrip();
+    const first = (await (await setLink(trip.id, true)).json()) as { token: string };
+    await setLink(trip.id, false);
+    const second = (await (await setLink(trip.id, true)).json()) as { token: string };
+
+    expect(second.token).toMatch(/^[\w-]{12}$/);
+    expect(second.token).not.toBe(first.token);
+    expect((await viewer(`/api/shared/${first.token}`)).status).toBe(404);
+    expect((await viewer(`/api/shared/${second.token}`)).status).toBe(200);
   });
 
   it("shows anyone the Days, Events and Backlog but no Todos, Notes or Archive, with contact fields", async () => {

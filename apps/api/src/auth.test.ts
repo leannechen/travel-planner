@@ -107,6 +107,13 @@ describe("access token check", () => {
     expect(() => verifierFromEnv({ NODE_ENV: "production", AUTH_FAKE: "1" })).toThrow();
     expect(() => verifierFromEnv({ AUTH_FAKE: "1" })).not.toThrow();
   });
+
+  it("refuses to start in production with AUTH_FAKE set, even next to a real tenant", () => {
+    const tenant = { AUTH0_DOMAIN: settings.domain, AUTH0_AUDIENCE: settings.audience };
+    expect(() => verifierFromEnv({ ...tenant, NODE_ENV: "production", AUTH_FAKE: "1" })).toThrow(/AUTH_FAKE/);
+    expect(() => verifierFromEnv({ ...tenant, NODE_ENV: "production" })).not.toThrow();
+    expect(() => verifierFromEnv({ ...tenant, AUTH_FAKE: "1" })).not.toThrow();
+  });
 });
 
 describe("who a request acts as", () => {
@@ -279,7 +286,7 @@ describe("guest merge on login", () => {
     expect(app.images.keys()).toHaveLength(3);
 
     const merged = await mergeGuest(app.db, app.images, own.owner, guestId, limit);
-    expect(merged).toBe(1);
+    expect(merged.tripIds).toHaveLength(1);
     expect(await titles(account)).toEqual(["Kyoto", "Kyoto"]);
     // 1 of the account's own + 1 of the guest's: the second guest picture did not fit.
     expect(await app.db.select().from(eventImages)).toHaveLength(2);
@@ -304,7 +311,7 @@ describe("guest merge on login", () => {
     // mergeGuest guards against a guest row that is the account itself.
     const [row] = await app.db.insert(users).values({ guestToken: crypto.randomUUID() }).returning();
     await app.db.insert(trips).values({ ownerId: row!.id, title: "Mine" });
-    expect(await mergeGuest(app.db, app.images, row!.id, row!.guestToken!)).toBe(0);
+    expect(await mergeGuest(app.db, app.images, row!.id, row!.guestToken!)).toEqual({ tripIds: [] });
     expect(await app.db.select().from(trips).where(eq(trips.ownerId, row!.id))).toHaveLength(1);
   });
 });

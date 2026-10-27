@@ -15,6 +15,7 @@ import {
   MAX_IMAGE_BYTES,
   MAX_STORED_IMAGES,
   MAX_BACKUP_BYTES,
+  MAX_CONCURRENT_IMPORTS,
   backupSchema,
   MAX_PLACE_IDS,
   MAX_PLACE_QUERY_LENGTH,
@@ -280,8 +281,11 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
       return;
     }
     const guestToken = z.uuid().safeParse(req.header(GUEST_HEADER));
-    const merged = guestToken.success ? await mergeGuest(db, images, res.locals.accountId, guestToken.data, MAX_STORED_IMAGES) : 0;
-    res.json({ merged });
+    const { guestId, tripIds } = guestToken.success ? await mergeGuest(db, images, res.locals.accountId, guestToken.data, MAX_STORED_IMAGES) : { guestId: undefined, tripIds: [] };
+    // The guest is gone, and so is their access: a page that still has one of these Trips open on
+    // the guest id would go on hearing about changes to the account's Trip.
+    if (guestId) for (const tripId of tripIds) live.kick(tripId, guestId);
+    res.json({ merged: tripIds.length });
   });
 
   app.post("/api/me/resend-verification", async (req, res) => {
@@ -352,7 +356,14 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
   });
 
   // Import backup (PRD §9): always a new Trip, written through the same writer as the sample Trip.
-  // For accounts only, and a limited number a day, both checked before the (large) file is read.
+  // For accounts only, a limited number a day, and a few at a time: all checked before the (large)
+  // file is read, which holds it in memory.
+  let importsRunning = 0;
+  app.locals.importsRunning = () => importsRunning;
+  // A place is given back when the response is over (also when the client goes away) and the
+  // handler is not working any more: a client that leaves while the backup is being written does
+  // not free the memory the handler still holds.
+  type ImportPlace = { closed: boolean; working: boolean; released: boolean; release(): void };
   const importAllowed: express.RequestHandler = async (req, res, next) => {
     if (!res.locals.accountId) {
       res.status(403).json({ error: "Log in to import a backup", code: "login_required" });
@@ -360,10 +371,49 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
     }
     // Before the usage is counted and the file is read: a user with no room for a Trip gets nothing from it.
     if (!(await hasUserRoom(db, res.locals.userId))) throw new LimitReached("trips");
+    // Told at once, not after the file has been sent and read.
+    if (Number(req.headers["content-length"]) > MAX_BACKUP_BYTES) {
+      res.setHeader("Connection", "close");
+      res.status(413).json({ error: "The backup file is too large", code: "backup_too_large" });
+      return;
+    }
+    if (importsRunning >= MAX_CONCURRENT_IMPORTS) {
+      res.setHeader("Retry-After", "30");
+      res.status(503).json({ error: "Other backups are being imported. Try again in a moment.", code: "import_busy" });
+      return;
+    }
+    // Already gone (while the login was checked): its "close" has been and will not come again.
+    if (res.closed) return;
+    importsRunning++;
+    const place: ImportPlace = {
+      closed: false,
+      working: false,
+      released: false,
+      release() {
+        if (place.released || !place.closed || place.working) return;
+        place.released = true;
+        importsRunning--;
+      },
+    };
+    res.locals.importPlace = place;
+    res.once("close", () => {
+      place.closed = true;
+      place.release();
+    });
     await takeUsage(db, callerOf(req, res), "import");
     next();
   };
-  app.post(IMPORT_PATH, importAllowed, express.json({ limit: MAX_BACKUP_BYTES }), async (req, res) => {
+  const importWorking = (handler: express.RequestHandler): express.RequestHandler => async (req, res, next) => {
+    const place = res.locals.importPlace as ImportPlace;
+    place.working = true;
+    try {
+      await handler(req, res, next);
+    } finally {
+      place.working = false;
+      place.release();
+    }
+  };
+  app.post(IMPORT_PATH, importAllowed, express.json({ limit: MAX_BACKUP_BYTES }), importWorking(async (req, res) => {
     const parsed = backupSchema.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: "This is not a valid backup file", code: "invalid_backup" });
@@ -401,7 +451,7 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
     } finally {
       await giveBackUsage(db, caller, "lookup", reserved);
     }
-  });
+  }));
 
   // The full backup of a Trip, as a file to save (Owner or Editor; anyone else gets 404).
   app.get("/api/trips/:tripId/backup", async (req, res) => {

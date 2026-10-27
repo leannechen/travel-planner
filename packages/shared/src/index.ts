@@ -379,6 +379,9 @@ export const backupSchema = z.object({
 export type Backup = z.infer<typeof backupSchema>;
 // Backup imports an account may start a day (UTC), counted before the file is read.
 export const IMPORT_DAILY_ATTEMPTS = 20;
+// Backup imports the API reads at the same moment. A file can be over 100 MB and is held in memory
+// while it is read, so more than a few at once could use up the server's memory.
+export const MAX_CONCURRENT_IMPORTS = 2;
 
 // Paid Google calls (plan step 33). Every call that reaches Google counts, an answer from the cache
 // does not. A call counts for the user (an account or a guest session) and for the IP address, and

@@ -1,7 +1,8 @@
-import { IMPORT_DAILY_ATTEMPTS, INVITE_LIMITS, LOOKUP_LIMITS, RESEND_LIMITS, UPLOAD_LIMITS, SEARCH_LIMITS, tripSchema } from "@travel-planner/shared";
+import { IMPORT_DAILY_ATTEMPTS, INVITE_LIMITS, LOOKUP_LIMITS, MAX_BACKUP_BYTES, MAX_CONCURRENT_IMPORTS, RESEND_LIMITS, UPLOAD_LIMITS, SEARCH_LIMITS, tripSchema } from "@travel-planner/shared";
 import { eq } from "drizzle-orm";
+import { request } from "node:http";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { startTestApp } from "../test/test-app";
+import { startTestApp, testToken } from "../test/test-app";
 import { GUEST_HEADER } from "./auth";
 import { usageCounts } from "./db/schema";
 import { clientAddress, pruneUsage, remainingUsage, takeUsage, UsageLimitError, type Caller } from "./usage";
@@ -145,6 +146,12 @@ describe("clientAddress", () => {
     expect(clientAddress("2001:db8::1%eth0")).toBe("2001:db8:0:0::/64");
     expect(clientAddress("::1")).toBe("0:0:0:0::/64");
   });
+
+  it("counts something that is not an address as one client instead of throwing", () => {
+    for (const bad of ["1:2:3:4:5:6:7:8:9", "1::2::3", "1:2:3:4:5:6:7::8", "", "not-an-ip", "unknown"]) {
+      expect(clientAddress(bad)).toBe("unknown");
+    }
+  });
 });
 
 describe("usage limits on the API", () => {
@@ -191,11 +198,68 @@ describe("usage limits on the API", () => {
     expect(legs).toMatchObject([{ fromEventId: first.id, toEventId: second.id, durationMinutes: null }]);
   });
 
+  // Waits until `done` holds, checking often.
+  async function eventually(done: () => boolean | Promise<boolean>) {
+    for (let i = 0; i < 100 && !(await done()); i++) await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(await done()).toBe(true);
+  }
+
   it("limits backup imports an account starts in a day, before reading the file", async () => {
     const me = await (await get("/api/me")).json();
     await takeUsage(app.db, { userId: me.id, account: true, ip: "elsewhere" }, "import", IMPORT_DAILY_ATTEMPTS);
     const refused = await fetch(`${app.baseUrl}/api/trips/import`, { method: "POST", headers: { "content-type": "application/json" }, body: "not even json" });
     expect(refused.status).toBe(429);
     expect(await refused.json()).toMatchObject({ code: "import_limit" });
+    // The place it took is given back when the refusal is sent.
+    await eventually(() => app.importsRunning() === 0);
+  });
+
+  it("reads only a few backups at the same moment, and takes more again once they are over", async () => {
+    const url = new URL(`${app.baseUrl}/api/trips/import`);
+    // Imports that have started and never finish sending their file.
+    const stalled = Array.from({ length: MAX_CONCURRENT_IMPORTS }, () => {
+      const req = request(url, { method: "POST", headers: { authorization: `Bearer ${testToken()}`, "content-type": "application/json", "content-length": "1000000" } });
+      req.on("error", () => {});
+      req.write('{"format":');
+      return req;
+    });
+    await eventually(() => app.importsRunning() === MAX_CONCURRENT_IMPORTS);
+    const attempt = () => fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: "not even json" });
+
+    const busy = await attempt();
+    expect(busy.status).toBe(503);
+    expect(await busy.json()).toMatchObject({ code: "import_busy" });
+    expect(busy.headers.get("retry-after")).toBe("30");
+    // A refusal for being busy does not use one of the day's attempts: only the two that hold a place
+    // are counted (the count is written a moment after the place is taken).
+    const me = await (await get("/api/me")).json();
+    const caller = { userId: me.id, account: true, ip: "elsewhere" };
+    await eventually(async () => (await remainingUsage(app.db, caller, "import")) === IMPORT_DAILY_ATTEMPTS - MAX_CONCURRENT_IMPORTS);
+
+    // Places come back once those imports are over, however they end.
+    stalled.forEach((req) => req.destroy());
+    await eventually(() => app.importsRunning() === 0);
+    // And after a response that is sent in the ordinary way.
+    expect((await attempt()).status).toBe(400);
+    await eventually(() => app.importsRunning() === 0);
+  });
+
+  it("refuses a file that says it is too large at once, without using a place or an attempt", async () => {
+    const url = new URL(`${app.baseUrl}/api/trips/import`);
+    const status = await new Promise<number>((resolve, reject) => {
+      const req = request(url, { method: "POST", headers: { authorization: `Bearer ${testToken()}`, "content-type": "application/json", "content-length": String(MAX_BACKUP_BYTES + 1) } });
+      req.on("response", (res) => {
+        res.resume();
+        resolve(res.statusCode!);
+      });
+      req.on("error", reject);
+      // The file is never sent.
+      req.flushHeaders();
+    });
+
+    expect(status).toBe(413);
+    expect(app.importsRunning()).toBe(0);
+    const me = await (await get("/api/me")).json();
+    expect(await remainingUsage(app.db, { userId: me.id, account: true, ip: "elsewhere" }, "import")).toBe(IMPORT_DAILY_ATTEMPTS);
   });
 });

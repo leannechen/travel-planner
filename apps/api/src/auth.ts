@@ -138,9 +138,12 @@ export function fakeTokenVerifier(): TokenVerifier {
 }
 
 export function verifierFromEnv(env: NodeJS.ProcessEnv = process.env): TokenVerifier {
+  // Copying the development .env to a deployment must fail loudly, not be ignored in silence.
+  if (env.AUTH_FAKE && env.NODE_ENV === "production") throw new Error("AUTH_FAKE is for development only; remove it from the production environment");
   const settings = authSettingsFromEnv(env);
   if (settings) return jwtVerifier(settings);
   // Without a tenant anyone could act as anyone, so it takes an explicit choice (development).
+  // The production check is repeated on purpose, so this line stays safe if the one above changes.
   if (env.AUTH_FAKE === "1" && env.NODE_ENV !== "production") return fakeTokenVerifier();
   throw new Error("Set AUTH0_DOMAIN and AUTH0_AUDIENCE (or AUTH_FAKE=1 for development without a tenant)");
 }
@@ -235,24 +238,26 @@ export function authenticate(db: Db, verifier: TokenVerifier) {
 // has is touched: Trips only change owner. Running it again finds no guest and does nothing. The
 // account keeps to its stored-image limit: the guest's pictures that do not fit are dropped (the
 // Events stay, without a picture) and their files deleted.
+// The guest's user id and the moved Trips' ids are returned, so connections the guest still has open
+// to those Trips can be ended; `guestId` is undefined when nothing was merged.
 export async function mergeGuest(
   db: Db,
   store: ImageStore,
   accountId: string,
   guestToken: string,
   maxImages: { account: number; guest: number } = { account: Infinity, guest: Infinity },
-): Promise<number> {
+): Promise<{ guestId?: string; tripIds: string[] }> {
   const dropped: string[] = [];
   const moved = await db.transaction(async (tx) => {
     const [found] = await tx.select({ id: users.id }).from(users).where(eq(users.guestToken, guestToken));
-    if (!found || found.id === accountId) return 0;
+    if (!found || found.id === accountId) return { tripIds: [] };
     // Locks in the order an upload and an import take them: the Trip rows, then the image locks (so a
     // picture added at the same moment cannot go past the limit), and the guest row last.
     await tx.select({ id: trips.id }).from(trips).where(eq(trips.ownerId, found.id)).orderBy(trips.id).for("update");
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${"images:" + found.id}))`);
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${"images:" + accountId}))`);
     const [guest] = await tx.select({ id: users.id }).from(users).where(eq(users.guestToken, guestToken)).for("update");
-    if (!guest) return 0;
+    if (!guest) return { tripIds: [] };
     const [kept] = await tx
       .select({ n: count() })
       .from(eventImages)
@@ -284,7 +289,7 @@ export async function mergeGuest(
     // So do their uploaded images: the rows would otherwise go with the guest, leaving the files.
     await tx.update(eventImages).set({ createdBy: accountId }).where(eq(eventImages.createdBy, guest.id));
     await tx.delete(users).where(eq(users.id, guest.id));
-    return moved.length;
+    return { guestId: guest.id, tripIds: moved.map((trip) => trip.id) };
   });
   for (const key of dropped) await store.delete(key);
   return moved;

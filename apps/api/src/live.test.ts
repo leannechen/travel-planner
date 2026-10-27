@@ -145,6 +145,20 @@ describe("live collaboration", () => {
     expect(await editor.closed).toBe(4403);
   });
 
+  it("ends a guest's connection when the guest logs in and their Trips move to the account", async () => {
+    const guest = crypto.randomUUID();
+    const trip = tripSchema.parse(await (await fetch(`${app.baseUrl}/api/trips`, { method: "POST", headers: { "x-guest-id": guest, "content-type": "application/json" }, body: JSON.stringify({ title: "Mine" }) })).json());
+    const page = connect(trip.id, { guest });
+    await page.until((m) => m.type === "ready");
+
+    const merged = await fetch(`${app.baseUrl}/api/me/merge-guest`, { method: "POST", headers: { "x-guest-id": guest, authorization: `Bearer ${OWNER}` } });
+    expect(await merged.json()).toEqual({ merged: 1 });
+
+    expect(await page.closed).toBe(4403);
+    // The account itself, now the Owner, can open the Trip.
+    await connect(trip.id, { token: OWNER }).until((m) => m.type === "ready");
+  });
+
   it("ends every connection to a Trip when its Owner deletes it", async () => {
     const trip = await ownerTrip();
     await withEditor(trip.id);

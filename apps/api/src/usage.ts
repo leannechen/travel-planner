@@ -1,5 +1,6 @@
 import { IMPORT_DAILY_ATTEMPTS, INVITE_LIMITS, LOOKUP_LIMITS, RESEND_LIMITS, SEARCH_LIMITS, UPLOAD_LIMITS } from "@travel-planner/shared";
 import { and, eq, lt, sql } from "drizzle-orm";
+import { isIP } from "node:net";
 import type { Db } from "./db/client";
 import { usageCounts } from "./db/schema";
 import type { PlaceProvider } from "./places";
@@ -105,7 +106,10 @@ export async function giveBackUsage(db: Db, caller: Caller, kind: UsageKind, n: 
 
 // The address a client is counted by: an IPv4 address (also when written as IPv6), or the first half
 // (/64) of an IPv6 address, since one client usually has a whole /64 and can use any address in it.
+// Anything that is not an address (a malformed one would make the groups below add up wrong) is
+// counted as one client, "unknown".
 export function clientAddress(ip: string): string {
+  if (!isIP(ip)) return "unknown";
   const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/i.exec(ip);
   if (mapped) return mapped[1]!;
   if (!ip.includes(":")) return ip;

@@ -63,6 +63,7 @@
   --sh-card: 0 1px 2px rgba(22, 34, 59, 0.08), 0 3px 10px rgba(22, 34, 59, 0.07);
   --sh-pop: 0 8px 24px rgba(22, 34, 59, 0.16), 0 1px 3px rgba(22, 34, 59, 0.1);
   --sh-dlg: 0 24px 64px rgba(22, 34, 59, 0.32);
+  --sh-lift: 0 18px 40px rgba(22, 34, 59, 0.3);
   /* space (4-pt) and radius */
   --sp-1: 4px;
   --sp-2: 8px;
@@ -130,6 +131,7 @@
     --sh-card: 0 1px 2px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.35);
     --sh-pop: 0 10px 28px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.4);
     --sh-dlg: 0 24px 64px rgba(0, 0, 0, 0.6);
+    --sh-lift: 0 18px 40px rgba(0, 0, 0, 0.55);
   }
 }
 
@@ -181,6 +183,7 @@
   --sh-card: 0 1px 2px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.35);
   --sh-pop: 0 10px 28px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.4);
   --sh-dlg: 0 24px 64px rgba(0, 0, 0, 0.6);
+  --sh-lift: 0 18px 40px rgba(0, 0, 0, 0.55);
 }
 
 :root[data-theme="light"] {
@@ -4770,38 +4773,61 @@ main.has-panel .topbar {
 }
 
 .home-card {
-  display: grid;
-  gap: 2px;
-  padding: 8px 12px;
-  border: 1px solid var(--border);
-  border-left: 4px solid var(--a-bar);
+  --bar: var(--a-bar);
+  --tint: var(--a-tint);
+  --ink: var(--a-ink);
+  position: relative;
+  display: block;
+  padding: 6px 10px 6px 18px;
+  border: 1px solid var(--cardbd);
   border-radius: var(--r-md);
-  background: var(--surface);
-  box-shadow: var(--sh-pop);
-  font-size: 13px;
+  background: var(--card);
+  box-shadow: var(--sh-lift);
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.home-card::before {
+  content: "";
+  position: absolute;
+  top: 7px;
+  bottom: 7px;
+  left: 8px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--bar);
 }
 
 .home-card.meal {
-  border-left-color: var(--m-bar);
+  --bar: var(--m-bar);
+  --tint: var(--m-tint);
+  --ink: var(--m-ink);
 }
 
 .home-card span {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
-.home-card.attraction svg {
-  color: var(--a-ink);
-}
-
-.home-card.meal svg {
-  color: var(--m-ink);
+.home-card svg {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  padding: 3px;
+  border-radius: 7px;
+  background: var(--tint);
+  color: var(--ink);
 }
 
 .home-card small {
+  display: block;
+  margin-top: 2px;
   color: var(--muted);
+  font-size: 11.5px;
 }
 
 .home-leg {

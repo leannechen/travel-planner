@@ -365,6 +365,16 @@ describe("the share link", () => {
     expect(await (await setLink(trip.id, false)).json()).toMatchObject({ token: again.token });
   });
 
+  it("gives every request the same address when several turn the link on at the same moment", async () => {
+    const trip = await ownerTrip();
+    await setLink(trip.id, true);
+    await setLink(trip.id, false);
+    const tokens = await Promise.all(Array.from({ length: 8 }, async () => ((await (await setLink(trip.id, true)).json()) as { token: string }).token));
+    expect(new Set(tokens).size).toBe(1);
+    const sharing = sharingSchema.parse(await (await call("GET", `/api/trips/${trip.id}/sharing`, OWNER)).json());
+    expect(sharing.link.token).toBe(tokens[0]);
+  });
+
   it("makes a new address when turned on again, and the old one then leads nowhere", async () => {
     const trip = await ownerTrip();
     const first = (await (await setLink(trip.id, true)).json()) as { token: string };

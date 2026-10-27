@@ -112,6 +112,8 @@ describe("access token check", () => {
     const tenant = { AUTH0_DOMAIN: settings.domain, AUTH0_AUDIENCE: settings.audience };
     expect(() => verifierFromEnv({ ...tenant, NODE_ENV: "production", AUTH_FAKE: "1" })).toThrow(/AUTH_FAKE/);
     expect(() => verifierFromEnv({ ...tenant, NODE_ENV: "production" })).not.toThrow();
+    // Only "1" turns the fake login on, so only "1" is refused: a deploy that says AUTH_FAKE=0 still starts.
+    expect(() => verifierFromEnv({ ...tenant, NODE_ENV: "production", AUTH_FAKE: "0" })).not.toThrow();
     expect(() => verifierFromEnv({ ...tenant, AUTH_FAKE: "1" })).not.toThrow();
   });
 });

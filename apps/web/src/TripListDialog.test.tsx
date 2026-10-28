@@ -140,6 +140,8 @@ describe("New Trip", () => {
     expect(screen.queryByText("My Trips · 2")).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(screen.getByText("My Trips · 2")).toBeTruthy();
+    // Back as a modal, not just in the page.
+    expect(document.querySelector("dialog.trip-list-dialog")!.hasAttribute("open")).toBe(true);
   });
 
   it("offers Blank Trip and Import backup…, and Generate with AI only with generation", async () => {

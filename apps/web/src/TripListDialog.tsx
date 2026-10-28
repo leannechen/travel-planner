@@ -29,12 +29,12 @@ export function TripListDialog({ trips, currentId, onSwitch, onCreate, onImport,
   const t = useT();
   const phone = useIsPhone();
   const dialog = useRef<HTMLDialogElement>(null);
+  const [creating, setCreating] = useState(false);
+  // The dialog is mounted again when New Trip is cancelled, so it opens again then too.
   useEffect(() => {
     const element = dialog.current;
     if (element && !element.open) element.showModal();
-  }, []);
-
-  const [creating, setCreating] = useState(false);
+  }, [creating]);
 
   const own = trips.filter((trip) => trip.role === "owner");
   const shared = trips.filter((trip) => trip.role === "editor");

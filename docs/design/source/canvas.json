@@ -85,8 +85,8 @@
     },
     "Dialogs.dc.html": {
       "h": 900,
-      "title": "#19 · Dialogs — Share (on / off), Export, Trip settings · High fidelity",
-      "w": 2380,
+      "title": "#19 · Dialogs — Share Trip (on / off, with Export), Trip settings · High fidelity",
+      "w": 2000,
       "x": 0,
       "y": 5800
     },
@@ -376,15 +376,15 @@
     },
     "TripList.dc.html": {
       "h": 920,
-      "title": "#24 · Trip list — sidebar, item menu, New Trip (Blank / Generate with AI), Delete Trip, phone · High fidelity",
-      "w": 4660,
+      "title": "#24 · My Trips modal, New Trip (Blank / Generate with AI / Import backup), Delete Trip · High fidelity",
+      "w": 4220,
       "x": 0,
       "y": 8900
     },
     "TripListNav.dc.html": {
       "h": 940,
-      "title": "#27 · Trip list — collapsed rail, drawer, pinned; Backlog/Archive collapse; switching Trips · High fidelity",
-      "w": 4540,
+      "title": "#27 · My Trips modal from the Trip title; Backlog/Archive collapse; switching Trips · High fidelity",
+      "w": 3640,
       "x": 2420,
       "y": 10100
     },
@@ -394,6 +394,13 @@
       "w": 2040,
       "x": 5500,
       "y": 4300
+    },
+    "TripListPhone.dc.html": {
+      "h": 940,
+      "title": "#24b · My Trips — phone: list, New Trip, Blank, Generate with AI, Trip settings, Delete Trip, Share Trip · High fidelity",
+      "w": 3460,
+      "x": 13720,
+      "y": 8900
     }
   },
   "createdOnFiles": {
@@ -547,6 +554,7 @@
     "StatesEmpty.dc.html",
     "StatesErrors.dc.html",
     "TripList.dc.html",
+    "TripListPhone.dc.html",
     "LegDetail.dc.html",
     "LegManual.dc.html",
     "LegDuration.dc.html",

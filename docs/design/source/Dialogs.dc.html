@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Share, Export and Trip settings</title>
+<title>Share Trip and Trip settings</title>
 <script src="./support.js"></script>
 <link rel="stylesheet" href="hf.css">
 </head>
@@ -14,70 +14,76 @@
 
 body{margin:0}
 
-.wfroot{width:2380px;height:900px}
+.wfroot{width:2000px;height:900px}
 
 
-.bd{position:absolute;top:48px;width:460px;height:800px;background:rgba(20,24,30,.5);border-radius:var(--r-lg);display:flex;align-items:center;justify-content:center}
-.dlg{width:410px;position:relative}
+.bd{position:absolute;top:48px;width:500px;height:800px;background:rgba(20,24,30,.5);border-radius:var(--r-lg);display:flex;align-items:center;justify-content:center}
+.dlg{width:440px;position:relative}
 .dlg .x{position:absolute;right:10px;top:10px}
-.row{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--grid)}
-.av{width:28px;height:28px;border-radius:50%;background:var(--a-tint);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex:none}
-.role{font-size:11px;border:1px solid var(--border2);border-radius:var(--r-xl);padding:1px 8px;color:var(--text)}
-.opt{border:1px solid var(--border2);border-radius:var(--r-lg);padding:10px 12px;display:flex;gap:10px;align-items:flex-start;margin-top:8px}
+.sub{font-size:14px;color:var(--muted);margin:-4px 0 14px}
+.ed{display:block;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:16px 0 6px}
+.pr{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--grid)}
+.pr .em{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.pr .st{font-size:13px;color:var(--muted)}
+.av{width:32px;height:32px;border-radius:50%;background:var(--a-tint);color:var(--a-ink);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex:none}
+.opt{border:1px solid var(--border2);border-radius:var(--r-lg);padding:10px 12px;display:flex;gap:10px;align-items:center;margin-top:6px}
 .opt .ic{width:32px;height:32px;border-radius:var(--r-md);background:var(--surface2);display:flex;align-items:center;justify-content:center;flex:none}
 .opt b{display:block;font-size:13px}
-.opt .d{font-size:12px;color:var(--muted);margin-top:2px}
+.opt .d{font-size:12px;color:var(--muted);margin-top:1px}
 .sg{display:flex;border:1px solid var(--border2);border-radius:var(--r-md);overflow:hidden}
 .sg span{flex:1;height:34px;display:flex;align-items:center;justify-content:center;gap:6px}
 .sg span.on{background:var(--text);color:#fff}
 .help{font-size:12px;color:var(--muted);margin-top:6px}
-.notew{position:absolute;left:1900px;top:48px;width:300px}
+.notew{position:absolute;left:1660px;top:48px;width:300px}
 
 </style>
 </helmet>
 <div class="hf wfroot">
-<div class="cap" style="left:40px;top:20px">Share · link on</div><div class="bd" style="left:40px"><section class="dlg" role="dialog" aria-modal="true" style="width:410px"><button class="ib x" aria-label="Close Share"><svg class="i" style="width:16px;height:16px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button><h2>Share Trip</h2>
+<div class="cap" style="left:40px;top:20px">Share Trip · link on</div><div class="bd" style="left:40px"><section class="dlg" role="dialog" aria-modal="true"><button class="ib x" aria-label="Close Share Trip"><svg class="i" style="width:16px;height:16px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button><h2>Share Trip</h2><div class="sub">Kyoto &amp; Osaka</div>
 <div style="display:flex;align-items:center;justify-content:space-between"><b>Link sharing</b><span class="tog on" role="switch" aria-checked="true" aria-label="Link sharing"></span></div>
 <div class="help" style="margin-top:2px">Anyone with the link can view Days, Map and Backlog. No login needed.</div>
 <div style="display:flex;gap:8px;margin-top:10px"><div class="in" style="flex:1"><span class="muted"><svg class="i" style="width:14px;height:14px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1"></path><path d="M14 10a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1"></path></svg></span><input aria-label="Share link" value="example.com/t/k7Qx2m" readonly=""></div><button class="btn pri"><svg class="i" style="width:14px;height:14px;" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V6a2 2 0 0 1 2-2h9"></path></svg>Copy link</button></div>
-<span class="lbl" style="margin-top:18px">Editors</span>
+<span class="ed">Editors</span>
 <div style="display:flex;gap:8px"><div class="in" style="flex:1"><span class="muted"><svg class="i" style="width:14px;height:14px;" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M3 7l9 6 9-6"></path></svg></span><input aria-label="Invite by email" placeholder="Invite by email"></div><button class="btn">Invite</button></div>
-<div class="help">Editors must log in. They can edit Events, Legs, Todos and Notes.</div>
+<div class="help">Editors must log in. They can edit Events, Travel, Todos and Notes.</div>
 <div style="margin-top:8px">
-<div class="row"><span class="av">L</span><div style="flex:1"><b>Lena</b><div class="muted" style="font-size:12px">lena@example.com</div></div><span class="role">Owner</span></div>
-<div class="row"><span class="av">M</span><div style="flex:1"><b>Mei</b><div class="muted" style="font-size:12px">mei@example.com</div></div><span class="role">Editor</span><button class="ib" aria-label="Remove Mei"><svg class="i" style="width:14px;height:14px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
-<div class="row"><span class="av">K</span><div style="flex:1"><b>Ken</b><div class="muted" style="font-size:12px">ken@example.com</div></div><span class="role">Editor</span><button class="ib" aria-label="Remove Ken"><svg class="i" style="width:14px;height:14px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
-</div></section></div><div class="cap" style="left:540px;top:20px">Share · link off</div><div class="bd" style="left:540px"><section class="dlg" role="dialog" aria-modal="true" style="width:410px"><button class="ib x" aria-label="Close Share"><svg class="i" style="width:16px;height:16px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button><h2>Share Trip</h2>
+<div class="pr"><span class="av">L</span><span class="em">lena@example.com</span><span class="st">Owner</span></div>
+<div class="pr"><span class="av" aria-hidden="true"><svg class="i" style="width:15px;height:15px;" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M3 7l9 6 9-6"></path></svg></span><span class="em">mei@example.com</span><span class="st">Invited</span><button class="ib" aria-label="Copy invite link for mei@example.com"><svg class="i" style="width:15px;height:15px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1"></path><path d="M14 10a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1"></path></svg></button><button class="ib" aria-label="Remove mei@example.com"><svg class="i" style="width:14px;height:14px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
+<div class="pr"><span class="av">K</span><span class="em">ken@example.com</span><span class="st">Editor</span><button class="ib" aria-label="Remove ken@example.com"><svg class="i" style="width:14px;height:14px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
+</div>
+<span class="ed" style="margin-top:14px">Export</span>
+<div class="opt" style="margin-top:0"><span class="ic"><svg class="i" style="width:18px;height:18px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"></path><path d="M3 7l9 4 9-4M12 11v10"></path></svg></span><div style="flex:1"><b>Full backup</b><div class="d">Everything: Days, Events, Todos, Notes, Backlog and Archive. Restore it from New Trip.</div></div><button class="btn sm">Download</button></div></section></div><div class="cap" style="left:580px;top:20px">Share Trip · link off</div><div class="bd" style="left:580px"><section class="dlg" role="dialog" aria-modal="true"><button class="ib x" aria-label="Close Share Trip"><svg class="i" style="width:16px;height:16px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button><h2>Share Trip</h2><div class="sub">Kyoto &amp; Osaka</div>
 <div style="display:flex;align-items:center;justify-content:space-between"><b>Link sharing</b><span class="tog" role="switch" aria-checked="false" aria-label="Link sharing"></span></div>
 <div class="help" style="margin-top:2px">Link is off. People who open the old link see a notice that it is turned off.</div>
 <div style="display:flex;gap:8px;margin-top:10px;opacity:.5"><div class="in" style="flex:1"><span class="muted"><svg class="i" style="width:14px;height:14px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1"></path><path d="M14 10a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1"></path></svg></span><input aria-label="Share link" value="Turn on to get a link" readonly="" disabled=""></div><button class="btn" disabled=""><svg class="i" style="width:14px;height:14px;" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V6a2 2 0 0 1 2-2h9"></path></svg>Copy link</button></div>
-<span class="lbl" style="margin-top:18px">Editors</span>
+<span class="ed">Editors</span>
 <div style="display:flex;gap:8px"><div class="in" style="flex:1"><span class="muted"><svg class="i" style="width:14px;height:14px;" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M3 7l9 6 9-6"></path></svg></span><input aria-label="Invite by email" placeholder="Invite by email"></div><button class="btn">Invite</button></div>
-<div class="help">Editors keep their access when the link is off.</div>
+<div class="help">Editors must log in. They can edit Events, Travel, Todos and Notes.</div>
 <div style="margin-top:8px">
-<div class="row"><span class="av">L</span><div style="flex:1"><b>Lena</b></div><span class="role">Owner</span></div>
-<div class="row"><span class="av">M</span><div style="flex:1"><b>Mei</b><div class="muted" style="font-size:12px">mei@example.com</div></div><span class="role">Editor</span><button class="ib" aria-label="Remove Mei"><svg class="i" style="width:14px;height:14px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
-</div></section></div><div class="cap" style="left:1040px;top:20px">Export</div><div class="bd" style="left:1040px"><section class="dlg" role="dialog" aria-modal="true" style="width:410px"><button class="ib x" aria-label="Close Export"><svg class="i" style="width:16px;height:16px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button><h2>Export</h2>
-<div class="opt"><span class="ic"><svg class="i" style="width:18px;height:18px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"></path><path d="M14 3v4h4M9 12h6M9 16h6"></path></svg></span><div style="flex:1"><b>Document</b><div class="d">Each Day’s schedule with Event details, ready to print or send. Opens in Google Docs. No Todos, no Archive.</div></div><button class="btn sm">Export</button></div>
-<div class="opt"><span class="ic"><svg class="i" style="width:18px;height:18px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"></path><path d="M3 7l9 4 9-4M12 11v10"></path></svg></span><div style="flex:1"><b>Full backup</b><div class="d">Everything: Todos, Notes, Backlog and Archive. Importing creates a new Trip.</div></div><button class="btn sm">Download</button></div>
-<div class="opt"><span class="ic"><svg class="i" style="width:18px;height:18px;" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><circle cx="9" cy="10" r="2"></circle><path d="M21 16l-5-5-9 9"></path></svg></span><div style="flex:1"><b>Image</b><div class="d">One image of the whole Trip, Days side by side, with Leg durations. No map.</div></div><button class="btn sm">Create</button></div>
-<div class="help" style="margin-top:12px">Labels such as “Day 1” and date formats follow the interface language.</div></section></div><div class="cap" style="left:1540px;top:20px">Trip settings</div><div class="bd" style="left:1540px"><section class="dlg" role="dialog" aria-modal="true" style="width:410px"><button class="ib x" aria-label="Close settings"><svg class="i" style="width:16px;height:16px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button><h2>Trip settings <span class="muted" style="font-size:12px;font-weight:400;margin-left:auto;margin-right:26px">Saved</span></h2>
+<div class="pr"><span class="av">L</span><span class="em">lena@example.com</span><span class="st">Owner</span></div>
+<div class="pr"><span class="av" aria-hidden="true"><svg class="i" style="width:15px;height:15px;" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M3 7l9 6 9-6"></path></svg></span><span class="em">mei@example.com</span><span class="st">Invited</span><button class="ib" aria-label="Copy invite link for mei@example.com"><svg class="i" style="width:15px;height:15px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1"></path><path d="M14 10a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1"></path></svg></button><button class="ib" aria-label="Remove mei@example.com"><svg class="i" style="width:14px;height:14px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
+</div>
+<span class="ed" style="margin-top:14px">Export</span>
+<div class="opt" style="margin-top:0"><span class="ic"><svg class="i" style="width:18px;height:18px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"></path><path d="M3 7l9 4 9-4M12 11v10"></path></svg></span><div style="flex:1"><b>Full backup</b><div class="d">Everything: Days, Events, Todos, Notes, Backlog and Archive. Restore it from New Trip.</div></div><button class="btn sm">Download</button></div></section></div><div class="cap" style="left:1120px;top:20px">Trip settings</div><div class="bd" style="left:1120px"><section class="dlg" role="dialog" aria-modal="true"><button class="ib x" aria-label="Close settings"><svg class="i" style="width:16px;height:16px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button><h2>Trip settings</h2>
 <span class="lbl" style="margin-top:4px">Trip title</span><div class="in"><input aria-label="Trip title" value="Kyoto &amp; Osaka"></div>
+<div class="help">Rename the Trip here. The title shows in My Trips and in the top bar.</div>
 <span class="lbl">Start date <span class="muted" style="font-weight:400">(optional)</span></span>
 <div style="display:flex;gap:8px"><div class="in" style="flex:1"><input aria-label="Start date" value="Tue 3 Nov 2026"></div><button class="btn">Clear</button></div>
 <div class="help">Dates follow the start date by Day position. Without a date, Days are just Day 1, Day 2…</div>
 <span class="lbl">Default travel mode</span>
 <div class="sg" role="radiogroup" aria-label="Default travel mode"><span class=""><svg class="i" style="width:14px;height:14px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 15v-3l2-5h12l2 5v3H4z"></path><circle cx="8" cy="16" r="1.5"></circle><circle cx="16" cy="16" r="1.5"></circle></svg>Drive</span><span class="on"><svg class="i" style="width:14px;height:14px;" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="14" rx="3"></rect><path d="M5 11h14"></path><path d="M9 21l2-4M15 21l-2-4"></path></svg>Public transit</span><span class=""><svg class="i" style="width:14px;height:14px;" viewBox="0 0 24 24" aria-hidden="true"><circle cx="13" cy="4" r="2"></circle><path d="M12 8l-3 5 3 3v5M12 8l4 3 2 1M9 13l-3 1"></path></svg>Walk</span></div>
 <div class="help">Each Leg can override it.</div>
-<div style="margin-top:20px;border-top:1px solid var(--grid);padding-top:12px;display:flex;align-items:center;justify-content:space-between"><div><b>Delete Trip</b><div class="help" style="margin-top:0">Owner only. Not undoable.</div></div><button class="btn" style="color:var(--danger);border-color:var(--danger)"><svg class="i" style="width:14px;height:14px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"></path></svg>Delete Trip…</button></div></section></div><aside class="mc notew" style="left:2040px"><h4>Design notes</h4>
-<div>All four are centered dialogs with a dimmed backdrop. Overlay click or Esc closes. No Done button: switches and fields save at once.</div>
-<div>Share is Owner-only. Editors do not see the Invite or Link controls.</div>
-<div>Export Image opens a preview first (next board). Document and backup start a download or open Google Docs.</div>
-<div>Trip settings has no language selector. Language and theme live only in the top right of the top bar (phone: the “…” menu).</div>
-<div>Deleting the Trip would need its own confirmation. Not drawn yet.</div></aside>
+<div style="margin-top:20px;border-top:1px solid var(--grid);padding-top:12px;display:flex;align-items:center;justify-content:space-between"><div><b>Delete Trip</b><div class="help" style="margin-top:0">Owner only. Not undoable.</div></div><button class="btn" style="color:var(--danger);border-color:var(--danger)"><svg class="i" style="width:14px;height:14px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"></path></svg>Delete Trip…</button></div>
+<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button class="btn">Cancel</button><button class="btn pri">Save</button></div></section></div><aside class="mc notew"><h4>Notes for review</h4>
+<div>Both are centered dialogs with a dimmed backdrop. Overlay click or Esc closes. Share Trip has no Done button: its switch and invites apply at once. Trip settings has Cancel and Save: nothing changes until Save (the X or Cancel discards edits). Phone versions are bottom sheets (My Trips phone board).</div>
+<div>Export is only Full backup now. Document and Image export are removed. Backup stays available when the link is off, and a backup is restored from New Trip › Import backup….</div>
+<div>People list: an avatar with the initial and the email, with the role on the right (Owner, Editor). A pending invite shows an envelope avatar, “Invited”, a copy-invite-link button and a remove button.</div>
+<div>Link sharing and Invite are Owner-only. Editors would open Share Trip and see only Export (to confirm).</div>
+<div>Trip settings holds Rename (the Trip title field) and Delete Trip…, moved here from the old Trip row menu. Delete has its own confirmation (Trip list board).</div>
+<div>Trip settings has no language selector. Language and theme live only in the top right of the top bar (phone: the “…” menu).</div></aside>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":2380,"height":900}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":2000,"height":900}}'>
 class Component extends DCLogic {
   renderVals() { return {}; }
 }

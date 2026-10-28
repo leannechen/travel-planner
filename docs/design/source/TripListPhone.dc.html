@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>My Trips on phone</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="hf.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Nunito:wght@700;800&amp;family=Noto+Sans+TC:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>.aib{border:0;color:#fff;background:linear-gradient(120deg,#7a5af8 0%,#2373f4 48%,#4cc3f5 100%);box-shadow:0 6px 16px -4px rgba(35,115,244,.45)}
+
+body{margin:0}
+
+.wfroot{width:3460px;height:940px}
+
+.phn{position:absolute;top:48px;width:390px;height:844px;background:var(--surface);border:1px solid var(--muted);border-radius:28px;overflow:hidden}
+.hd{height:56px;display:flex;align-items:center;gap:10px;padding:0 12px;border-bottom:1px solid var(--grid)}
+.hd .ib{width:40px;height:40px}
+.ov{position:absolute;inset:0;background:rgba(20,24,30,.5)}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:20px 20px 0 0;padding:8px 16px 22px;box-shadow:0 -8px 30px rgba(0,0,0,.2)}
+.sheet .gr{width:36px;height:4px;border-radius:2px;background:var(--border2);margin:0 auto 8px}
+.sheet h2{margin:0;flex:1}
+.sheet .th{display:flex;align-items:center;margin-bottom:10px}
+.sheet .th .ib{width:44px;height:44px;margin-right:-10px}
+.sheet .btn:not(.sm){height:44px}
+.sheet .in{height:44px}
+.sec{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:14px 6px 4px}
+.it{height:56px;border-radius:var(--r-md);display:flex;align-items:center;gap:10px;padding:0 12px}
+button.it{width:100%;border:0;background:transparent;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.it.on{background:var(--pri-tint);font-weight:600}
+.it .t{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.it .d{font-size:11px;color:var(--muted);font-weight:400}
+.it .cur{font-size:11px;font-weight:600;color:var(--pri-ink)}
+.sg{display:flex;border:1px solid var(--border2);border-radius:var(--r-md);overflow:hidden}
+.sg span{flex:1;height:44px;display:flex;align-items:center;justify-content:center;gap:6px}
+.sg span.on{background:var(--text);color:#fff}
+.help{font-size:12px;color:var(--muted);margin-top:6px}
+.ed{display:block;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+.pr{display:flex;align-items:center;gap:12px;padding:8px 0;border-top:1px solid var(--grid)}
+.pr .em{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.pr .st{font-size:13px;color:var(--muted)}
+.av{width:32px;height:32px;border-radius:50%;background:var(--a-tint);color:var(--a-ink);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex:none}
+.wk{padding:14px 16px}
+.gc{height:56px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--surface2);margin-top:10px}
+.notew{position:absolute;left:3120px;top:48px;width:300px}
+
+</style>
+</helmet>
+<div class="hf wfroot">
+
+<div class="cap" style="left:40px;top:20px">1 · My Trips screen (from the Trip title)</div><section class="phn" style="left:40px" aria-label="My Trips, phone"><div class="hd"><button class="ib" aria-label="Back to Trip"><svg class="i" style="width:18px;height:18px;transform:rotate(180deg)" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></button><b style="font-size:16px;flex:1">My Trips</b><button class="btn pri sm" style="height:40px"><svg class="i" style="width:13px;height:13px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>New Trip</button></div>
+<div style="padding:8px"><div class="sec" style="margin-top:6px">My Trips · 3</div><button class="it on" aria-current="true"><svg class="i" style="width:16px;height:16px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"></path><path d="M9 4v14M15 6v14"></path></svg><span class="t">Kyoto &amp; Osaka <span class="d">5 days · Tue 3 Nov</span></span><span class="cur">Current</span></button><button class="it"><svg class="i" style="width:16px;height:16px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"></path><path d="M9 4v14M15 6v14"></path></svg><span class="t">New Zealand <span class="d">12 days</span></span></button><button class="it"><svg class="i" style="width:16px;height:16px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"></path><path d="M9 4v14M15 6v14"></path></svg><span class="t">Taipei weekend <span class="d">2 days</span></span></button><div class="sec">Shared with me · 1</div><button class="it"><svg class="i" style="width:16px;height:16px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"></path><path d="M9 4v14M15 6v14"></path></svg><span class="t">Seoul with Mei <span class="d">4 days</span></span></button></div></section>
+
+<div class="cap" style="left:480px;top:20px">2 · New Trip (tap “New Trip”)</div><section class="phn" style="left:480px" aria-label="New Trip, phone"><div class="hd"><button class="ib" aria-label="Back to Trip"><svg class="i" style="width:18px;height:18px;transform:rotate(180deg)" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></button><b style="font-size:16px;flex:1">My Trips</b><button class="btn pri sm" style="height:40px">New Trip</button></div><div style="padding:8px"><div class="sec" style="margin-top:6px">My Trips · 3</div><div class="it on"><span class="t">Kyoto &amp; Osaka</span></div><div class="it"><span class="t">New Zealand</span></div><div class="it"><span class="t">Taipei weekend</span></div></div><div class="ov"></div>
+<div class="sheet" role="dialog" aria-modal="true" aria-label="New Trip"><div class="gr"></div><div class="th"><h2>New Trip</h2><button class="ib" aria-label="Close New Trip"><svg class="i" style="width:16px;height:16px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
+<div style="display:flex;flex-direction:column;gap:12px"><button class="btn" style="width:100%;height:72px;justify-content:flex-start;gap:14px;padding:0 16px;font-size:15px;font-weight:600;border:1.5px solid var(--border2)"><span style="width:40px;height:40px;border-radius:12px;background:var(--surface2);color:var(--text);display:flex;align-items:center;justify-content:center;flex:none"><svg class="i" style="width:22px;height:22px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"></path><path d="M14 3v4h4M9 13h6M9 17h4"></path></svg></span><span style="flex:1;text-align:left">Blank Trip<br><span style="font-weight:400;font-size:12px;color:var(--muted)">Start from scratch</span></span><svg class="i" style="width:16px;height:16px;color:var(--muted)" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></button><button class="btn aib" style="width:100%;height:72px;justify-content:flex-start;gap:14px;padding:0 16px;font-size:15px;font-weight:600"><span style="width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;flex:none"><svg class="i" style="width:22px;height:22px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"></path></svg></span><span style="flex:1;text-align:left">Generate with AI<br><span style="font-weight:400;font-size:12px;color:rgba(255,255,255,.9)">Describe the trip, get a draft plan</span></span><svg class="i" style="width:16px;height:16px;color:#fff" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></button>
+<div style="display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px"><span style="flex:1;border-top:1px solid var(--border)"></span>or<span style="flex:1;border-top:1px solid var(--border)"></span></div>
+<button class="btn" style="width:100%;height:64px;justify-content:flex-start;gap:14px;padding:0 16px;font-size:14px;font-weight:600;border:1.5px dashed var(--border2)"><span style="width:36px;height:36px;border-radius:10px;background:var(--surface2);color:var(--text);display:flex;align-items:center;justify-content:center;flex:none"><svg class="i" style="width:20px;height:20px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"></path></svg></span><span style="flex:1;text-align:left">Import backup…<br><span style="font-weight:400;font-size:12px;color:var(--muted)">Restore a full backup file. Creates a new Trip.</span></span></button></div>
+<button class="btn" style="width:100%;margin-top:14px">Cancel</button></div></section>
+
+<div class="cap" style="left:920px;top:20px">3 · Blank Trip</div><section class="phn" style="left:920px" aria-label="Blank Trip, phone"><div class="hd"><button class="ib" aria-label="Back to Trip"><svg class="i" style="width:18px;height:18px;transform:rotate(180deg)" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></button><b style="font-size:16px;flex:1">My Trips</b><button class="btn pri sm" style="height:40px">New Trip</button></div><div style="padding:8px"><div class="sec" style="margin-top:6px">My Trips · 3</div><div class="it on"><span class="t">Kyoto &amp; Osaka</span></div><div class="it"><span class="t">New Zealand</span></div></div><div class="ov"></div>
+<div class="sheet" role="dialog" aria-modal="true" aria-label="Blank Trip"><div class="gr"></div><div class="th"><h2>Blank Trip</h2><button class="ib" aria-label="Close Blank Trip"><svg class="i" style="width:16px;height:16px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
+<span class="lbl" style="margin-top:2px">Trip title</span><div class="in foc"><input aria-label="Trip title" placeholder="e.g. Kyoto &amp; Osaka"></div>
+<span class="lbl" style="margin-top:16px">Start date <span class="muted" style="font-weight:400">(optional)</span></span><div class="in"><input aria-label="Start date" placeholder="Pick a date"></div>
+<span class="lbl" style="margin-top:16px">Default travel mode</span><div class="sg"><span><svg class="i" style="width:14px;height:14px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 15v-3l2-5h12l2 5v3H4z"></path><circle cx="8" cy="16" r="1.5"></circle><circle cx="16" cy="16" r="1.5"></circle></svg>Drive</span><span class="on"><svg class="i" style="width:14px;height:14px;" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="14" rx="3"></rect><path d="M5 11h14"></path><path d="M9 21l2-4M15 21l-2-4"></path></svg>Transit</span><span><svg class="i" style="width:14px;height:14px;" viewBox="0 0 24 24" aria-hidden="true"><circle cx="13" cy="4" r="2"></circle><path d="M12 8l-3 5 3 3v5M12 8l4 3 2 1M9 13l-3 1"></path></svg>Walk</span></div>
+<div class="help">Changeable later in Trip settings. Each Leg can override it.</div>
+<div style="display:flex;gap:8px;margin-top:18px"><button class="btn" aria-label="Back"><svg class="i" style="width:14px;height:14px;transform:rotate(180deg)" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>Back</button><button class="btn pri" style="flex:1;justify-content:center">Create Trip</button></div></div></section>
+
+<div class="cap" style="left:1360px;top:20px">4 · Generate with AI</div><section class="phn" style="left:1360px" aria-label="Generate with AI, phone"><div class="hd"><button class="ib" aria-label="Back to Trip"><svg class="i" style="width:18px;height:18px;transform:rotate(180deg)" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></button><b style="font-size:16px;flex:1">My Trips</b><button class="btn pri sm" style="height:40px">New Trip</button></div><div style="padding:8px"><div class="sec" style="margin-top:6px">My Trips · 3</div><div class="it on"><span class="t">Kyoto &amp; Osaka</span></div></div><div class="ov"></div>
+<div class="sheet" role="dialog" aria-modal="true" aria-label="Generate with AI"><div class="gr"></div><div class="th"><h2 style="display:flex;align-items:center;gap:8px"><svg class="i" style="width:22px;height:22px;color:var(--pri-strong)" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"></path></svg>Generate with AI</h2><button class="ib" aria-label="Close Generate with AI"><svg class="i" style="width:16px;height:16px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
+<span class="lbl" style="margin-top:2px">Describe your trip</span>
+<div class="in foc" style="height:110px;align-items:flex-start;padding-top:10px"><textarea aria-label="Trip prompt" style="border:0;outline:0;resize:none;width:100%;height:90px;background:transparent;font:inherit" placeholder="5 days in Kyoto and Osaka in early November. Temples, street food, one slow day."></textarea></div>
+<div class="help">Mention where, how many days, when, and what you like.</div>
+<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px"><span style="border:1px solid var(--border2);border-radius:999px;padding:6px 12px;font-size:12px;background:var(--surface2)">Food-focused weekend in Taipei</span><span style="border:1px solid var(--border2);border-radius:999px;padding:6px 12px;font-size:12px;background:var(--surface2)">7 days in New Zealand by car</span></div>
+<div class="help" style="margin-top:10px">Creates a new Trip. It never changes an existing Trip.</div>
+<div class="banner info" role="note" style="margin-top:12px"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5"></path><path d="M12 8v.01"></path></svg><div style="flex:1;font-size:13px">Generation is limited per day. If you reach the limit, try again tomorrow.</div></div>
+<div style="display:flex;gap:8px;margin-top:16px"><button class="btn" aria-label="Back"><svg class="i" style="width:14px;height:14px;transform:rotate(180deg)" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>Back</button><button class="btn pri" style="flex:1;justify-content:center"><svg class="i" style="width:14px;height:14px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"></path></svg>Generate Trip</button></div></div></section>
+
+<div class="cap" style="left:1800px;top:20px">5 · Trip settings (rename, Delete Trip)</div><section class="phn" style="left:1800px" aria-label="Trip settings, phone"><div class="hd"><b style="font-size:16px;flex:1">Kyoto &amp; Osaka</b></div><div class="wk"><div class="gc"></div><div class="gc"></div><div class="gc"></div></div><div class="ov"></div>
+<div class="sheet" role="dialog" aria-modal="true" aria-label="Trip settings"><div class="gr"></div><div class="th"><h2>Trip settings</h2><button class="ib" aria-label="Close settings"><svg class="i" style="width:16px;height:16px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
+<span class="lbl" style="margin-top:2px">Trip title</span><div class="in"><input aria-label="Trip title" value="Kyoto &amp; Osaka"></div>
+<div class="help">Rename the Trip here. The title shows in My Trips and in the top bar.</div>
+<span class="lbl" style="margin-top:14px">Start date <span class="muted" style="font-weight:400">(optional)</span></span>
+<div style="display:flex;gap:8px"><div class="in" style="flex:1"><input aria-label="Start date" value="Tue 3 Nov 2026"></div><button class="btn">Clear</button></div>
+<span class="lbl" style="margin-top:14px">Default travel mode</span>
+<div class="sg" role="radiogroup" aria-label="Default travel mode"><span><svg class="i" style="width:14px;height:14px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 15v-3l2-5h12l2 5v3H4z"></path><circle cx="8" cy="16" r="1.5"></circle><circle cx="16" cy="16" r="1.5"></circle></svg>Drive</span><span class="on"><svg class="i" style="width:14px;height:14px;" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="14" rx="3"></rect><path d="M5 11h14"></path><path d="M9 21l2-4M15 21l-2-4"></path></svg>Transit</span><span><svg class="i" style="width:14px;height:14px;" viewBox="0 0 24 24" aria-hidden="true"><circle cx="13" cy="4" r="2"></circle><path d="M12 8l-3 5 3 3v5M12 8l4 3 2 1M9 13l-3 1"></path></svg>Walk</span></div>
+<div style="margin-top:18px;border-top:1px solid var(--grid);padding-top:12px;display:flex;align-items:center;justify-content:space-between;gap:8px"><div><b>Delete Trip</b><div class="help" style="margin-top:0">Owner only. Not undoable.</div></div><button class="btn" style="color:var(--danger);border-color:var(--danger)"><svg class="i" style="width:14px;height:14px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"></path></svg>Delete Trip…</button></div>
+<div style="display:flex;gap:8px;margin-top:16px"><button class="btn" style="flex:1;justify-content:center">Cancel</button><button class="btn pri" style="flex:1;justify-content:center">Save</button></div></div></section>
+
+<div class="cap" style="left:2240px;top:20px">6 · Delete Trip (from Trip settings)</div><section class="phn" style="left:2240px" aria-label="Delete Trip, phone"><div class="hd"><b style="font-size:16px;flex:1">Kyoto &amp; Osaka</b></div><div class="wk"><div class="gc"></div><div class="gc"></div><div class="gc"></div></div><div class="ov"></div>
+<div class="sheet" role="alertdialog" aria-modal="true" aria-label="Delete Trip"><div class="gr"></div><div class="th"><h2 style="display:flex;align-items:center;gap:8px;font-size:18px"><svg class="i" style="width:22px;height:22px;color:var(--danger);flex:none" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"></path></svg>Delete “Kyoto &amp; Osaka”?</h2></div>
+<p style="font-size:14px;margin:0 0 8px">This deletes the whole Trip: <b>14 Events</b>, Backlog, Archive, Todos and Notes. Editors and the share link lose access.</p>
+<p class="muted" style="margin:0 0 12px;font-size:13px">Tip: download a full backup first (Share Trip › Export). Restore it later from New Trip › Import backup.</p>
+<label class="chk" style="margin-bottom:6px">Type the Trip title to confirm</label><div class="in"><input aria-label="Confirm title" placeholder="Kyoto &amp; Osaka"></div>
+<div style="display:flex;flex-direction:column;gap:8px;margin-top:16px"><button class="btn dng" disabled="" style="opacity:.5;justify-content:center">Delete Trip</button><button class="btn foc" style="justify-content:center">Cancel</button></div></div></section>
+
+<div class="cap" style="left:2680px;top:20px">7 · Share Trip (with Export)</div><section class="phn" style="left:2680px" aria-label="Share Trip, phone"><div class="hd"><b style="font-size:16px;flex:1">Kyoto &amp; Osaka</b></div><div class="wk"><div class="gc"></div><div class="gc"></div></div><div class="ov"></div>
+<div class="sheet" role="dialog" aria-modal="true" aria-label="Share Trip" style="top:56px"><div class="gr"></div><div class="th" style="margin-bottom:0"><h2>Share Trip</h2><button class="ib" aria-label="Close Share Trip"><svg class="i" style="width:16px;height:16px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div><div class="muted" style="margin-bottom:12px">Kyoto &amp; Osaka</div>
+<div style="display:flex;align-items:center;justify-content:space-between"><b>Link sharing</b><span class="tog on" role="switch" aria-checked="true" aria-label="Link sharing"></span></div>
+<div class="help" style="margin-top:2px">Anyone with the link can view Days, Map and Backlog. No login needed.</div>
+<div style="display:flex;gap:8px;margin-top:10px"><div class="in" style="flex:1;min-width:0"><input aria-label="Share link" value="example.com/t/k7Qx2m" readonly=""></div><button class="btn pri" aria-label="Copy link"><svg class="i" style="width:14px;height:14px;" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V6a2 2 0 0 1 2-2h9"></path></svg>Copy</button></div>
+<span class="ed">Editors</span>
+<div style="display:flex;gap:8px"><div class="in" style="flex:1;min-width:0"><input aria-label="Invite by email" placeholder="Invite by email"></div><button class="btn">Invite</button></div>
+<div class="help">Editors must log in. They can edit Events, Travel, Todos and Notes.</div>
+<div style="margin-top:6px"><div class="pr"><span class="av">L</span><span class="em">lena@example.com</span><span class="st">Owner</span></div>
+<div class="pr"><span class="av" aria-hidden="true"><svg class="i" style="width:15px;height:15px;" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M3 7l9 6 9-6"></path></svg></span><span class="em">mei@example.com</span><span class="st">Invited</span><button class="ib" aria-label="Copy invite link for mei@example.com"><svg class="i" style="width:15px;height:15px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1"></path><path d="M14 10a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1"></path></svg></button><button class="ib" aria-label="Remove mei@example.com"><svg class="i" style="width:14px;height:14px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div></div>
+<span class="ed">Export</span>
+<div style="border:1px solid var(--border2);border-radius:var(--r-lg);padding:10px 12px;display:flex;gap:10px;align-items:center"><span style="width:32px;height:32px;border-radius:var(--r-md);background:var(--surface2);display:flex;align-items:center;justify-content:center;flex:none"><svg class="i" style="width:18px;height:18px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"></path><path d="M3 7l9 4 9-4M12 11v10"></path></svg></span><div style="flex:1"><b style="font-size:13px">Full backup</b><div class="muted" style="font-size:12px">Restore it from New Trip.</div></div><button class="btn sm" style="height:40px">Download</button></div></div></section>
+
+<aside class="mc notew"><h4>Notes for review</h4>
+<div>Phone version of the My Trips changes. My Trips is a full screen from the Trip title; its “New Trip” button opens the same three choices as desktop, as bottom sheets: Blank Trip, Generate with AI, Import backup….</div>
+<div>Rows have one action: open the Trip. No “⋯” menu. Rename and Delete Trip are in Trip settings (frames 5 and 6); backup is in Share Trip (frame 7).</div>
+<div>Blank Trip and Generate with AI each have a Back button to the chooser. Create Trip and Generate Trip are the full-width main actions. See the States board for loading and the daily limit.</div>
+<div>On phone the top-bar Share icon opens Share Trip, and the “…” menu opens Trip settings. The Export entry in that menu is gone (Phone menus board still shows it).</div>
+<div>Delete Trip keeps the typed-title confirmation. Buttons are stacked and full width for thumbs.</div></aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":3460,"height":940}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

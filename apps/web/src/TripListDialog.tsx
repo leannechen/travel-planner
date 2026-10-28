@@ -55,8 +55,10 @@ export function TripListDialog({ trips, currentId, onSwitch, onCreate, onImport,
     );
   };
 
+  // While New Trip is open the list is not: it comes back when New Trip is cancelled (design 24).
   return (
     <>
+      {!creating && (
       <dialog
         ref={dialog}
         className="trip-list-dialog"
@@ -98,6 +100,7 @@ export function TripListDialog({ trips, currentId, onSwitch, onCreate, onImport,
           {!phone && <p className="trip-list-hint">{t("tripList.hint")}</p>}
         </div>
       </dialog>
+      )}
       {creating && (
         <NewTripDialog
           generation={generation}

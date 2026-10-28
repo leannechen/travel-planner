@@ -5027,7 +5027,7 @@ main.has-panel .topbar {
 .share-people {
   display: grid;
   gap: 2px;
-  margin: 12px 0 0;
+  margin: 12px 0 8px;
   padding: 0;
   list-style: none;
 }

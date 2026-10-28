@@ -134,6 +134,14 @@ describe("Row", () => {
 });
 
 describe("New Trip", () => {
+  it("replaces My Trips while it is open, and My Trips comes back on Cancel", async () => {
+    setup();
+    await userEvent.click(screen.getByRole("button", { name: "New Trip" }));
+    expect(screen.queryByText("My Trips · 2")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.getByText("My Trips · 2")).toBeTruthy();
+  });
+
   it("offers Blank Trip and Import backup…, and Generate with AI only with generation", async () => {
     setup();
     await userEvent.click(screen.getByRole("button", { name: "New Trip" }));

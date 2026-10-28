@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
-import { cleanup, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
 import { createTrip, deleteTrip, listTrips } from "./api";
-import { makeDay, makeEvent, makeTrip, renderApp, setPhone } from "./test-helpers";
+import { createFakeAuth } from "./fakeAuth";
+import { makeDay, makeEvent, makeTrip, memoryStore, renderApp, setPhone } from "./test-helpers";
 
 vi.mock("./api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("./api")>()),
@@ -51,8 +52,8 @@ describe("one Trip at a time", () => {
   it("shows the next Trip after the one shown is deleted", async () => {
     renderApp(<App />);
     await screen.findByText("Fushimi Inari");
-    await openList();
-    await userEvent.click(screen.getByRole("button", { name: "Actions for Kyoto" }));
+    // Delete Trip… is in Trip settings, not in My Trips.
+    await userEvent.click(screen.getByRole("button", { name: "Trip settings" }));
     await userEvent.click(screen.getByRole("button", { name: "Delete Trip…" }));
     await userEvent.type(screen.getByLabelText("Type the Trip title to confirm"), "Kyoto");
     await userEvent.click(screen.getByRole("button", { name: "Delete Trip" }));
@@ -107,6 +108,7 @@ describe("one Trip at a time", () => {
     await screen.findByText("Fushimi Inari");
     await openList();
     await userEvent.click(await screen.findByRole("button", { name: "New Trip" }));
+    await userEvent.click(await screen.findByRole("button", { name: /^Blank Trip/ }));
     await userEvent.type(await screen.findByLabelText("Trip title"), "Seoul");
     await userEvent.click(screen.getByRole("button", { name: "Create Trip" }));
     expect(createTrip).toHaveBeenCalledWith({ title: "Seoul", travelMode: "transit", startDate: null });
@@ -169,54 +171,21 @@ describe("one Trip at a time", () => {
   });
 });
 
-describe("pinned Trip list", () => {
-  // A wide desktop window: the min-width query matches, the phone query does not.
-  const wide = () =>
-    vi.stubGlobal("matchMedia", (query: string) => ({ matches: query.includes("min-width"), media: query, addEventListener: () => undefined, removeEventListener: () => undefined }));
-
-  it("pins from the drawer into a column that stays open when a Trip is chosen, and unpins", async () => {
-    wide();
-    renderApp(<App />);
-    await screen.findByRole("button", { name: "Kyoto" });
-    await openList();
-    await userEvent.click(await screen.findByRole("button", { name: "Keep the Trip list open" }));
-    expect(localStorage.getItem("travel-planner.trip-list-pinned")).toBe("1");
-    expect(document.querySelector("dialog.trip-list-drawer")).toBeNull();
-    expect(document.querySelector(".trip-list-pinned")).not.toBeNull();
-
-    await userEvent.click(screen.getByRole("button", { name: /^Taipei/ }));
-    await waitFor(() => expect(screen.getByRole("heading", { level: 2, name: "Taipei" })).toBeTruthy());
-    expect(document.querySelector(".trip-list-pinned")).not.toBeNull();
-
-    await userEvent.click(screen.getByRole("button", { name: "Unpin the Trip list" }));
-    expect(localStorage.getItem("travel-planner.trip-list-pinned")).toBe("0");
-    expect(document.querySelector(".trip-list-pinned")).toBeNull();
-    // Unpinning turns the column back into the open drawer.
-    expect(document.querySelector("dialog.trip-list-drawer")).not.toBeNull();
-  });
-
-  it("starts pinned when it was pinned before, and not in a narrow window", async () => {
-    localStorage.setItem("travel-planner.trip-list-pinned", "1");
-    wide();
-    renderApp(<App />);
-    await screen.findByRole("button", { name: /^Taipei/ });
-    expect(document.querySelector(".trip-list-pinned")).not.toBeNull();
-    cleanup();
-    setPhone(false);
-    renderApp(<App />);
-    await screen.findByRole("button", { name: "Kyoto" });
-    expect(document.querySelector(".trip-list-pinned")).toBeNull();
-  });
-});
-
-describe("Trip list and its dialogs", () => {
-  it("stays open under Trip settings after Cancel", async () => {
-    renderApp(<App />);
-    await screen.findByRole("button", { name: "Kyoto" });
-    await openList();
-    await userEvent.click(await screen.findByRole("button", { name: "Actions for Kyoto" }));
-    await userEvent.click(within(document.querySelector<HTMLElement>(".trip-menu")!).getByRole("button", { name: "Trip settings" }));
-    await userEvent.click(await screen.findByRole("button", { name: "Cancel" }));
-    expect(document.querySelector("dialog.trip-list-drawer")).not.toBeNull();
+describe("an Editor's Trip", () => {
+  it("has Share Trip with only Export, and Trip settings without the title and Delete Trip…", async () => {
+    vi.mocked(listTrips).mockResolvedValue([makeTrip({ title: "Kyoto", role: "editor", days: [makeDay(1, [makeEvent({ title: "Fushimi Inari" })])] })]);
+    // A guest's Share goes to login, so this Editor is logged in.
+    const fake = createFakeAuth({ store: memoryStore(), navigate: () => undefined });
+    const user = await fake.loginPopup({ language: "en" });
+    renderApp(<App />, { ...fake, start: async () => ({ user, returned: false, error: false }) });
+    await screen.findByText("Fushimi Inari");
+    await userEvent.click(screen.getByRole("button", { name: "Share" }));
+    expect(await screen.findByRole("button", { name: "Download" })).toBeTruthy();
+    expect(screen.queryByRole("switch")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    await userEvent.click(screen.getByRole("button", { name: "Trip settings" }));
+    expect(await screen.findByLabelText(/Start date/)).toBeTruthy();
+    expect(screen.queryByLabelText("Trip title")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Delete Trip…" })).toBeNull();
   });
 });

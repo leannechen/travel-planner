@@ -22,14 +22,36 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-const open = () =>
+const onExport = vi.fn(async () => undefined);
+const open = (owner = true) =>
   render(
     <PreferencesProvider>
-      <ShareDialog tripId="trip-1" tripTitle="Kyoto & Osaka" ownerEmail="lena@example.com" onClose={() => undefined} />
+      <ShareDialog tripId="trip-1" tripTitle="Kyoto & Osaka" owner={owner} onExport={onExport} ownerEmail="lena@example.com" onClose={() => undefined} />
     </PreferencesProvider>,
   );
 
 describe("ShareDialog", () => {
+  it("exports the full backup from the Export part", async () => {
+    open();
+    await userEvent.click(await screen.findByRole("button", { name: "Download" }));
+    expect(onExport).toHaveBeenCalled();
+  });
+
+  it("says when the backup could not be saved", async () => {
+    onExport.mockRejectedValueOnce(new Error("offline"));
+    open();
+    await userEvent.click(await screen.findByRole("button", { name: "Download" }));
+    expect((await screen.findByRole("alert")).textContent).toBe("The backup could not be saved. Try again.");
+  });
+
+  it("shows an Editor only Export, and does not ask for the people", async () => {
+    open(false);
+    expect(screen.getByRole("button", { name: "Download" })).toBeTruthy();
+    expect(screen.queryByRole("switch")).toBeNull();
+    expect(screen.queryByLabelText("Editors")).toBeNull();
+    expect(getSharing).not.toHaveBeenCalled();
+  });
+
   it("lists the Owner, the Editors and the invitations that wait", async () => {
     open();
     expect(await screen.findByText("mei@example.com")).toBeTruthy();

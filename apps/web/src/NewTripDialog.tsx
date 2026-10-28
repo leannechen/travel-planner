@@ -1,6 +1,7 @@
-import { MAX_START_YEAR, MIN_START_YEAR, startDateSchema, type CreateTripInput, type TravelMode } from "@travel-planner/shared";
-import { ChevronLeft, ChevronRight, FileText, Sparkles, X } from "lucide-react";
+import { MAX_BACKUP_BYTES, MAX_START_YEAR, MIN_START_YEAR, startDateSchema, type CreateTripInput, type TravelMode } from "@travel-planner/shared";
+import { ChevronLeft, ChevronRight, FileText, Sparkles, Upload, X } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { ApiError } from "./api";
 import { GenerateTripPane } from "./GenerateTripPane";
 import { MODE_ICONS } from "./legFormat";
 import { useT } from "./preferences";
@@ -14,22 +15,32 @@ type Props = {
   onCancel: () => void;
   // AI generation, for a logged-in user only (PRD §7); without it the dialog is the Blank Trip form.
   generation?: TripGeneration;
+  // Makes a new Trip from a backup file; rejects when that failed. Without it the dialog has no
+  // Import backup… choice.
+  onImport?: (file: File) => Promise<void>;
+  // Only accounts import: for a guest, Import backup… calls this (to log in) instead of asking for a file.
+  onImportLogin?: () => void;
   // Opens on Generate with AI (trying a failed generation again).
   initialStep?: "ai";
 };
 
 // New Trip (design 24): a choice between a Blank Trip (title, optional start date and the default
-// travel mode) and Generate with AI. A guest gets the Blank Trip form at once. While a generation
-// runs, the dialog opens on it.
-export function NewTripDialog({ onCreate, onCancel, generation, initialStep }: Props) {
+// travel mode), Generate with AI and Import backup…. Without either of the last two the Blank Trip
+// form comes at once. While a generation runs, the dialog opens on it.
+export function NewTripDialog({ onCreate, onCancel, generation, onImport, onImportLogin, initialStep }: Props) {
   const t = useT();
   const dialog = useRef<HTMLDialogElement>(null);
-  const [step, setStep] = useState<"choose" | "blank" | "ai">(() => (!generation ? "blank" : generation.running || initialStep === "ai" ? "ai" : "choose"));
+  const hasChoice = !!generation || !!onImport;
+  const [step, setStep] = useState<"choose" | "blank" | "ai">(() => (!hasChoice ? "blank" : generation?.running || (generation && initialStep === "ai") ? "ai" : "choose"));
   const [title, setTitle] = useState("");
   const [startDate, setStartDate] = useState("");
   const [mode, setMode] = useState<TravelMode>("transit");
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  // Why the last import failed, and whether one is running.
+  const [problem, setProblem] = useState<string | undefined>();
+  const [importing, setImporting] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
   useEffect(() => {
     const element = dialog.current;
     if (element && !element.open) element.showModal();
@@ -51,8 +62,27 @@ export function NewTripDialog({ onCreate, onCancel, generation, initialStep }: P
     }
   }
 
+  async function importFile(file: File) {
+    if (!onImport) return;
+    setProblem(undefined);
+    if (file.size > MAX_BACKUP_BYTES) {
+      setProblem(t("tripList.importTooLarge"));
+      return;
+    }
+    setImporting(true);
+    try {
+      await onImport(file);
+    } catch (err) {
+      const code = err instanceof ApiError ? err.code : undefined;
+      const { needed, remaining } = err instanceof ApiError ? err.detail : {};
+      if (code === "lookup_limit" && typeof needed === "number" && typeof remaining === "number") setProblem(t("tripList.importLookupLimit", { needed, remaining }));
+      else setProblem(t(code === "invalid_backup" ? "tripList.importInvalid" : code === "backup_too_large" ? "tripList.importTooLarge" : code === "import_limit" ? "tripList.importLimit" : "tripList.importError"));
+      setImporting(false);
+    }
+  }
+
   const shell = (content: ReactNode) => (
-    <dialog ref={dialog} className="confirm-dialog new-trip-dialog" aria-labelledby="new-trip-title" onCancel={(e) => { e.preventDefault(); if (!busy) onCancel(); }} onClose={onCancel}>
+    <dialog ref={dialog} className="confirm-dialog new-trip-dialog" aria-labelledby="new-trip-title" onCancel={(e) => { e.preventDefault(); if (!busy && !importing) onCancel(); }} onClose={onCancel}>
       {content}
     </dialog>
   );
@@ -64,7 +94,7 @@ export function NewTripDialog({ onCreate, onCancel, generation, initialStep }: P
       <>
         <div className="settings-head">
           <h2 id="new-trip-title">{t("newTrip.choose")}</h2>
-          <button type="button" className="ib" aria-label={t("generic.close")} title={t("generic.closeEsc")} onClick={onCancel}>
+          <button type="button" className="ib" aria-label={t("generic.close")} title={t("generic.closeEsc")} disabled={importing} onClick={onCancel}>
             <X size={16} aria-hidden="true" />
           </button>
         </div>
@@ -77,18 +107,46 @@ export function NewTripDialog({ onCreate, onCancel, generation, initialStep }: P
             </span>
             <ChevronRight size={16} aria-hidden="true" />
           </button>
-          <button type="button" className="new-trip-choice ai" onClick={() => setStep("ai")}>
-            <Sparkles size={18} aria-hidden="true" />
-            <span>
-              <strong>{t("newTrip.ai")}</strong>
-              <small>{t("newTrip.aiHint")}</small>
-            </span>
-            <ChevronRight size={16} aria-hidden="true" />
-          </button>
+          {generation && (
+            <button type="button" className="new-trip-choice ai" onClick={() => setStep("ai")}>
+              <Sparkles size={18} aria-hidden="true" />
+              <span>
+                <strong>{t("newTrip.ai")}</strong>
+                <small>{t("newTrip.aiHint")}</small>
+              </span>
+              <ChevronRight size={16} aria-hidden="true" />
+            </button>
+          )}
+          {onImport && (
+            <>
+              <p className="new-trip-or" aria-hidden="true">{t("newTrip.or")}</p>
+              <input
+                ref={fileInput}
+                type="file"
+                accept=".json,application/json"
+                hidden
+                data-testid="backup-file"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  if (file) void importFile(file);
+                }}
+              />
+              <button type="button" className="new-trip-choice" disabled={importing} onClick={() => (onImportLogin ? onImportLogin() : fileInput.current?.click())}>
+                <Upload size={18} aria-hidden="true" />
+                <span>
+                  <strong>{importing ? t("tripList.importing") : t("tripList.import")}</strong>
+                  <small>{t("tripList.importHint")}</small>
+                </span>
+                <ChevronRight size={16} aria-hidden="true" />
+              </button>
+            </>
+          )}
         </div>
+        {problem && <p role="alert" className="trip-list-problem">{problem}</p>}
         <p className="hint">{t("newTrip.either")}</p>
         <div className="dialog-actions">
-          <button type="button" className="btn" onClick={onCancel}>
+          <button type="button" className="btn" disabled={importing} onClick={onCancel}>
             {t("generic.cancel")}
           </button>
         </div>
@@ -141,7 +199,7 @@ export function NewTripDialog({ onCreate, onCancel, generation, initialStep }: P
         </fieldset>
         {failed && <p role="alert">{t("newTrip.error")}</p>}
         <div className="dialog-actions">
-          {generation && (
+          {hasChoice && (
             <button type="button" className="btn back" disabled={busy} onClick={() => setStep("choose")}>
               <ChevronLeft size={14} aria-hidden="true" />
               {t("generic.back")}

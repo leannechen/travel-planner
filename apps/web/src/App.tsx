@@ -69,7 +69,7 @@ import { InvitePage } from "./InvitePage";
 import { Landing } from "./Landing";
 import { ShareDialog } from "./ShareDialog";
 import { clearNotice, clearPendingEdits, keepPendingEdits, peekNotice, peekPendingEdits } from "./pendingEdits";
-import { useIsPhone, useRoomForPinnedList } from "./phone";
+import { useIsPhone } from "./phone";
 import { EventPanel } from "./EventPanel";
 import { rememberOpeningHours } from "./openingHours";
 import { TripSettingsDialog, type SettingsChanges } from "./TripSettingsDialog";
@@ -84,7 +84,8 @@ import { Toast } from "./Toast";
 import { TitleForm } from "./TitleForm";
 import { chooseTrip, hasTripInAddress, isLandingLocation, openLanding, openTrip, readWantedTripId, rememberTripId, wantsTripList } from "./currentTrip";
 import { NewTripDialog } from "./NewTripDialog";
-import { TripListDrawer } from "./TripListDrawer";
+import { TripListDialog } from "./TripListDialog";
+import { DeleteTripDialog } from "./DeleteTripDialog";
 import { backupFileName, saveTextFile } from "./backupFile";
 import { useTripGeneration } from "./tripGeneration";
 import { TripCard, type EventMove, type Toasted } from "./TripCard";
@@ -101,25 +102,6 @@ type Selection = { tripId: string; eventId: string; quiet?: boolean; restored?: 
 
 // Where the user is heading when leaving the panel: another selection, or another Trip.
 type Heading = Selection | { switchTo: string } | { goHome: true };
-
-// Whether the Trip list is pinned open (design 27, C), kept in this browser.
-const LIST_PINNED_KEY = "travel-planner.trip-list-pinned";
-
-function readListPinned() {
-  try {
-    return localStorage.getItem(LIST_PINNED_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
-function saveListPinned(value: boolean) {
-  try {
-    localStorage.setItem(LIST_PINNED_KEY, value ? "1" : "0");
-  } catch {
-    // Without storage the list is unpinned next time.
-  }
-}
 
 // "Do not remind me again" for the Todo-deletion dialogs. Kept in this browser until accounts exist
 // (step 18); there is no setting to turn it back on in v1 (PRD §5).
@@ -241,10 +223,6 @@ function Workspace({ joinedMessage }: { joinedMessage?: string }) {
   // The page shows one Trip at a time: the one in the URL or this browser, else the first.
   const [wantedTripId, setWantedTripId] = useState(readWantedTripId);
   const [tripListOpen, setTripListOpen] = useState(wantsTripList);
-  // The Trip list pinned open beside the Days on desktop, kept in this browser (design 27, C).
-  const [listPinned, setListPinned] = useState(readListPinned);
-  const roomForPin = useRoomForPinnedList();
-  const pinnedList = listPinned && roomForPin;
   const [error, setError] = useState<string | undefined>();
   // Why a drag or resize could not be saved; kept apart from the load error.
   const [saveError, setSaveError] = useState<string | undefined>();
@@ -336,26 +314,17 @@ function Workspace({ joinedMessage }: { joinedMessage?: string }) {
 
   // The Trip whose Share dialog is open.
   const [shareTripId, setShareTripId] = useState<string | undefined>();
-  // The Trip whose settings are open.
+  // The Trip whose settings are open, and the one asked about deleting (from its settings).
   const [settingsTripId, setSettingsTripId] = useState<string | undefined>();
+  const [deleteTripId, setDeleteTripId] = useState<string | undefined>();
 
   async function handleSaveSettings(tripId: string, changes: SettingsChanges) {
     const saved = await updateTrip(tripId, changes);
-    setTrips((current) => current?.map((trip) => (trip.id === tripId ? { ...trip, startDate: saved.startDate, travelMode: saved.travelMode } : trip)));
-  }
-
-  async function handleRenameTrip(tripId: string, title: string) {
-    const saved = await updateTrip(tripId, { title });
-    setTrips((current) => current?.map((trip) => (trip.id === tripId ? { ...trip, title: saved.title } : trip)));
+    setTrips((current) => current?.map((trip) => (trip.id === tripId ? { ...trip, title: saved.title, startDate: saved.startDate, travelMode: saved.travelMode } : trip)));
   }
 
   // Saves the Trip's full backup as a file (PRD §9).
   async function handleExportTrip(tripId: string) {
-    if (auth.status === "guest") {
-      setTripListOpen(false);
-      void auth.login();
-      return;
-    }
     const text = await exportBackup(tripId);
     saveTextFile(backupFileName(trips?.find((trip) => trip.id === tripId)?.title ?? ""), text);
   }
@@ -365,38 +334,6 @@ function Workspace({ joinedMessage }: { joinedMessage?: string }) {
     const trip = await importBackup(await file.text());
     setTrips((current) => [trip, ...(current ?? [])]);
     switchTrip(trip.id);
-  }
-
-  // The Trip list, as a drawer over the Backlog or pinned as a column beside the Days.
-  function tripListView(pinned: boolean) {
-    if (!trips) return undefined;
-    return (
-      <TripListDrawer
-        readOnly={expired}
-        trips={trips}
-        currentId={currentTripId}
-        onSwitch={switchTrip}
-        onCreate={handleCreateTrip}
-        generation={auth.status === "user" ? generation : undefined}
-        onRename={handleRenameTrip}
-        onDelete={handleDeleteTrip}
-        onExport={handleExportTrip}
-        onImport={handleImportBackup}
-        onImportLogin={auth.status === "guest" ? () => { setTripListOpen(false); void auth.login(); } : undefined}
-        // These open on top of the list, so Cancel leaves the list as it was.
-        onOpenSettings={setSettingsTripId}
-        onShare={(tripId) => { if (auth.status === "guest") void auth.login(); else setShareTripId(tripId); }}
-        onClose={() => setTripListOpen(false)}
-        pinned={pinned}
-        onTogglePin={!roomForPin ? undefined : () => {
-          const next = !listPinned;
-          setListPinned(next);
-          saveListPinned(next);
-          // Pinning turns the drawer into the column; unpinning turns the column back into the drawer.
-          setTripListOpen(!next);
-        }}
-      />
-    );
   }
 
   // The next Trip to show is the first one left; the page's own choice takes care of it.
@@ -1117,12 +1054,11 @@ function Workspace({ joinedMessage }: { joinedMessage?: string }) {
           account={account}
           collaborators={<Collaborators people={people.filter((person) => person.id !== meId)} />}
           banner={banners}
-          sidebar={pinnedList ? tripListView(true) : undefined}
           readOnly={expired}
           onOpenSettings={() => setSettingsTripId(trip.id)}
           onGoHome={() => select({ goHome: true })}
-          onOpenTripList={() => { if (!pinnedList) setTripListOpen(true); }}
-          onShare={trip.role === "owner" ? () => (auth.status === "guest" ? void auth.login() : setShareTripId(trip.id)) : undefined}
+          onOpenTripList={() => setTripListOpen(true)}
+          onShare={() => (auth.status === "guest" ? void auth.login() : setShareTripId(trip.id))}
           onDaysChange={handleDaysChange}
           selectedEventId={mine && "eventId" in mine ? mine.eventId : undefined}
           draft={mine && "draft" in mine ? mine.draft : undefined}
@@ -1222,16 +1158,48 @@ function Workspace({ joinedMessage }: { joinedMessage?: string }) {
       {settingsTripId && trips?.some((t) => t.id === settingsTripId) && (
         <TripSettingsDialog
           tripTitle={trips.find((t) => t.id === settingsTripId)!.title}
+          owner={trips.find((t) => t.id === settingsTripId)!.role === "owner"}
           startDate={tripStartDate(trips.find((t) => t.id === settingsTripId)!)}
           travelMode={trips.find((t) => t.id === settingsTripId)!.travelMode}
           onSave={(changes) => handleSaveSettings(settingsTripId, changes)}
+          onDelete={() => setDeleteTripId(settingsTripId)}
           onClose={() => setSettingsTripId(undefined)}
         />
       )}
       {shareTripId && trips?.some((tr) => tr.id === shareTripId) && (
-        <ShareDialog tripId={shareTripId} tripTitle={trips.find((tr) => tr.id === shareTripId)!.title} ownerEmail={auth.email} onClose={() => setShareTripId(undefined)} />
+        <ShareDialog
+          tripId={shareTripId}
+          tripTitle={trips.find((tr) => tr.id === shareTripId)!.title}
+          owner={trips.find((tr) => tr.id === shareTripId)!.role === "owner"}
+          onExport={() => handleExportTrip(shareTripId)}
+          ownerEmail={auth.email}
+          onClose={() => setShareTripId(undefined)}
+        />
       )}
-      {tripListOpen && !pinnedList && tripListView(false)}
+      {deleteTripId && trips?.some((tr) => tr.id === deleteTripId) && (
+        <DeleteTripDialog
+          trip={trips.find((tr) => tr.id === deleteTripId)!}
+          onCancel={() => setDeleteTripId(undefined)}
+          onDelete={async () => {
+            await handleDeleteTrip(deleteTripId);
+            setDeleteTripId(undefined);
+            setSettingsTripId(undefined);
+          }}
+        />
+      )}
+      {tripListOpen && trips && (
+        <TripListDialog
+          readOnly={expired}
+          trips={trips}
+          currentId={currentTripId}
+          onSwitch={switchTrip}
+          onCreate={handleCreateTrip}
+          generation={auth.status === "user" ? generation : undefined}
+          onImport={handleImportBackup}
+          onImportLogin={auth.status === "guest" ? () => { setTripListOpen(false); void auth.login(); } : undefined}
+          onClose={() => setTripListOpen(false)}
+        />
+      )}
       {retryingGeneration && auth.status === "user" && (
         <NewTripDialog
           generation={generation}

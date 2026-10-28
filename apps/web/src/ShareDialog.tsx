@@ -1,5 +1,5 @@
 import { emailSchema, type Sharing } from "@travel-planner/shared";
-import { Copy, Link as LinkIcon, Mail, X } from "lucide-react";
+import { Box, Copy, Link as LinkIcon, Mail, X } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ApiError, getSharing, inviteEditor, removeEditor, revokeInvitation, setShareLink } from "./api";
 import { useT } from "./preferences";
@@ -7,6 +7,10 @@ import { useT } from "./preferences";
 type Props = {
   tripId: string;
   tripTitle: string;
+  // An Editor sees only Export; the Owner also turns the link on and invites Editors.
+  owner: boolean;
+  // Saves the Trip's full backup as a file; rejects when that failed.
+  onExport: () => Promise<void>;
   // The Owner's own address, for their row in the list.
   ownerEmail: string | undefined;
   onClose: () => void;
@@ -15,9 +19,10 @@ type Props = {
 const inviteLink = (token: string) => `${window.location.origin}/?invite=${encodeURIComponent(token)}`;
 const viewLink = (token: string) => `${window.location.origin}/t/${encodeURIComponent(token)}`;
 
-// Share (design 19): the Owner turns the read-only link for Viewers on or off, invites Editors by
-// email and sees who can edit. Changes are saved at once; there is no Save button.
-export function ShareDialog({ tripId, tripTitle, ownerEmail, onClose }: Props) {
+// Share Trip (design 19): the Owner turns the read-only link for Viewers on or off, invites Editors
+// by email and sees who can edit; everyone who may open it can download the Trip's full backup.
+// Changes are saved at once; there is no Save button.
+export function ShareDialog({ tripId, tripTitle, owner, onExport, ownerEmail, onClose }: Props) {
   const t = useT();
   const dialog = useRef<HTMLDialogElement>(null);
   const [sharing, setSharing] = useState<Sharing | undefined>();
@@ -32,9 +37,14 @@ export function ShareDialog({ tripId, tripTitle, ownerEmail, onClose }: Props) {
     if (element && !element.open) element.showModal();
   }, []);
 
+  const [exporting, setExporting] = useState(false);
+  const [exportFailed, setExportFailed] = useState(false);
+
   useEffect(() => {
+    // Only the Owner may ask; an Editor gets 404.
+    if (!owner) return;
     getSharing(tripId).then(setSharing, () => setLoadFailed(true));
-  }, [tripId]);
+  }, [tripId, owner]);
 
   // True when the change was made.
   async function change(action: () => Promise<unknown>, failure?: (err: Error) => string | undefined) {
@@ -77,6 +87,17 @@ export function ShareDialog({ tripId, tripTitle, ownerEmail, onClose }: Props) {
     setBusy(false);
   }
 
+  async function download() {
+    setExporting(true);
+    setExportFailed(false);
+    try {
+      await onExport();
+    } catch {
+      setExportFailed(true);
+    }
+    setExporting(false);
+  }
+
   async function copyViewLink(token: string) {
     try {
       await navigator.clipboard.writeText(viewLink(token));
@@ -104,6 +125,8 @@ export function ShareDialog({ tripId, tripTitle, ownerEmail, onClose }: Props) {
         </button>
       </div>
       <p className="settings-trip">{tripTitle}</p>
+      {owner && (
+        <>
       <div className="settings-field share-link">
         {/* Not a label: only the switch itself reacts to a click. */}
         <div className="map-toggle share-link-toggle">
@@ -175,6 +198,22 @@ export function ShareDialog({ tripId, tripTitle, ownerEmail, onClose }: Props) {
           </li>
         ))}
       </ul>
+        </>
+      )}
+      <div className="settings-field">
+        <span className="share-export-label">{t("share.export")}</span>
+        <div className="share-backup">
+          <Box size={18} aria-hidden="true" />
+          <span>
+            <strong>{t("share.backup")}</strong>
+            <small>{t("share.backupHint")}</small>
+          </span>
+          <button type="button" className="btn" disabled={exporting} onClick={() => void download()}>
+            {t("share.download")}
+          </button>
+        </div>
+        {exportFailed && <p role="alert">{t("tripList.exportError")}</p>}
+      </div>
       {copied && <p role="status" className="hint">{t("share.copied")}</p>}
     </dialog>
   );

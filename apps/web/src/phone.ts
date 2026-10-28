@@ -16,7 +16,3 @@ function useMatches(query: string): boolean {
 }
 
 export const useIsPhone = () => useMatches(QUERY);
-
-// Wide enough for the Trip list to stay open beside the Backlog, the Days and the Todos (keep in
-// step with styles.css).
-export const useRoomForPinnedList = () => useMatches("(min-width: 64rem)");

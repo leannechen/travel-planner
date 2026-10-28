@@ -12,13 +12,40 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
-function setup(startDate?: string, onSave = vi.fn(async () => undefined)) {
+function setup(startDate?: string, onSave = vi.fn(async () => undefined), owner = true) {
   const onClose = vi.fn();
-  renderApp(<TripSettingsDialog tripTitle="Kyoto" startDate={startDate} travelMode="transit" onSave={onSave} onClose={onClose} />);
-  return { onSave, onClose, field: () => screen.getByLabelText(/Start date/) as HTMLInputElement };
+  const onDelete = vi.fn();
+  renderApp(<TripSettingsDialog tripTitle="Kyoto" owner={owner} startDate={startDate} travelMode="transit" onSave={onSave} onDelete={onDelete} onClose={onClose} />);
+  return { onSave, onClose, onDelete, field: () => screen.getByLabelText(/Start date/) as HTMLInputElement };
 }
 
 describe("Trip settings", () => {
+  it("renames the Trip with Save, together with the other settings", async () => {
+    const { onSave } = setup();
+    const title = screen.getByLabelText("Trip title") as HTMLInputElement;
+    expect(title.value).toBe("Kyoto");
+    await userEvent.clear(title);
+    await userEvent.type(title, "  Kyoto & Osaka ");
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSave).toHaveBeenCalledWith({ title: "Kyoto & Osaka" });
+  });
+
+  it("does not save an empty title", async () => {
+    setup();
+    await userEvent.clear(screen.getByLabelText("Trip title"));
+    expect((screen.getByRole("button", { name: "Save" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("asks to delete the Trip with Delete Trip…, for the Owner only", async () => {
+    const { onDelete } = setup();
+    await userEvent.click(screen.getByRole("button", { name: "Delete Trip…" }));
+    expect(onDelete).toHaveBeenCalled();
+    cleanup();
+    setup(undefined, undefined, false);
+    expect(screen.queryByRole("button", { name: "Delete Trip…" })).toBeNull();
+    expect(screen.queryByLabelText("Trip title")).toBeNull();
+  });
+
   it("shows the saved date, with Clear enabled", () => {
     const { field } = setup("2026-11-03");
     expect(field().value).toBe("2026-11-03");

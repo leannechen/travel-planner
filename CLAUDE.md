@@ -2,6 +2,8 @@
 
 Product rules: docs/PRD.md. Vocabulary: CONTEXT.md. Build order and status: docs/implementation-plan.md.
 
+Design work (screens, design system, PNG exports) goes to the `designer` agent. The design lives in docs/design/ (start with its README.md); the HTML files in docs/design/source/ are the source of truth.
+
 When each implementation step is completed,
 1. Run the code-reviewer subagent on the uncommitted changes. Fix confirmed problems in the same working tree and report the rest.
 2. Run `npm run lint`, `npm run typecheck`, `npm test` and `npm run build`; commit only when all pass. Make one commit for the step; do not add a separate "fix issues found in review" commit.

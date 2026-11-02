@@ -17,14 +17,14 @@ The panel saves on the Save button (PRD §3.2), so the earlier autosave look is 
 
 Opening hours come from Google and the user cannot edit them (PRD §3.2). The field must look read-only (plain text, no dropdown chevron), and the kind-switch note must not mention opening hours.
 
-- [x] `PanelSwitch.dc.html` (#09): remove "opening hours" from the notes ("Duration and opening hours kept, hidden for Lodging" becomes "Duration kept, hidden for Lodging"; same for the Transport example text).
-- [x] `EventPanelSide.dc.html` (#04), `PanelKinds.dc.html` (#07), `MapView.dc.html` (#06): the Opening hours field is drawn as an input with a chevron; draw it as read-only text with a "from Google" hint.
-- [x] `Viewer.dc.html` (#18), `EventPanel*.dc.html`, `PanelKindsPhone.dc.html`: check the same.
-- [x] `DSComponents.dc.html` (#30): no change expected (the warning style stays).
+- [x] `09-panel-switch-kind.dc.html` (#09): remove "opening hours" from the notes ("Duration and opening hours kept, hidden for Lodging" becomes "Duration kept, hidden for Lodging"; same for the Transport example text).
+- [x] `04-event-panel-side.dc.html` (#04), `07-event-panel-kinds-desktop.dc.html` (#07), `06-map-view.dc.html` (#06): the Opening hours field is drawn as an input with a chevron; draw it as read-only text with a "from Google" hint.
+- [x] `18-viewer-mode.dc.html` (#18), `03`/`04`/`05` `*event-panel*.dc.html`, `08-event-panel-kinds-phone.dc.html`: check the same.
+- [x] `30-ds-components.dc.html` (#30): no change expected (the warning style stays).
 
 ## Opening hours on request (PRD §3.5, plan step 16; designed 2026-10-19)
 
-Opening hours are fetched only when the user presses a button. Everything the plan listed as "not designed yet" is now drawn in `OpeningHours.dc.html` (#44). Developers: build from #44, and see #04, #05, #07 (desktop) and #03, #08 (phone) for the section in place.
+Opening hours are fetched only when the user presses a button. Everything the plan listed as "not designed yet" is now drawn in `44-opening-hours.dc.html` (#44). Developers: build from #44, and see #04, #05, #07 (desktop) and #03, #08 (phone) for the section in place.
 
 - [x] Section after Contact, before Image: button "Get opening hours from Google" (off), loading, one line when the same every day, the Event's weekday with a "Whole week" toggle, "from Google" beside the hours, "Remove opening hours" action (#44 states 1 to 5, 11, 12).
 - [x] Notes: no start date (week shown plus a note that dates are needed), Google has no hours (#44 states 6, 7).
@@ -48,7 +48,7 @@ Language, theme, log out, Share and Export were spread over several phone screen
 
 Google login moves to the next phase: Auth0 keeps a Google login and an email login with the same address as two accounts, and merging them is not in the first release.
 
-- [x] `LoginHosted.dc.html` (#36): removed the "or" divider and "Continue with Google" from every frame; design notes updated.
+- [x] `36-login-hosted.dc.html` (#36): removed the "or" divider and "Continue with Google" from every frame; design notes updated.
 - [x] PRD §8, ADR 0006, design-spec and the implementation plan (next phase) updated.
 
 ## Auth0 review of the login flows (2026-10-20)

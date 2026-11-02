@@ -2,7 +2,7 @@
   "v": 3,
   "attachments": {},
   "boards": {
-    "AccountMenu.dc.html": {
+    "38-account-menu.dc.html": {
       "h": 2266,
       "page": "page-72j84k",
       "title": "#38 · Account menu — logged out, logged in, open · High fidelity",
@@ -10,7 +10,7 @@
       "x": 0,
       "y": 19158
     },
-    "AuthStates.dc.html": {
+    "48-auth-states.dc.html": {
       "h": 940,
       "page": "page-72j84k",
       "title": "#48 · Auth states — invitation (wrong account, verify email, joined), session expired with unsaved edits, account loading · High fidelity",
@@ -18,35 +18,35 @@
       "x": 0,
       "y": 10660
     },
-    "ConfirmEvent.dc.html": {
+    "20-confirm-archive-delete.dc.html": {
       "h": 880,
       "title": "#20 · Archive and delete confirmations, toasts, phone · High fidelity",
       "w": 2000,
       "x": 2460,
       "y": 5800
     },
-    "DSComponents.dc.html": {
+    "30-ds-components.dc.html": {
       "h": 1180,
       "title": "#30 · Design system — components and their states",
       "w": 2400,
       "x": 1980,
       "y": 12880
     },
-    "DSOverlays.dc.html": {
+    "31-ds-overlays.dc.html": {
       "h": 1180,
       "title": "#31 · Design system — dialogs, popovers, banners, tooltips and the shortcut format",
       "w": 1800,
       "x": 4460,
       "y": 12880
     },
-    "DSTokens.dc.html": {
+    "29-ds-tokens.dc.html": {
       "h": 1180,
       "title": "#29 · Design system — color tokens (light and dark), type scale, spacing, radius, shadow",
       "w": 1900,
       "x": 0,
       "y": 12880
     },
-    "DayDelete.dc.html": {
+    "13-day-delete.dc.html": {
       "expand": "fill",
       "h": 900,
       "title": "#13 · Delete Day — confirmation and undo toast · High fidelity",
@@ -54,7 +54,7 @@
       "x": 2780,
       "y": 3100
     },
-    "DayDrag.dc.html": {
+    "12-day-drag.dc.html": {
       "expand": "fill",
       "h": 900,
       "title": "#12 · Dragging a Day — lifted Day, drop position, live renumbering · High fidelity",
@@ -62,35 +62,35 @@
       "x": 1260,
       "y": 3100
     },
-    "DayHeader.dc.html": {
+    "11-day-header-menu.dc.html": {
       "h": 800,
       "title": "#11 · Day header — handle, states and Day menu (desktop) · High fidelity",
       "w": 1180,
       "x": 0,
       "y": 3100
     },
-    "DayMenuPhone.dc.html": {
+    "14-day-menu-phone.dc.html": {
       "h": 930,
       "title": "#14 · Day menu and delete confirmation — phone · High fidelity",
       "w": 1330,
       "x": 4300,
       "y": 3100
     },
-    "DaySwapLodging.dc.html": {
+    "15-day-swap-lodging.dc.html": {
       "h": 940,
       "title": "#15 · Swapping two Days — the 3-night stay stays in place · High fidelity",
       "w": 1440,
       "x": 5710,
       "y": 3100
     },
-    "Dialogs.dc.html": {
+    "19-dialogs.dc.html": {
       "h": 900,
       "title": "#19 · Dialogs — Share Trip (on / off, with Export), Trip settings · High fidelity",
       "w": 2000,
       "x": 0,
       "y": 5800
     },
-    "EmptySlot.dc.html": {
+    "43-empty-slot.dc.html": {
       "h": 1250,
       "page": "page-72j84k",
       "title": "#43 · Empty time slot — Add Event / Add Travel on hover (desktop) and tap (phone) · High fidelity",
@@ -98,21 +98,21 @@
       "x": 0,
       "y": 3100
     },
-    "EventImage.dc.html": {
+    "26-event-image.dc.html": {
       "h": 1060,
       "title": "#26 · Event image — panel states and Event block · High fidelity",
       "w": 2340,
       "x": 0,
       "y": 10100
     },
-    "EventPanel.dc.html": {
+    "03-event-panel-phone-sheet.dc.html": {
       "h": 900,
       "title": "#03 · Event panel — phone bottom sheet · High fidelity",
       "w": 470,
       "x": 1990,
       "y": 0
     },
-    "EventPanelActions.dc.html": {
+    "46-event-panel-actions.dc.html": {
       "h": 1120,
       "page": "page-72j84k",
       "title": "#46 · Event panel — kind dropdown and footer actions · High fidelity",
@@ -120,7 +120,7 @@
       "x": 0,
       "y": 7800
     },
-    "EventPanelModal.dc.html": {
+    "05-event-panel-modal.dc.html": {
       "expand": "fill",
       "h": 900,
       "title": "#05 · Event panel — expanded: modal (Collapse → side panel) · High fidelity",
@@ -128,7 +128,7 @@
       "x": 4060,
       "y": 0
     },
-    "EventPanelSide.dc.html": {
+    "04-event-panel-side.dc.html": {
       "expand": "fill",
       "h": 900,
       "title": "#04 · Event panel — default: side panel (Expand → modal) · High fidelity",
@@ -136,14 +136,14 @@
       "x": 2540,
       "y": 0
     },
-    "ExportImage.dc.html": {
+    "21-export-image.dc.html": {
       "h": 1120,
       "title": "#21 · Exported image — poster · High fidelity",
       "w": 1960,
       "x": 4540,
       "y": 5800
     },
-    "GuestTooltip.dc.html": {
+    "35-guest-login-tooltip.dc.html": {
       "h": 1956,
       "page": "page-72j84k",
       "title": "#35 · Guest workspace — tooltip on “Log in to save your progress” · High fidelity",
@@ -151,14 +151,14 @@
       "x": 0,
       "y": 12120
     },
-    "GuestWorkspace.dc.html": {
+    "34-guest-workspace.dc.html": {
       "h": 960,
       "title": "#34 · Guest workspace — Log in to save, phone banner and “…” menu, login note · High fidelity",
       "w": 2940,
       "x": 7600,
       "y": 4300
     },
-    "InviteEditor.dc.html": {
+    "41-invite-editor.dc.html": {
       "h": 1956,
       "page": "page-72j84k",
       "title": "#41 · Invited Editor from an email link, logged out · High fidelity",
@@ -166,63 +166,63 @@
       "x": 0,
       "y": 25696
     },
-    "Landing.dc.html": {
+    "16-landing.dc.html": {
       "h": 1000,
       "title": "#16 · Landing — new visitor, desktop and phone · High fidelity",
       "w": 2300,
       "x": 0,
       "y": 4300
     },
-    "LandingGuestTrips.dc.html": {
+    "16b-landing-guest-trips.dc.html": {
       "h": 1000,
       "title": "#16b · Landing — guest with Trips, desktop and phone · High fidelity",
       "w": 2300,
       "x": 10620,
       "y": 4300
     },
-    "LandingLoggedIn.dc.html": {
+    "16c-landing-logged-in.dc.html": {
       "h": 1000,
       "title": "#16c · Landing — logged in, desktop and phone · High fidelity",
       "w": 2300,
       "x": 10620,
       "y": 5420
     },
-    "LandingLoggedInEmpty.dc.html": {
+    "16d-landing-logged-in-empty.dc.html": {
       "h": 1000,
       "title": "#16d · Landing — logged in, no Trips, desktop and phone · High fidelity",
       "w": 2300,
       "x": 10620,
       "y": 6540
     },
-    "LegDetail.dc.html": {
+    "25-leg-detail.dc.html": {
       "h": 900,
       "title": "#25 · Leg — chooser, detail, warning, cannot calculate, phone sheet · High fidelity",
       "w": 3300,
       "x": 4740,
       "y": 8900
     },
-    "LegManual.dc.html": {
+    "25b-leg-manual-duration.dc.html": {
       "h": 900,
       "title": "#25b · Leg — duration entered by hand (Google cannot calculate, e.g. Japan transit), phone · High fidelity",
       "w": 3900,
       "x": 8120,
       "y": 8900
     },
-    "LegDuration.dc.html": {
+    "25c-leg-duration-edit.dc.html": {
       "h": 760,
       "title": "#25c · Leg — editing a duration entered by hand (Edit button) · High fidelity",
       "w": 1520,
       "x": 12120,
       "y": 8900
     },
-    "LodgingBanner.dc.html": {
+    "10-lodging-banner.dc.html": {
       "h": 900,
       "title": "#10 · Lodging banner in Day columns — 3 nights, Day 1 to Day 4 · High fidelity",
       "w": 1400,
       "x": 5450,
       "y": 1500
     },
-    "LoginHosted.dc.html": {
+    "36-login-hosted.dc.html": {
       "h": 2456,
       "page": "page-72j84k",
       "title": "#36 · Hosted login page (Auth0, themed) — log in and sign up screens, wrong password; English and 繁中 · High fidelity",
@@ -230,7 +230,7 @@
       "x": 0,
       "y": 14196
     },
-    "LoginReturn.dc.html": {
+    "37-login-return.dc.html": {
       "h": 2266,
       "page": "page-72j84k",
       "title": "#37 · Returning to the app after login — Trip added, Trip list, login didn’t complete · High fidelity",
@@ -238,7 +238,7 @@
       "x": 0,
       "y": 16772
     },
-    "Logout.dc.html": {
+    "39-logout.dc.html": {
       "h": 1956,
       "page": "page-72j84k",
       "title": "#39 · Log out — Landing with “You’re logged out” toast · High fidelity",
@@ -246,7 +246,7 @@
       "x": 0,
       "y": 21544
     },
-    "Main.dc.html": {
+    "01-desktop-workspace.dc.html": {
       "expand": "fill",
       "h": 900,
       "title": "#01 · Trip workspace — desktop · High fidelity",
@@ -254,7 +254,7 @@
       "x": 0,
       "y": 0
     },
-    "MainCollapsed.dc.html": {
+    "33-desktop-workspace-collapsed.dc.html": {
       "expand": "fill",
       "h": 900,
       "title": "#33 · Trip workspace — desktop, both side panels collapsed · High fidelity",
@@ -262,7 +262,7 @@
       "x": 7100,
       "y": 0
     },
-    "MainDark.dc.html": {
+    "32-desktop-workspace-dark.dc.html": {
       "expand": "fill",
       "h": 900,
       "title": "#32 · Trip workspace — desktop, dark theme · High fidelity",
@@ -270,7 +270,7 @@
       "x": 0,
       "y": 14340
     },
-    "MapView.dc.html": {
+    "06-map-view.dc.html": {
       "expand": "fill",
       "h": 900,
       "title": "#06 · Map View · High fidelity",
@@ -278,14 +278,14 @@
       "x": 5580,
       "y": 0
     },
-    "NotesPanel.dc.html": {
+    "17-notes-panel.dc.html": {
       "h": 1200,
       "title": "#17 · Notes panel — open on Schedule and Map, movable, states, phone sheet · High fidelity",
       "w": 3040,
       "x": 2380,
       "y": 4300
     },
-    "NotesStates.dc.html": {
+    "42-notes-panel.dc.html": {
       "h": 2920,
       "page": "page-72j84k",
       "title": "#42 · Notes panel — new Note, list, open Note; desktop and phone, light and dark · High fidelity",
@@ -293,7 +293,7 @@
       "x": 0,
       "y": 0
     },
-    "OpeningHours.dc.html": {
+    "44-opening-hours.dc.html": {
       "h": 1740,
       "page": "page-72j84k",
       "title": "#44 · Opening hours — Event panel section states, conflict label, read-only, phone · High fidelity",
@@ -301,35 +301,35 @@
       "x": 0,
       "y": 4470
     },
-    "PanelKinds.dc.html": {
+    "07-event-panel-kinds-desktop.dc.html": {
       "h": 1080,
       "title": "#07 · Event panel by kind — desktop (Attraction · Meal · Lodging · Transport) · High fidelity",
       "w": 1840,
       "x": 0,
       "y": 1500
     },
-    "PanelKindsPhone.dc.html": {
+    "08-event-panel-kinds-phone.dc.html": {
       "h": 1260,
       "title": "#08 · Event panel by kind — phone bottom sheets · High fidelity",
       "w": 1710,
       "x": 1920,
       "y": 1500
     },
-    "PanelSwitch.dc.html": {
+    "09-panel-switch-kind.dc.html": {
       "h": 1040,
       "title": "#09 · Switching kind — Attraction to Lodging, before and after · High fidelity (after state)",
       "w": 1660,
       "x": 3710,
       "y": 1500
     },
-    "Phone.dc.html": {
+    "02-phone-workspace.dc.html": {
       "h": 844,
       "title": "#02 · Trip workspace — phone · High fidelity",
       "w": 390,
       "x": 1520,
       "y": 0
     },
-    "PhoneMenus.dc.html": {
+    "47-phone-menus.dc.html": {
       "h": 1500,
       "page": "page-72j84k",
       "title": "#47 · Phone — account and Trip menus · High fidelity",
@@ -337,7 +337,7 @@
       "x": 0,
       "y": 9040
     },
-    "SessionExpired.dc.html": {
+    "40-session-expired.dc.html": {
       "h": 1956,
       "page": "page-72j84k",
       "title": "#40 · Session expired while editing — read-only Trip and banner · High fidelity",
@@ -345,28 +345,28 @@
       "x": 0,
       "y": 23620
     },
-    "StatesEmpty.dc.html": {
+    "22-states-empty-loading.dc.html": {
       "h": 1000,
       "title": "#22 · States — empty Trip, Day, Backlog and Archive; loading · High fidelity",
       "w": 2000,
       "x": 0,
       "y": 7220
     },
-    "StatesErrors.dc.html": {
+    "23-states-errors.dc.html": {
       "h": 1180,
       "title": "#23 · States — errors and limit reached · High fidelity",
       "w": 2000,
       "x": 2080,
       "y": 7220
     },
-    "StatesGeneric.dc.html": {
+    "28-states-generic.dc.html": {
       "h": 900,
       "title": "#28 · Empty state, loading skeleton and error banner — one generic style each · High fidelity",
       "w": 2000,
       "x": 0,
       "y": 11500
     },
-    "TripDates.dc.html": {
+    "45-trip-dates.dc.html": {
       "h": 1320,
       "page": "page-72j84k",
       "title": "#45 · Trip dates — start date entry points, Trip settings, date picker, Day headers · High fidelity",
@@ -374,28 +374,28 @@
       "x": 0,
       "y": 6360
     },
-    "TripList.dc.html": {
+    "24-trip-list.dc.html": {
       "h": 920,
       "title": "#24 · My Trips modal, New Trip (Blank / Generate with AI / Import backup), Delete Trip · High fidelity",
       "w": 4220,
       "x": 0,
       "y": 8900
     },
-    "TripListNav.dc.html": {
+    "27-trip-list-nav.dc.html": {
       "h": 940,
       "title": "#27 · My Trips modal from the Trip title; Backlog/Archive collapse; switching Trips · High fidelity",
       "w": 3640,
       "x": 2420,
       "y": 10100
     },
-    "Viewer.dc.html": {
+    "18-viewer-mode.dc.html": {
       "h": 900,
       "title": "#18 · Viewer mode — read-only workspace and Event details · High fidelity",
       "w": 2040,
       "x": 5500,
       "y": 4300
     },
-    "TripListPhone.dc.html": {
+    "24b-trip-list-phone.dc.html": {
       "h": 940,
       "title": "#24b · My Trips — phone: list, New Trip, Blank, Generate with AI, Trip settings, Delete Trip, Share Trip · High fidelity",
       "w": 3460,
@@ -527,60 +527,60 @@
     }
   },
   "order": [
-    "Main.dc.html",
-    "Phone.dc.html",
-    "EventPanel.dc.html",
-    "EventPanelSide.dc.html",
-    "EventPanelModal.dc.html",
-    "MapView.dc.html",
-    "PanelKinds.dc.html",
-    "PanelKindsPhone.dc.html",
-    "PanelSwitch.dc.html",
-    "LodgingBanner.dc.html",
-    "DayHeader.dc.html",
-    "DayDrag.dc.html",
-    "DayDelete.dc.html",
-    "DayMenuPhone.dc.html",
-    "DaySwapLodging.dc.html",
-    "Landing.dc.html",
-    "LandingGuestTrips.dc.html",
-    "LandingLoggedIn.dc.html",
-    "LandingLoggedInEmpty.dc.html",
-    "NotesPanel.dc.html",
-    "Viewer.dc.html",
-    "Dialogs.dc.html",
-    "ConfirmEvent.dc.html",
-    "ExportImage.dc.html",
-    "StatesEmpty.dc.html",
-    "StatesErrors.dc.html",
-    "TripList.dc.html",
-    "TripListPhone.dc.html",
-    "LegDetail.dc.html",
-    "LegManual.dc.html",
-    "LegDuration.dc.html",
-    "EventImage.dc.html",
-    "TripListNav.dc.html",
-    "StatesGeneric.dc.html",
-    "DSTokens.dc.html",
-    "DSComponents.dc.html",
-    "DSOverlays.dc.html",
-    "MainDark.dc.html",
-    "MainCollapsed.dc.html",
-    "GuestWorkspace.dc.html",
-    "GuestTooltip.dc.html",
-    "LoginHosted.dc.html",
-    "LoginReturn.dc.html",
-    "AccountMenu.dc.html",
-    "Logout.dc.html",
-    "SessionExpired.dc.html",
-    "InviteEditor.dc.html",
-    "NotesStates.dc.html",
-    "EmptySlot.dc.html",
-    "OpeningHours.dc.html",
-    "TripDates.dc.html",
-    "EventPanelActions.dc.html",
-    "PhoneMenus.dc.html",
-    "AuthStates.dc.html"
+    "01-desktop-workspace.dc.html",
+    "02-phone-workspace.dc.html",
+    "03-event-panel-phone-sheet.dc.html",
+    "04-event-panel-side.dc.html",
+    "05-event-panel-modal.dc.html",
+    "06-map-view.dc.html",
+    "07-event-panel-kinds-desktop.dc.html",
+    "08-event-panel-kinds-phone.dc.html",
+    "09-panel-switch-kind.dc.html",
+    "10-lodging-banner.dc.html",
+    "11-day-header-menu.dc.html",
+    "12-day-drag.dc.html",
+    "13-day-delete.dc.html",
+    "14-day-menu-phone.dc.html",
+    "15-day-swap-lodging.dc.html",
+    "16-landing.dc.html",
+    "16b-landing-guest-trips.dc.html",
+    "16c-landing-logged-in.dc.html",
+    "16d-landing-logged-in-empty.dc.html",
+    "17-notes-panel.dc.html",
+    "18-viewer-mode.dc.html",
+    "19-dialogs.dc.html",
+    "20-confirm-archive-delete.dc.html",
+    "21-export-image.dc.html",
+    "22-states-empty-loading.dc.html",
+    "23-states-errors.dc.html",
+    "24-trip-list.dc.html",
+    "24b-trip-list-phone.dc.html",
+    "25-leg-detail.dc.html",
+    "25b-leg-manual-duration.dc.html",
+    "25c-leg-duration-edit.dc.html",
+    "26-event-image.dc.html",
+    "27-trip-list-nav.dc.html",
+    "28-states-generic.dc.html",
+    "29-ds-tokens.dc.html",
+    "30-ds-components.dc.html",
+    "31-ds-overlays.dc.html",
+    "32-desktop-workspace-dark.dc.html",
+    "33-desktop-workspace-collapsed.dc.html",
+    "34-guest-workspace.dc.html",
+    "35-guest-login-tooltip.dc.html",
+    "36-login-hosted.dc.html",
+    "37-login-return.dc.html",
+    "38-account-menu.dc.html",
+    "39-logout.dc.html",
+    "40-session-expired.dc.html",
+    "41-invite-editor.dc.html",
+    "42-notes-panel.dc.html",
+    "43-empty-slot.dc.html",
+    "44-opening-hours.dc.html",
+    "45-trip-dates.dc.html",
+    "46-event-panel-actions.dc.html",
+    "47-phone-menus.dc.html",
+    "48-auth-states.dc.html"
   ],
   "pages": [
     {

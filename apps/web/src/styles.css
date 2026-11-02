@@ -2477,7 +2477,7 @@ main.has-panel .topbar {
   font-size: 12px;
 }
 
-/* The one gradient button (design 24, the `.aib` rules in design/source/TripList.dc.html). The gradient is
+/* The one gradient button (design 24, the `.aib` rules in design/source/24-trip-list.dc.html). The gradient is
    set here, not inline, so the hover state is not overridden. */
 .new-trip-choice.ai {
   border: 0;

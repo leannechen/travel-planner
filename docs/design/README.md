@@ -13,12 +13,18 @@ This folder is the **final** design for Travel Planner. It replaces the earlier 
 design/
   README.md
   png/       one image per screen at 2x resolution, numbered in design order
-  source/    original HTML, CSS and canvas.json
+  source/    HTML, CSS and canvas.json (the source of truth, edited here by hand or by the designer agent)
     hf.css          shared stylesheet: color tokens (light + dark), type, spacing, radius, shadow, components
     canvas.json     board sizes, positions and the official order
-    *.dc.html       one file per screen (open directly in a browser)
+    NN-name.dc.html one file per screen, named exactly like its image (png/NN-name.png <-> source/NN-name.dc.html)
     assets/         photos used by Landing and the Event image examples
 ```
+
+## Preview and export
+
+- Preview: `scripts/preview-design.sh` serves `source/` at http://localhost:4173 (open `/NN-name.dc.html`).
+- Export: `node scripts/export-design.mjs [NN ...]` re-exports the named screens (or all) into `png/` at 2x, using the size in `canvas.json`. Screens whose current image is WebP are written as WebP.
+- The local files are the source of truth. The design is no longer edited in Claude Design, so `canvas.json` is kept in sync by hand when a screen is added or resized.
 
 ## Images
 
@@ -26,8 +32,8 @@ All images in `png/` are exported at **2x** (twice the CSS pixel width and heigh
 
 ## Reading values from the source
 
-- **Colors, type, spacing, radius, shadow:** `source/hf.css` (`:root` tokens, with a dark-theme override). `DSTokens.dc.html` shows them visually.
-- **Components and states:** `DSComponents.dc.html` and `DSOverlays.dc.html`. Real markup is in each screen file, using the classes from `hf.css`.
+- **Colors, type, spacing, radius, shadow:** `source/hf.css` (`:root` tokens, with a dark-theme override). `29-ds-tokens.dc.html` shows them visually.
+- **Components and states:** `30-ds-components.dc.html` and `31-ds-overlays.dc.html`. Real markup is in each screen file, using the classes from `hf.css`.
 - **Page size:** each screen's width and height are in `canvas.json` (`boards`).
 - The `.dc.html` files open as plain pages. The `support.js` script they reference belongs to the design tool and is not needed to view them.
 - Fonts load from Google Fonts: Inter, Nunito, Noto Sans TC. Offline, a fallback font is used and text widths differ slightly.
@@ -36,60 +42,60 @@ All images in `png/` are exported at **2x** (twice the CSS pixel width and heigh
 
 | # | Image | Source | Size (px) | Title |
 |---|-------|--------|-----------|-------|
-| 01 | `png/01-desktop-workspace.png` | `source/Main.dc.html` | 1440x900 | Trip workspace — desktop |
-| 02 | `png/02-phone-workspace.png` | `source/Phone.dc.html` | 390x844 | Trip workspace — phone |
-| 03 | `png/03-event-panel-phone-sheet.png` | `source/EventPanel.dc.html` | 470x900 | Event panel — phone bottom sheet |
-| 04 | `png/04-event-panel-side.png` | `source/EventPanelSide.dc.html` | 1440x900 | Event panel — default: side panel (Expand → modal) |
-| 05 | `png/05-event-panel-modal.png` | `source/EventPanelModal.dc.html` | 1440x900 | Event panel — expanded: modal (Collapse → side panel) |
-| 06 | `png/06-map-view.png` | `source/MapView.dc.html` | 1440x900 | Map View |
-| 07 | `png/07-event-panel-kinds-desktop.png` | `source/PanelKinds.dc.html` | 1840x1080 | Event panel by kind — desktop (Attraction · Meal · Lodging · Transport) |
-| 08 | `png/08-event-panel-kinds-phone.png` | `source/PanelKindsPhone.dc.html` | 1710x1260 | Event panel by kind — phone bottom sheets |
-| 09 | `png/09-panel-switch-kind.png` | `source/PanelSwitch.dc.html` | 1660x1040 | Switching kind — Attraction to Lodging, before and after (after state) |
-| 10 | `png/10-lodging-banner.png` | `source/LodgingBanner.dc.html` | 1400x900 | Lodging banner in Day columns — 3 nights, Day 1 to Day 4 |
-| 11 | `png/11-day-header-menu.png` | `source/DayHeader.dc.html` | 1180x800 | Day header — handle, states and Day menu (desktop) |
-| 12 | `png/12-day-drag.png` | `source/DayDrag.dc.html` | 1440x900 | Dragging a Day — lifted Day, drop position, live renumbering |
-| 13 | `png/13-day-delete.png` | `source/DayDelete.dc.html` | 1440x900 | Delete Day — confirmation and undo toast |
-| 14 | `png/14-day-menu-phone.png` | `source/DayMenuPhone.dc.html` | 1330x930 | Day menu and delete confirmation — phone |
-| 15 | `png/15-day-swap-lodging.png` | `source/DaySwapLodging.dc.html` | 1440x940 | Swapping two Days — the 3-night stay stays in place |
-| 16 | `png/16-landing.webp` | `source/Landing.dc.html` | 2300x1000 | Landing — new visitor, desktop and phone |
-| 16b | `png/16b-landing-guest-trips.webp` | `source/LandingGuestTrips.dc.html` | 2300x1000 | Landing — guest with Trips (Continue + Open a sample Trip link + “only saved in this browser”) |
-| 16c | `png/16c-landing-logged-in.webp` | `source/LandingLoggedIn.dc.html` | 2300x1000 | Landing — logged in with Trips (Continue + Open a sample Trip link, avatar top right) |
-| 16d | `png/16d-landing-logged-in-empty.webp` | `source/LandingLoggedInEmpty.dc.html` | 2300x1000 | Landing — logged in, no Trips (Open a sample Trip only, avatar top right) |
-| 17 | `png/17-notes-panel.png` | `source/NotesPanel.dc.html` | 3040x1200 | Notes panel — open on Schedule and Map, movable, states, phone sheet |
-| 18 | `png/18-viewer-mode.png` | `source/Viewer.dc.html` | 2040x900 | Viewer mode — read-only workspace and Event details |
-| 19 | `png/19-dialogs.png` | `source/Dialogs.dc.html` | 2000x900 | Dialogs — Share Trip (link on / off; people list with Owner, Invited, Editor; Export is Full backup only) and Trip settings (rename, start date, travel mode, Delete Trip…, Cancel / Save) |
-| 20 | `png/20-confirm-archive-delete.png` | `source/ConfirmEvent.dc.html` | 2000x880 | Archive and delete confirmations, toasts, phone |
-| 21 | `png/21-export-image.png` | `source/ExportImage.dc.html` | 1960x1120 | Exported image — poster. Not built: image export was dropped on 2026-10-23 |
-| 22 | `png/22-states-empty-loading.png` | `source/StatesEmpty.dc.html` | 2000x1000 | States — empty Trip, Day, Backlog and Archive; loading |
-| 23 | `png/23-states-errors.png` | `source/StatesErrors.dc.html` | 2000x1180 | States — errors and limit reached |
-| 24 | `png/24-trip-list.png` | `source/TripList.dc.html` | 4220x920 | My Trips modal (opened from the Trip title; no “⋯” menu), New Trip (Blank / Generate with AI / Import backup…), Delete Trip (opened from Trip settings). Hover, pressed and focus states of the "Generate with AI" button are live CSS (`.aib`), not in the PNG; see design-spec §4 |
-| 24b | `png/24b-trip-list-phone.png` | `source/TripListPhone.dc.html` | 3460x940 | My Trips on phone — list, New Trip, Blank Trip, Generate with AI, Trip settings, Delete Trip, Share Trip (bottom sheets) |
-| 25 | `png/25-leg-detail.png` | `source/LegDetail.dc.html` | 3300x900 | Leg — chooser, detail, warning, cannot calculate, phone sheet |
-| 25b | `png/25b-leg-manual-duration.png` | `source/LegManual.dc.html` | 3900x900 | Leg — duration entered by hand where Google cannot calculate (public transit in Japan): field, entered state, gap warning, toast, phone sheets |
-| 25c | `png/25c-leg-duration-edit.png` | `source/LegDuration.dc.html` | 1520x760 | Leg — editing a duration entered by hand (Edit button): resting, after Edit, phone |
-| 26 | `png/26-event-image.webp` | `source/EventImage.dc.html` | 2340x1060 | Event image — panel states and Event block |
-| 27 | `png/27-trip-list-nav.png` | `source/TripListNav.dc.html` | 3640x940 | My Trips modal from the Trip title; Backlog/Archive collapse; switching Trips |
-| 28 | `png/28-states-generic.png` | `source/StatesGeneric.dc.html` | 2000x900 | Empty state, loading skeleton and error banner — one generic style each |
-| 29 | `png/29-ds-tokens.png` | `source/DSTokens.dc.html` | 1900x1180 | Design system — color tokens (light and dark), type scale, spacing, radius, shadow |
-| 30 | `png/30-ds-components.png` | `source/DSComponents.dc.html` | 2400x1180 | Design system — components and their states |
-| 31 | `png/31-ds-overlays.png` | `source/DSOverlays.dc.html` | 1800x1180 | Design system — dialogs, popovers, banners, tooltips and the shortcut format |
-| 32 | `png/32-desktop-workspace-dark.png` | `source/MainDark.dc.html` | 1440x900 | Trip workspace — desktop, dark theme |
-| 33 | `png/33-desktop-workspace-collapsed.png` | `source/MainCollapsed.dc.html` | 1440x900 | Trip workspace — desktop, both side panels collapsed |
-| 34 | `png/34-guest-workspace.png` | `source/GuestWorkspace.dc.html` | 2940x960 | Guest workspace — Log in to save, phone banner and “…” menu, login note |
-| 35 | `png/35-guest-login-tooltip.png` | `source/GuestTooltip.dc.html` | 2340x1956 | Guest workspace — tooltip on “Log in to save your progress” |
-| 36 | `png/36-login-hosted.webp` | `source/LoginHosted.dc.html` | 5780x2456 | Hosted login page (Auth0, themed) — log in and sign up screens, wrong password; English and Traditional Chinese |
-| 37 | `png/37-login-return.png` | `source/LoginReturn.dc.html` | 5780x2266 | Returning to the app after login — Trip added, Trip list, login didn’t complete |
-| 38 | `png/38-account-menu.png` | `source/AccountMenu.dc.html` | 5780x2266 | Account menu — logged out, logged in, open |
-| 39 | `png/39-logout.webp` | `source/Logout.dc.html` | 2340x1956 | Log out — Landing with “You’re logged out” toast |
-| 40 | `png/40-session-expired.png` | `source/SessionExpired.dc.html` | 2340x1956 | Session expired while editing — read-only Trip and banner |
-| 41 | `png/41-invite-editor.webp` | `source/InviteEditor.dc.html` | 2340x1956 | Invited Editor from an email link, logged out; names the invited email (no photos) |
-| 42 | `png/42-notes-panel.png` | `source/NotesStates.dc.html` | 1960x2920 | Notes panel — new Note, list, open Note; desktop and phone, light and dark (current Notes design; replaces 17) |
-| 43 | `png/43-empty-slot.png` | `source/EmptySlot.dc.html` | 1500x1250 | Empty time slot — Add Event and Add Travel on hover (desktop) and tap (phone) |
-| 44 | `png/44-opening-hours.png` | `source/OpeningHours.dc.html` | 1960x1740 | Opening hours — Event panel section states (off, loading, on, Whole week, conflict, no dates, no hours, read-only, dark, phone) and the amber card label |
-| 45 | `png/45-trip-dates.png` | `source/TripDates.dc.html` | 1960x1320 | Trip dates — start date entry points (top bar, phone menu, Trip list), Trip settings with and without dates, date picker, Day headers and phone Day tabs. Top-bar date button, "Add dates" and the picker are proposed |
-| 46 | `png/46-event-panel-actions.png` | `source/EventPanelActions.dc.html` | 2280x1120 | Event panel — kind dropdown (open), footer by state (Cancel / Save, ⋯ menu), ⋯ menu per state, phone footer, and the full side panel with the ⋯ menu open |
-| 47 | `png/47-phone-menus.png` | `source/PhoneMenus.dc.html` | 1840x1500 | Phone — Account sheet (logged in, guest), Trip `⋯` sheet (Owner, Editor, guest), top bar by role (Owner, Editor, Viewer logged out and in, guest) |
-| 48 | `png/48-auth-states.png` | `source/AuthStates.dc.html` | 2300x940 | Auth states — invitation with another account, email not verified, joined; session expired with unsaved Event panel edits; account spot while loading |
+| 01 | `png/01-desktop-workspace.png` | `source/01-desktop-workspace.dc.html` | 1440x900 | Trip workspace — desktop |
+| 02 | `png/02-phone-workspace.png` | `source/02-phone-workspace.dc.html` | 390x844 | Trip workspace — phone |
+| 03 | `png/03-event-panel-phone-sheet.png` | `source/03-event-panel-phone-sheet.dc.html` | 470x900 | Event panel — phone bottom sheet |
+| 04 | `png/04-event-panel-side.png` | `source/04-event-panel-side.dc.html` | 1440x900 | Event panel — default: side panel (Expand → modal) |
+| 05 | `png/05-event-panel-modal.png` | `source/05-event-panel-modal.dc.html` | 1440x900 | Event panel — expanded: modal (Collapse → side panel) |
+| 06 | `png/06-map-view.png` | `source/06-map-view.dc.html` | 1440x900 | Map View |
+| 07 | `png/07-event-panel-kinds-desktop.png` | `source/07-event-panel-kinds-desktop.dc.html` | 1840x1080 | Event panel by kind — desktop (Attraction · Meal · Lodging · Transport) |
+| 08 | `png/08-event-panel-kinds-phone.png` | `source/08-event-panel-kinds-phone.dc.html` | 1710x1260 | Event panel by kind — phone bottom sheets |
+| 09 | `png/09-panel-switch-kind.png` | `source/09-panel-switch-kind.dc.html` | 1660x1040 | Switching kind — Attraction to Lodging, before and after (after state) |
+| 10 | `png/10-lodging-banner.png` | `source/10-lodging-banner.dc.html` | 1400x900 | Lodging banner in Day columns — 3 nights, Day 1 to Day 4 |
+| 11 | `png/11-day-header-menu.png` | `source/11-day-header-menu.dc.html` | 1180x800 | Day header — handle, states and Day menu (desktop) |
+| 12 | `png/12-day-drag.png` | `source/12-day-drag.dc.html` | 1440x900 | Dragging a Day — lifted Day, drop position, live renumbering |
+| 13 | `png/13-day-delete.png` | `source/13-day-delete.dc.html` | 1440x900 | Delete Day — confirmation and undo toast |
+| 14 | `png/14-day-menu-phone.png` | `source/14-day-menu-phone.dc.html` | 1330x930 | Day menu and delete confirmation — phone |
+| 15 | `png/15-day-swap-lodging.png` | `source/15-day-swap-lodging.dc.html` | 1440x940 | Swapping two Days — the 3-night stay stays in place |
+| 16 | `png/16-landing.webp` | `source/16-landing.dc.html` | 2300x1000 | Landing — new visitor, desktop and phone |
+| 16b | `png/16b-landing-guest-trips.webp` | `source/16b-landing-guest-trips.dc.html` | 2300x1000 | Landing — guest with Trips (Continue + Open a sample Trip link + “only saved in this browser”) |
+| 16c | `png/16c-landing-logged-in.webp` | `source/16c-landing-logged-in.dc.html` | 2300x1000 | Landing — logged in with Trips (Continue + Open a sample Trip link, avatar top right) |
+| 16d | `png/16d-landing-logged-in-empty.webp` | `source/16d-landing-logged-in-empty.dc.html` | 2300x1000 | Landing — logged in, no Trips (Open a sample Trip only, avatar top right) |
+| 17 | `png/17-notes-panel.png` | `source/17-notes-panel.dc.html` | 3040x1200 | Notes panel — open on Schedule and Map, movable, states, phone sheet |
+| 18 | `png/18-viewer-mode.png` | `source/18-viewer-mode.dc.html` | 2040x900 | Viewer mode — read-only workspace and Event details |
+| 19 | `png/19-dialogs.png` | `source/19-dialogs.dc.html` | 2000x900 | Dialogs — Share Trip (link on / off; people list with Owner, Invited, Editor; Export is Full backup only) and Trip settings (rename, start date, travel mode, Delete Trip…, Cancel / Save) |
+| 20 | `png/20-confirm-archive-delete.png` | `source/20-confirm-archive-delete.dc.html` | 2000x880 | Archive and delete confirmations, toasts, phone |
+| 21 | `png/21-export-image.png` | `source/21-export-image.dc.html` | 1960x1120 | Exported image — poster. Not built: image export was dropped on 2026-10-23 |
+| 22 | `png/22-states-empty-loading.png` | `source/22-states-empty-loading.dc.html` | 2000x1000 | States — empty Trip, Day, Backlog and Archive; loading |
+| 23 | `png/23-states-errors.png` | `source/23-states-errors.dc.html` | 2000x1180 | States — errors and limit reached |
+| 24 | `png/24-trip-list.png` | `source/24-trip-list.dc.html` | 4220x920 | My Trips modal (opened from the Trip title; no “⋯” menu), New Trip (Blank / Generate with AI / Import backup…), Delete Trip (opened from Trip settings). Hover, pressed and focus states of the "Generate with AI" button are live CSS (`.aib`), not in the PNG; see design-spec §4 |
+| 24b | `png/24b-trip-list-phone.png` | `source/24b-trip-list-phone.dc.html` | 3460x940 | My Trips on phone — list, New Trip, Blank Trip, Generate with AI, Trip settings, Delete Trip, Share Trip (bottom sheets) |
+| 25 | `png/25-leg-detail.png` | `source/25-leg-detail.dc.html` | 3300x900 | Leg — chooser, detail, warning, cannot calculate, phone sheet |
+| 25b | `png/25b-leg-manual-duration.png` | `source/25b-leg-manual-duration.dc.html` | 3900x900 | Leg — duration entered by hand where Google cannot calculate (public transit in Japan): field, entered state, gap warning, toast, phone sheets |
+| 25c | `png/25c-leg-duration-edit.png` | `source/25c-leg-duration-edit.dc.html` | 1520x760 | Leg — editing a duration entered by hand (Edit button): resting, after Edit, phone |
+| 26 | `png/26-event-image.webp` | `source/26-event-image.dc.html` | 2340x1060 | Event image — panel states and Event block |
+| 27 | `png/27-trip-list-nav.png` | `source/27-trip-list-nav.dc.html` | 3640x940 | My Trips modal from the Trip title; Backlog/Archive collapse; switching Trips |
+| 28 | `png/28-states-generic.png` | `source/28-states-generic.dc.html` | 2000x900 | Empty state, loading skeleton and error banner — one generic style each |
+| 29 | `png/29-ds-tokens.png` | `source/29-ds-tokens.dc.html` | 1900x1180 | Design system — color tokens (light and dark), type scale, spacing, radius, shadow |
+| 30 | `png/30-ds-components.png` | `source/30-ds-components.dc.html` | 2400x1180 | Design system — components and their states |
+| 31 | `png/31-ds-overlays.png` | `source/31-ds-overlays.dc.html` | 1800x1180 | Design system — dialogs, popovers, banners, tooltips and the shortcut format |
+| 32 | `png/32-desktop-workspace-dark.png` | `source/32-desktop-workspace-dark.dc.html` | 1440x900 | Trip workspace — desktop, dark theme |
+| 33 | `png/33-desktop-workspace-collapsed.png` | `source/33-desktop-workspace-collapsed.dc.html` | 1440x900 | Trip workspace — desktop, both side panels collapsed |
+| 34 | `png/34-guest-workspace.png` | `source/34-guest-workspace.dc.html` | 2940x960 | Guest workspace — Log in to save, phone banner and “…” menu, login note |
+| 35 | `png/35-guest-login-tooltip.png` | `source/35-guest-login-tooltip.dc.html` | 2340x1956 | Guest workspace — tooltip on “Log in to save your progress” |
+| 36 | `png/36-login-hosted.webp` | `source/36-login-hosted.dc.html` | 5780x2456 | Hosted login page (Auth0, themed) — log in and sign up screens, wrong password; English and Traditional Chinese |
+| 37 | `png/37-login-return.png` | `source/37-login-return.dc.html` | 5780x2266 | Returning to the app after login — Trip added, Trip list, login didn’t complete |
+| 38 | `png/38-account-menu.png` | `source/38-account-menu.dc.html` | 5780x2266 | Account menu — logged out, logged in, open |
+| 39 | `png/39-logout.webp` | `source/39-logout.dc.html` | 2340x1956 | Log out — Landing with “You’re logged out” toast |
+| 40 | `png/40-session-expired.png` | `source/40-session-expired.dc.html` | 2340x1956 | Session expired while editing — read-only Trip and banner |
+| 41 | `png/41-invite-editor.webp` | `source/41-invite-editor.dc.html` | 2340x1956 | Invited Editor from an email link, logged out; names the invited email (no photos) |
+| 42 | `png/42-notes-panel.png` | `source/42-notes-panel.dc.html` | 1960x2920 | Notes panel — new Note, list, open Note; desktop and phone, light and dark (current Notes design; replaces 17) |
+| 43 | `png/43-empty-slot.png` | `source/43-empty-slot.dc.html` | 1500x1250 | Empty time slot — Add Event and Add Travel on hover (desktop) and tap (phone) |
+| 44 | `png/44-opening-hours.png` | `source/44-opening-hours.dc.html` | 1960x1740 | Opening hours — Event panel section states (off, loading, on, Whole week, conflict, no dates, no hours, read-only, dark, phone) and the amber card label |
+| 45 | `png/45-trip-dates.png` | `source/45-trip-dates.dc.html` | 1960x1320 | Trip dates — start date entry points (top bar, phone menu, Trip list), Trip settings with and without dates, date picker, Day headers and phone Day tabs. Top-bar date button, "Add dates" and the picker are proposed |
+| 46 | `png/46-event-panel-actions.png` | `source/46-event-panel-actions.dc.html` | 2280x1120 | Event panel — kind dropdown (open), footer by state (Cancel / Save, ⋯ menu), ⋯ menu per state, phone footer, and the full side panel with the ⋯ menu open |
+| 47 | `png/47-phone-menus.png` | `source/47-phone-menus.dc.html` | 1840x1500 | Phone — Account sheet (logged in, guest), Trip `⋯` sheet (Owner, Editor, guest), top bar by role (Owner, Editor, Viewer logged out and in, guest) |
+| 48 | `png/48-auth-states.png` | `source/48-auth-states.dc.html` | 2300x940 | Auth states — invitation with another account, email not verified, joined; session expired with unsaved Event panel edits; account spot while loading |
 
 ## Notes
 

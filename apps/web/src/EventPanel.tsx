@@ -311,6 +311,12 @@ export function EventPanel({
     const duration = fieldsDuration(current) ?? saved.current?.durationMinutes;
     const checkIn = kind === "lodging" && current.checkIn.trim() === "" && start !== undefined ? { checkIn: formatMinute(start) } : {};
     change({ kind, ...checkIn, ...(start !== undefined && duration !== undefined ? timeFields(start, duration) : {}) });
+    // On desktop only a Lodging shows the Day list, so a Day picked there must not be saved unseen
+    // after switching to another kind: go back to where the Event is.
+    if (!phone && kind !== "lodging") {
+      const place = saved.current ? placeOf(saved.current) : original.dayId;
+      if (latest.current.dayId !== place) changePlace(place);
+    }
   }
 
   // Moving between a Day and a holding area keeps the same duration: a Transport event is shown by
@@ -582,7 +588,8 @@ export function EventPanel({
             onChange={(e) => change({ title: e.target.value })}
           />
         </label>
-        {phone && (
+        {/* Desktop moves Events by dragging, but a Lodging banner cannot be dragged, so a Lodging has the list there too. */}
+        {(phone || fields.kind === "lodging") && (
           <label>
             {fields.kind === "lodging" ? t("event.checkInDay") : t("event.day")}
             <select value={fields.dayId} onChange={(e) => changePlace(e.target.value)}>
@@ -596,7 +603,9 @@ export function EventPanel({
             </select>
           </label>
         )}
-        {phone && <p className="hint">{t("event.dayHint")}</p>}
+        {(phone || fields.kind === "lodging") && (
+          <p className="hint">{fields.kind === "lodging" ? t("event.checkInDayHint") : t("event.dayHint")}</p>
+        )}
         {fields.kind === "lodging" ? (
           <>
             <label>

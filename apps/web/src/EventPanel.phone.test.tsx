@@ -265,6 +265,34 @@ describe("EventPanel on a desktop", () => {
     expect(screen.queryByRole("combobox", { name: "Day" })).toBeNull();
   });
 
+  it("shows the list while the kind is Lodging and forgets a Day picked there when switched back", async () => {
+    setPhone(false);
+    const user = userEvent.setup();
+    const props = setup();
+    await chooseKind(user, "Lodging");
+    await user.selectOptions(screen.getByRole("combobox", { name: "Check-in Day" }), "archive");
+    await chooseKind(user, "Attraction");
+    expect(screen.queryByRole("combobox", { name: /Day/ })).toBeNull();
+    // Still on its Day, so the times are shown.
+    expect(screen.getByLabelText("Start")).toBeTruthy();
+    await user.type(screen.getByLabelText("Title"), "!");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(props.onUpdate).toHaveBeenCalled());
+    const patch = props.onUpdate.mock.calls[0]![1];
+    expect(patch).not.toHaveProperty("dayId");
+    expect(patch).not.toHaveProperty("area");
+  });
+
+  it("has a check-in Day list for a Lodging, since its banner cannot be dragged", async () => {
+    setPhone(false);
+    const user = userEvent.setup();
+    const props = setup({ event: makeEvent({ kind: "lodging", nights: 1, dayId: null, holding: "backlog" }) });
+    await user.selectOptions(screen.getByRole("combobox", { name: "Check-in Day" }), days[1]!.id);
+    expect(props.onUpdate).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(props.onUpdate).toHaveBeenCalledWith(props.event.id, expect.objectContaining({ dayId: days[1]!.id })));
+  });
+
   it("has a close button, a footer with ⋯, Close and Save, and no scrim", async () => {
     setPhone(false);
     const user = userEvent.setup();

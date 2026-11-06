@@ -5,8 +5,7 @@
 // A screen whose current image in png/ is .webp is written as .webp (via sharp).
 import { chromium } from 'playwright';
 import sharp from 'sharp';
-import { readFile, readdir, writeFile, rm } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import http from 'node:http';
 import { fileURLToPath } from 'node:url';

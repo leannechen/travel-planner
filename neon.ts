@@ -9,8 +9,12 @@ export default defineConfig({
       // Default branch: no overrides, uses project defaults
       return {};
     }
+    if (branch.name === "dev") {
+      // The shared development branch that local checkouts use (`neon checkout dev`): kept, not expired
+      return {};
+    }
     if (!branch.exists) {
-      // New non-default branches: auto-expire
+      // Other new non-default branches: auto-expire
       // Run `neon checkout <name>` to create a new branch with these settings
       return { ttl: "7d" };
     }

@@ -50,6 +50,7 @@ import { itineraryGeneratorFromEnv } from "./openai-generator";
 import { fetchOpeningHours, getOpeningHours, getPlacePhoto, getPlaces, PlaceProviderError, placeProviderFromEnv, searchPlaces, type PlaceProvider } from "./places";
 import { imageStoreFromEnv, prepareImage, type ImageStore } from "./images";
 import { routeProviderFromEnv, type RouteProvider } from "./routes";
+import { serveWeb } from "./web";
 import {
   addEvent,
   addHeldEvent,
@@ -134,7 +135,7 @@ const LIMIT_MESSAGES = {
   notes: "This Trip has as many Notes as it can hold.",
 } as const;
 
-export function createApp(db: Db, options: { places?: PlaceProvider; routes?: RouteProvider; generator?: ItineraryGenerator; auth?: TokenVerifier; mailer?: InvitationMailer; identityAdmin?: IdentityAdmin; appOrigin?: string; images?: ImageStore; trustProxy?: string } = {}) {
+export function createApp(db: Db, options: { places?: PlaceProvider; routes?: RouteProvider; generator?: ItineraryGenerator; auth?: TokenVerifier; mailer?: InvitationMailer; identityAdmin?: IdentityAdmin; appOrigin?: string; images?: ImageStore; trustProxy?: string; webDir?: string } = {}) {
   const images = options.images ?? imageStoreFromEnv();
   const mailer = options.mailer ?? logInvitationMailer();
   const identityAdmin = options.identityAdmin ?? identityAdminFromEnv();
@@ -161,6 +162,7 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
     return wanted.length > 0 && (await getPlaces(db, depsFor(req, res).places, wanted)).length !== new Set(wanted).size;
   };
   const app = express();
+  app.disable("x-powered-by");
   // Behind a proxy (fly.io) the client's address comes from X-Forwarded-For. TRUST_PROXY is Express's
   // "trust proxy" setting: how many proxies to believe, or which addresses; unset, none are.
   const trustProxy = options.trustProxy ?? process.env.TRUST_PROXY;
@@ -1024,6 +1026,10 @@ export function createApp(db: Db, options: { places?: PlaceProvider; routes?: Ro
     await syncTripLegs(req, res, tripId);
     res.status(201).json(result);
   });
+
+  // Production serves the built web app too (WEB_DIR, set in the Dockerfile); development uses Vite.
+  const webDir = options.webDir ?? process.env.WEB_DIR;
+  if (webDir) app.use(serveWeb(webDir));
 
   app.use((err: unknown, req: express.Request, res: express.Response, next: express.NextFunction) => {
     if (err instanceof ZodError) {

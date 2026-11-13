@@ -27,3 +27,20 @@ PORT=3002 API_PORT=3002 npm run dev   # API on :3002, web on the next free port,
 Other commands: `npm test`, `npm run lint`, `npm run typecheck`, `npm run build`.
 
 Layout: `apps/web` (React + Vite), `apps/api` (Express), `packages/shared` (Zod schemas shared by both).
+
+## Deployment
+
+Production runs on fly.io as the app `ideal-travel-planner` (`fly.toml`), built from the `Dockerfile`: one Node server that answers `/api`, the live socket and the built web app on one origin. Deploy with:
+
+```sh
+fly deploy --ha=false
+```
+
+`--ha=false` keeps it to one Machine: the live collaboration rooms are held in the API's memory, and the API runs the migrations when it starts. The Machine is suspended when idle and wakes on the next request.
+
+- **Build arguments** (`[build.args]` in `fly.toml`): the `VITE_` values, which end up in the page and are public. The build stops without the three Auth0 ones.
+- **Secrets** (`fly secrets set` or `fly secrets import`): `DATABASE_URL` (Neon `production`, pooled), `DATABASE_URL_UNPOOLED` (direct, for migrations), `AUTH0_DOMAIN`, `AUTH0_AUDIENCE`, `AUTH0_M2M_CLIENT_ID`, `AUTH0_M2M_CLIENT_SECRET`, `GOOGLE_MAPS_API_KEY`, `OPENAI_API_KEY`.
+- **Plain settings** (`[env]` in `fly.toml`): `APP_ORIGIN`, `TRUST_PROXY`.
+- `NODE_ENV=production` is set in the image itself. Never set `AUTH_FAKE` on a deployment: the API refuses to start with it.
+
+To try the image locally: `docker build -t travel-planner --build-arg VITE_AUTH0_DOMAIN=… --build-arg VITE_AUTH0_CLIENT_ID=… --build-arg VITE_AUTH0_AUDIENCE=… .`, then run it with the same variables as the deployment and `-p 8080:8080`.

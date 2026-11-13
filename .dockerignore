@@ -1,0 +1,15 @@
+# Only what the Dockerfile copies matters; this keeps the build context small and local secrets out.
+**/node_modules
+**/dist
+.git
+.env
+.env.*
+.neon
+.mcp.json
+_private
+docs
+CLAUDE-SECURITY-*
+apps/api/uploads
+**/*.test.ts
+**/*.test.tsx
+apps/api/test

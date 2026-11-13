@@ -14,8 +14,13 @@ if (!databaseUrl) throw new Error("DATABASE_URL is not set");
 const auth = verifierFromEnv();
 if (!authSettingsFromEnv()) console.warn("AUTH0_DOMAIN is not set: accepting fake tokens (development only)");
 
+// Migrations need a direct connection: on Neon, DATABASE_URL goes through the pooler (PgBouncer in
+// transaction mode), so they use DATABASE_URL_UNPOOLED when it is set.
+const migrationDb = createDb(process.env.DATABASE_URL_UNPOOLED ?? databaseUrl);
+await runMigrations(migrationDb.db);
+await migrationDb.pool.end();
+
 const { db } = createDb(databaseUrl);
-await runMigrations(db);
 await failInterruptedGenerations(db);
 // Counts of past days are not needed any more.
 await pruneUsage(db);

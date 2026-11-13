@@ -7,3 +7,4 @@ dist/
 .claude/worktrees
 # Uploaded Event images in development
 apps/api/uploads/
+.neon

@@ -8,9 +8,11 @@ primary_region = "sin"
   # Built into the page and seen by every browser, so not secrets. The Dockerfile refuses to build
   # without the three Auth0 values.
   [build.args]
-    VITE_AUTH0_AUDIENCE = "https://api.ideal-travel-planner.fly.dev"
-    # VITE_AUTH0_DOMAIN = ""
-    # VITE_AUTH0_CLIENT_ID = ""
+    # The production SPA application and API in the Auth0 tenant (the tenant is shared with development).
+    VITE_AUTH0_DOMAIN = "dev-3iemd6gpjr2ff863.us.auth0.com"
+    VITE_AUTH0_CLIENT_ID = "DAuNX4KzjlojJkJCgv239z5YwNfuAftX"
+    # The API's Identifier; the AUTH0_AUDIENCE secret has the same value.
+    VITE_AUTH0_AUDIENCE = "https://travel-planner-api-prod"
     # VITE_GOOGLE_MAPS_API_KEY = ""
     # VITE_GOOGLE_MAP_ID = ""
 

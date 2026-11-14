@@ -16,10 +16,14 @@ primary_region = "sin"
     # VITE_GOOGLE_MAPS_API_KEY = ""
     # VITE_GOOGLE_MAP_ID = ""
 
-# Not secret. The secrets (DATABASE_URL, DATABASE_URL_UNPOOLED, AUTH0_*, GOOGLE_MAPS_API_KEY,
-# OPENAI_API_KEY) are set with `fly secrets`. NODE_ENV is set in the Dockerfile. Never set AUTH_FAKE.
+# Not secret. The secrets (DATABASE_URL, DATABASE_URL_UNPOOLED, AUTH0_M2M_CLIENT_ID,
+# AUTH0_M2M_CLIENT_SECRET, GOOGLE_MAPS_API_KEY, OPENAI_API_KEY) are set with `fly secrets`. NODE_ENV is
+# set in the Dockerfile. Never set AUTH_FAKE.
 [env]
   APP_ORIGIN = "https://ideal-travel-planner.fly.dev"
+  # The same tenant and API as the VITE_ build values above.
+  AUTH0_DOMAIN = "dev-3iemd6gpjr2ff863.us.auth0.com"
+  AUTH0_AUDIENCE = "https://travel-planner-api-prod"
   # One proxy (Fly's) in front: the usage limits count by the address it reports (step 33).
   TRUST_PROXY = "1"
 

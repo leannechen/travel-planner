@@ -1,5 +1,6 @@
-# fly.io (step 27). Deploy with `fly deploy --ha=false`: one Machine only, because the live
-# collaboration rooms (live.ts) live in the API's memory and migrations run when the API starts.
+# fly.io (step 27). Deployed by the `deploy` job in .github/workflows/ci.yml (README "Deployment"); by
+# hand: `fly deploy --ha=false --build-arg VITE_GOOGLE_MAPS_API_KEY=…`. One Machine only, because the
+# live collaboration rooms (live.ts) live in the API's memory and migrations run when the API starts.
 app = "ideal-travel-planner"
 # Singapore, beside the Neon database (aws-ap-southeast-1); every query crosses this distance.
 primary_region = "sin"
@@ -11,9 +12,10 @@ primary_region = "sin"
     # The production SPA application and API in the Auth0 tenant (the tenant is shared with development).
     VITE_AUTH0_DOMAIN = "dev-3iemd6gpjr2ff863.us.auth0.com"
     VITE_AUTH0_CLIENT_ID = "DAuNX4KzjlojJkJCgv239z5YwNfuAftX"
-    # The API's Identifier; the AUTH0_AUDIENCE secret has the same value.
+    # The API's Identifier; AUTH0_AUDIENCE under [env] has the same value.
     VITE_AUTH0_AUDIENCE = "https://travel-planner-api-prod"
-    # VITE_GOOGLE_MAPS_API_KEY = ""
+    # VITE_GOOGLE_MAPS_API_KEY is passed by the deploy job (.github/workflows/ci.yml) from a GitHub secret,
+    # so the key is not in the repository. A deploy from a laptop without it shows the sample map.
     # VITE_GOOGLE_MAP_ID = ""
 
 # Not secret. The secrets (DATABASE_URL, DATABASE_URL_UNPOOLED, AUTH0_M2M_CLIENT_ID,

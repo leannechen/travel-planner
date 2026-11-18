@@ -30,10 +30,12 @@ Layout: `apps/web` (React + Vite), `apps/api` (Express), `packages/shared` (Zod 
 
 ## Deployment
 
-Production runs on fly.io as the app `ideal-travel-planner` (`fly.toml`), built from the `Dockerfile`: one Node server that answers `/api`, the live socket and the built web app on one origin. Deploy with:
+Production runs on fly.io as the app `ideal-travel-planner` (`fly.toml`), built from the `Dockerfile`: one Node server that answers `/api`, the live socket and the built web app on one origin.
+
+Every push to `main` deploys once the CI checks pass (the `deploy` job in `.github/workflows/ci.yml`). It needs the GitHub environment `production` (Settings > Environments), with its deployment branches set to `main` only, so no other branch's workflow can read its two secrets: `FLY_API_TOKEN` (from `fly tokens create deploy -a ideal-travel-planner`) and `GOOGLE_MAPS_BROWSER_KEY` (the Maps browser key, restricted to the site's address; the deploy stops without it). Set them with `gh secret set <name> --env production`. To deploy by hand instead:
 
 ```sh
-fly deploy --ha=false
+fly deploy --ha=false --build-arg VITE_GOOGLE_MAPS_API_KEY=…   # without the key, the Map View shows the sample map
 ```
 
 `--ha=false` keeps it to one Machine: the live collaboration rooms are held in the API's memory, and the API runs the migrations when it starts. The Machine is suspended when idle and wakes on the next request.

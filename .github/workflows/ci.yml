@@ -9,6 +9,13 @@ on:
 permissions:
   contents: read
 
+# Runs for pushes to main queue one after another (each ends in a deploy), so an older commit cannot
+# deploy over a newer one. GitHub keeps one waiting run: a third push replaces the second. Pull
+# requests run on their own.
+concurrency:
+  group: ${{ github.event_name == 'push' && 'deploy-production' || github.run_id }}
+  cancel-in-progress: false
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -41,3 +48,30 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+
+  # Every push to main that passes the checks goes to production (fly.io, docs: README "Deployment").
+  deploy:
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    # The secrets live in the GitHub environment "production"; its deployment branch rule lets only main
+    # use them (set up by hand, README "Deployment").
+    environment:
+      name: production
+      url: https://ideal-travel-planner.fly.dev
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1 # 1.6
+        with:
+          version: 0.5.10
+      # Built on Fly's remote builder. The Maps browser key goes into the page and is public there, but
+      # it is kept out of the repository so scanners do not report it; its referrer restriction protects it.
+      # A missing key would quietly ship the sample map, so it stops the deploy instead.
+      - run: |
+          test -n "$GOOGLE_MAPS_BROWSER_KEY" || { echo "The GOOGLE_MAPS_BROWSER_KEY secret is missing" >&2; exit 1; }
+          flyctl deploy --remote-only --ha=false --build-arg VITE_GOOGLE_MAPS_API_KEY="$GOOGLE_MAPS_BROWSER_KEY"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          GOOGLE_MAPS_BROWSER_KEY: ${{ secrets.GOOGLE_MAPS_BROWSER_KEY }}
